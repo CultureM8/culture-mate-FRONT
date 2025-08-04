@@ -1,3 +1,4 @@
+import NavigationBar from "@/components/global/NavigationBar";
 import "./globals.css";
 
 export const metadata = {
@@ -9,7 +10,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ko">
       <body>
-        {children}
+        <NavigationBar />
+        <main className="px-[clamp(0px,6vw,120px)]">
+          {children}
+        </main>
       </body>
     </html>
   );
