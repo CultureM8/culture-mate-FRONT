@@ -43,7 +43,7 @@ function EditButton() {
 // 메인 프로필 정보 컴포넌트
 export default function ProfileInfo() {
   const [nickname, setNickname] = useState("사용자 별명");
-  const [score, setScore] = useState(0);
+  const [score, setScore] = useState(50);
   const [introduction, setIntroduction] = useState("한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개");
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
