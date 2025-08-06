@@ -22,5 +22,6 @@ export const ICONS = {
   FILTER: "/img/filter.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
   VIEWTYPE_LIST: "/img/list.svg",
-  VIEWTYPE_GALLERY: "/img/menu.svg"
+  VIEWTYPE_GALLERY: "/img/menu.svg",
+  AI: "/img/ai_banner.svg",
 }
