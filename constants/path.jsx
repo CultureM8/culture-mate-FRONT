@@ -21,6 +21,8 @@ export const ICONS = {
   FIRE: "/img/fire.svg",
   FILTER: "/img/filter.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
+  RIGHT_ARROW: "/img/right_arrow.svg",
+  LEFT_ARROW: "/img/left_arrow.svg",
   VIEWTYPE_LIST: "/img/list.svg",
   VIEWTYPE_GALLERY: "/img/menu.svg",
   AI: "/img/ai_banner.svg",
