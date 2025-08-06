@@ -63,7 +63,8 @@ export default function MyPostGrid() {
               <div className="font-bold truncate" title={post.title}>
                 {post.title}
               </div>
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                <Image src={ICONS.REPLY} alt="edit" width={24} height={24} />
                 {post.reply}
                 {/* 필요하면 댓글 내용 일부도 여기 넣을 수 있음 */}
               </div>

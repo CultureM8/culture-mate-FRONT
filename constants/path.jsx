@@ -25,4 +25,5 @@ export const ICONS = {
   VIEWTYPE_GALLERY: "/img/menu.svg",
   EDIT: "/img/edit.svg",
   DELETE: "/img/delete.svg",
+  REPLY: "/img/curved_arrow.svg",
 };
