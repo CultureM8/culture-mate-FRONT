@@ -19,9 +19,9 @@ function ProfileSection() {
   const toggleMbtiDropdown = () => setMbtiDropdown(!mbtiDropdown);
 
   return (
-    <div className="flex flex-row gap-4 items-start justify-start w-full" data-name="Profile section">
+    <div className="flex flex-col lg:flex-row gap-4 items-start justify-start w-full" data-name="Profile section">
       {/* 나이 섹션 */}
-      <div className="flex flex-col gap-2 w-40 shrink-0">
+      <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
         <div className="flex flex-row gap-2 items-center relative">
           <div className="text-gray-800 text-base font-normal">
             <p>나이</p>
@@ -78,7 +78,7 @@ function ProfileSection() {
       </div>
 
       {/* 성별 섹션 */}
-      <div className="flex flex-col gap-2 w-40 shrink-0">
+      <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
         <div className="flex flex-row gap-2 items-center relative">
           <div className="text-gray-800 text-base font-normal">
             <p>성별</p>
@@ -135,7 +135,7 @@ function ProfileSection() {
       </div>
 
       {/* MBTI 섹션 */}
-      <div className="flex flex-col gap-2 w-40 shrink-0">
+      <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
         <div className="flex flex-row gap-2 items-center relative">
           <div className="text-gray-800 text-base font-normal">
             <p>MBTI</p>
@@ -252,7 +252,7 @@ function EventTypeContainer() {
           )}
         </div>
       </div>
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-2.5 h-14 items-center justify-start p-[16px] relative rounded shrink-0 w-full" data-name="Event type value">
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-row flex-wrap gap-2.5 h-auto min-h-14 items-start justify-start p-[16px] relative rounded shrink-0 w-full" data-name="Event type value">
         <div aria-hidden="true" className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
         <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
           <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
@@ -347,9 +347,9 @@ function TagContainer({
         </div>
       </div>
       
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-2.5 items-start justify-start h-[80px] p-[16px] relative rounded shrink-0 w-full border border-[#c6c8ca]">
-        <div className="basis-0 flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_'Noto_Sans:Regular',_sans-serif] font-normal grow justify-center leading-[0] min-h-px min-w-px not-italic relative shrink-0 text-[#76787a] text-[16px] text-left">
-          <p className="block leading-[1.5]">{tags}</p>
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-2.5 items-start justify-start p-[16px] relative rounded shrink-0 w-full border border-[#c6c8ca]" style={{ height: 'auto' }}>
+        <div className="basis-0 flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_'Noto_Sans:Regular',_sans-serif] font-normal grow justify-start leading-[0] min-h-px min-w-px not-italic relative shrink-0 text-[#76787a] text-[16px] text-left">
+          <p className="block leading-[1.5] break-words whitespace-pre-wrap">{tags}</p>
         </div>
       </div>
     </div>
@@ -457,7 +457,7 @@ function GalleryContainer() {
         </div>
       </div>
 
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-start p-[16px] relative rounded shrink-0 w-full h-[232px]">
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-start p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px]">
         <div className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
         
         <div className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start overflow-x-auto p-0 relative shrink-0 w-full h-full">
@@ -481,7 +481,7 @@ function GalleryContainer() {
           {images.map((image) => (
             <div
               key={image.id}
-              className="bg-[#eef0f2] box-border content-stretch flex flex-col gap-2.5 items-center justify-center p-0 relative rounded-lg shrink-0 size-[200px] hover:bg-[#e0e2e4] transition-colors duration-200 overflow-hidden"
+              className="bg-[#eef0f2] box-border content-stretch flex flex-col gap-2.5 items-center justify-center p-0 relative rounded-lg shrink-0 w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] hover:bg-[#e0e2e4] transition-colors duration-200 overflow-hidden"
             >
               {/* 업로드된 이미지 표시 */}
               {image.src && (
@@ -536,7 +536,7 @@ function GalleryContainer() {
 // 메인 ProfilePage 컴포넌트
 export default function ProfilePage() {
   return (
-    <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto p-6">
+    <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto p-4 sm:p-6">
       {/* 1. 나이/성별/MBTI 칸 */}
       <ProfileSection />
       
