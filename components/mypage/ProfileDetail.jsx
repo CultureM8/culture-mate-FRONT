@@ -286,7 +286,7 @@ function EventTypeContainer() {
 // TagContainer 컴포넌트
 function TagContainer({ 
   label = "관심 태그",
-  tags = "#산책 #맛집탐방 #전시회 #영화관람 #혼자여행 #사진찍기 #등산 #카페투어 #드라이브 #야경감상 #음악감상 #플리공유 #방탈출 #보드게임 #재즈공연 #클래식음악 #요가 #러닝 #자전거타기 #동물사랑 #플리마켓 #디저트투어 #서점데이트 #도서모임 #책읽기 #소극장연극 #글쓰기 #게임파티 #인디밴드 #수공예"
+  tags = ["산책", "맛집탐방", "전시회", "영화관람", "혼자여행", "사진찍기", "등산", "카페투어", "드라이브", "야경감상", "음악감상", "플리공유", "방탈출", "보드게임", "재즈공연", "클래식음악", "요가", "러닝", "자전거타기", "동물사랑", "플리마켓", "디저트투어", "서점데이트", "도서모임", "책읽기", "소극장연극", "글쓰기", "게임파티", "인디밴드", "수공예"]
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
@@ -347,10 +347,18 @@ function TagContainer({
         </div>
       </div>
       
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-2.5 items-start justify-start p-[16px] relative rounded shrink-0 w-full border border-[#c6c8ca]" style={{ height: 'auto' }}>
-        <div className="basis-0 flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_'Noto_Sans:Regular',_sans-serif] font-normal grow justify-start leading-[0] min-h-px min-w-px not-italic relative shrink-0 text-[#76787a] text-[16px] text-left">
-          <p className="block leading-[1.5] break-words whitespace-pre-wrap">{tags}</p>
-        </div>
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-row flex-wrap gap-2.5 h-auto min-h-14 items-start justify-start p-[16px] relative rounded shrink-0 w-full border border-[#c6c8ca]">
+        {tags.map((tag, index) => (
+          <div
+            key={index}
+            className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]"
+          >
+            <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
+            <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
+              <p className="block leading-[1.43] whitespace-pre">#{tag}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -457,7 +465,7 @@ function GalleryContainer() {
         </div>
       </div>
 
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-start p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px]">
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-center p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px]">
         <div className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
         
         <div className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start overflow-x-auto p-0 relative shrink-0 w-full h-full">
