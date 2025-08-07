@@ -49,8 +49,6 @@ export default function MyPostGrid() {
         <div>추천수</div>
         <div>관심수</div>
         <div>작성일</div>
-        <div>편집</div>
-        <div>삭제</div>
       </div>
 
       {/* 게시물들 */}

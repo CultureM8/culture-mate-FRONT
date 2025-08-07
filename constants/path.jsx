@@ -26,4 +26,6 @@ export const ICONS = {
   EDIT: "/img/edit.svg",
   DELETE: "/img/delete.svg",
   REPLY: "/img/curved_arrow.svg",
+  TOGGLE_ON: "/img/toggle_on.svg",
+  TOGGLE_OFF: "/img/toggle_off.svg",
 };
