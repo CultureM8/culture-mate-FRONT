@@ -28,4 +28,8 @@ export const ICONS = {
   REPLY: "/img/curved_arrow.svg",
   TOGGLE_ON: "/img/toggle_on.svg",
   TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+  CALENDAR: "/img/calendar.svg",
+  GROUP: "/img/group.svg",
+  PIN: "/img/pin.svg",
 };

@@ -33,12 +33,13 @@ export default function Preference() {
     <>
       <h1 className="text-4xl font-bold py-[10px] h-16 space-y-1">환경설정</h1>
 
-      <div className="relative flex gap-4 border-b border-gray-300 mt-4 space-y-1">
-        <div className="w-1/6 px-4 py-2 text-lg text-center">알림설정</div>
-        <span className="absolute left-0 bottom-0 w-1/6 h-[2px] bg-black"></span>
+      <div className="relative flex gap-4 mt-4">
+        <div className="w-1/4 px-4 py-2 text-center">알림설정</div>
+        <span className="absolute left-0 bottom-[-1.5px] w-1/4 h-[2px] bg-black"></span>
+        <div className="absolute left-0 bottom-[-2.5px] w-full h-[1px] bg-gray-300"></div>
       </div>
 
-      <div className="relative flex items-center gap-6 text-lg mt-4">
+      <div className="relative flex items-center gap-6 text-lg mt-4 pb-[10px]">
         <div className="text-center">활동 알림</div>
         <div className="text-sm">전체알림</div>
 
@@ -48,9 +49,7 @@ export default function Preference() {
         >
           <div className="relative w-[30px] h-[30px]">
             <Image
-              src={
-                activityToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"
-              }
+              src={activityToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
               alt="토글"
               fill
               className="object-fill"
@@ -60,7 +59,6 @@ export default function Preference() {
       </div>
 
       <div className="w-full border border-gray-300 rounded-sm p-4 mt-1 space-y-3">
-        {/* 아래 동기화된 토글들 */}
         <div className="flex justify-between items-center">
           <div className="text-sm">새로운 이벤트 알림</div>
           <button
@@ -69,9 +67,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={
-                  newEventToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"
-                }
+                src={newEventToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -87,9 +83,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={
-                  newReplyToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"
-                }
+                src={newReplyToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -105,9 +99,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={
-                  newFollowToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"
-                }
+                src={newFollowToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -123,11 +115,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={
-                  newMessageToggle
-                    ? "/img/TOGGLE_ON.svg"
-                    : "/img/TOGGLE_OFF.svg"
-                }
+                src={newMessageToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -143,9 +131,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={
-                  newWithToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"
-                }
+                src={newWithToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -166,7 +152,7 @@ export default function Preference() {
         >
           <div className="relative w-[30px] h-[30px]">
             <Image
-              src={pushToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"}
+              src={pushToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
               alt="토글"
               fill
               className="object-fill"
@@ -188,7 +174,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={emailToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"}
+                src={emailToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"
@@ -204,7 +190,7 @@ export default function Preference() {
           >
             <div className="relative w-[30px] h-[30px]">
               <Image
-                src={smsToggle ? "/img/TOGGLE_ON.svg" : "/img/TOGGLE_OFF.svg"}
+                src={smsToggle ? ICONS.TOGGLE_ON : ICONS.TOGGLE_OFF}
                 alt="토글"
                 fill
                 className="object-fill"

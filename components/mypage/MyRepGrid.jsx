@@ -1,6 +1,6 @@
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
-import SearchFilterSort from "@/components/mypage/SearchSort";
+import SearchFilterSort from "@/components/global/SearchSort";
 
 export default function MyPostGrid() {
   const posts = [

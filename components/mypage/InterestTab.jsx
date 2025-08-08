@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import InterestEvent from "./InterestEvent";
+import InterestWith from "./InterestWith";
 
 export default function InterestTab() {
   const [activeTab, setActiveTab] = useState("InterEventTab");
+
   return (
-    <div className="mt-3">
+    <div className="mt-1">
       <div className="relative flex gap-4 border-b border-gray-300">
         <button
           onClick={() => setActiveTab("InterEventTab")}
-          className={`px-4 py-2 ${
+          className={`w-1/4 px-4 py-2 ${
             activeTab === "InterEventTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
@@ -19,7 +22,7 @@ export default function InterestTab() {
         </button>
         <button
           onClick={() => setActiveTab("InterWithTab")}
-          className={`px-4 py-2 ${
+          className={`w-1/4 px-4 py-2 ${
             activeTab === "InterWithTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
@@ -29,8 +32,8 @@ export default function InterestTab() {
         </button>
       </div>
       <div className="mt-8">
-        {activeTab === "InterEventTab" && <div>관심이벤트페이지</div>}
-        {activeTab === "InterWithTab" && <div>관심동행페이지</div>}
+        {activeTab === "InterEventTab" && <InterestEvent />}
+        {activeTab === "InterWithTab" && <InterestWith />}
       </div>
     </div>
   );
