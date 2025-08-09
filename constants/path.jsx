@@ -5,7 +5,7 @@ export const ROUTES = {
   COMMUNITY: "/community",
   HELP: "/help",
   MYPAGE: "/mypage",
-}
+};
 
 export const IMAGES = {
   LOGO: "/img/culture_mate_logo.svg",
