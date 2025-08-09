@@ -13,7 +13,7 @@ export default function HistoryTab() {
         <button
           onClick={() => setActiveTab("HistoryEventTab")}
           className={`w-1/4 px-4 py-2 ${
-            activeTab === "InterEventTab"
+            activeTab === "HistoryEventTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
           }`}
@@ -23,7 +23,7 @@ export default function HistoryTab() {
         <button
           onClick={() => setActiveTab("HistoryWithTab")}
           className={`w-1/4 px-4 py-2 ${
-            activeTab === "InterWithTab"
+            activeTab === "HistoryWithTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
           }`}
