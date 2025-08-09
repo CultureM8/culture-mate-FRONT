@@ -38,6 +38,11 @@ export const IMAGES = {
   GUIDE_FIREWORKS_IMG: "/img/Guide_fireworks.gif"
 }
 
+export const IMAGES = {
+  LOGO: "/img/culture_mate_logo.svg",
+  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
+};
+
 export const ICONS = {
   SEARCH: "/img/search.svg",
   DEFAULT_PROFILE: "/img/profile.svg",
@@ -46,7 +51,6 @@ export const ICONS = {
   HEART_EMPTY: "/img/heart-empty.svg",
   FIRE: "/img/fire.svg",
   FILTER: "/img/filter.svg",
-  EDIT_GRAY: "/img/edit_gray.svg",
   FACEBOOK: "/img/facebook.svg",
   KAKAOTALK: "/img/kakaotalk.svg",
   INSTAGRAM: "/img/instagram.svg",
@@ -64,5 +68,13 @@ export const ICONS = {
   PIN: "/img/pin.svg",
   STAR_EMPTY: "/img/star_empty.svg",
   STAR_FULL: "/img/star_full.svg",
-  STAR_HALF: "/img/star_half.svg"
-}
+  STAR_HALF: "/img/star_half.svg",
+  DOWN_ARROW: "/img/down_arrow.svg",
+  VIEWTYPE_LIST: "/img/list.svg",
+  VIEWTYPE_GALLERY: "/img/menu.svg",
+  DELETE: "/img/delete.svg",
+  REPLY: "/img/curved_arrow.svg",
+  TOGGLE_ON: "/img/toggle_on.svg",
+  TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+};
