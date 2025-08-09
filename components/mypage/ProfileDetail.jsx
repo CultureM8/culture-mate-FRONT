@@ -465,10 +465,10 @@ function GalleryContainer() {
         </div>
       </div>
 
-      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-center p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px]">
+      <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-center p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px] overflow-hidden">
         <div className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
         
-        <div className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start overflow-x-auto p-0 relative shrink-0 w-full h-full">
+        <div className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start p-0 relative shrink-0 w-full h-full overflow-x-auto overflow-y-hidden scrollbar-hide" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
           {images.length === 0 && (
             <button
               onClick={addImage}
