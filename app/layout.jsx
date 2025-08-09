@@ -1,4 +1,5 @@
 import NavigationBar from "@/components/global/NavigationBar";
+import Footer from "@/components/global/Footer";
 import "./globals.css";
 
 export const metadata = {
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
         <main className="mx-auto max-w-300 px-[clamp(0px,6vw,0px)] relative">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   );
