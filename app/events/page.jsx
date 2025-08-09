@@ -60,7 +60,6 @@ export default function Event() {
         enableTitle
         title={selectedType}
       />
-
       <GalleryLayout Component={EventGallery} items={eventData} />
     </>
   );
