@@ -5,12 +5,12 @@ export const ROUTES = {
   COMMUNITY: "/community",
   HELP: "/help",
   MYPAGE: "/mypage",
-}
+};
 
 export const IMAGES = {
-  LOGO: "/img/culture-mate-logo.svg",
-  GALLERY_DEFAULT_IMG: "/img/default-img.svg"
-}
+  LOGO: "/img/culture_mate_logo.svg",
+  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
+};
 
 export const ICONS = {
   SEARCH: "/img/search.svg",
@@ -36,4 +36,12 @@ export const ICONS = {
   CALENDAR: "/img/calendar.svg",
   GROUP: "/img/group.svg",
   PIN: "/img/pin.svg",
-}
+  DOWN_ARROW: "/img/down_arrow.svg",
+  VIEWTYPE_LIST: "/img/list.svg",
+  VIEWTYPE_GALLERY: "/img/menu.svg",
+  DELETE: "/img/delete.svg",
+  REPLY: "/img/curved_arrow.svg",
+  TOGGLE_ON: "/img/toggle_on.svg",
+  TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+};
