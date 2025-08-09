@@ -12,10 +12,10 @@ export default function RootLayout({ children }) {
     <html lang="ko">
       <body>
         <NavigationBar />
-        <Footer />
         <main className="mx-auto max-w-300 px-[clamp(0px,6vw,0px)] relative">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   );
