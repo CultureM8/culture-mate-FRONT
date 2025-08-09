@@ -8,10 +8,10 @@ import { ROUTES, IMAGES, ICONS } from '@/constants/path';
 // 소셜 미디어 아이콘 컴포넌트
 const SocialIcons = () => {
   const socialLinks = [
-    { name: 'facebook', icon: ICONS.FACEBOOK, href: ROUTES.FACEBOOK },
-    { name: 'instagram', icon: ICONS.INSTAGRAM, href: ROUTES.INSTAGRAM },
-    { name: 'youtube', icon: ICONS.YOUTUBE, href: ROUTES.YOUTUBE },
-    { name: 'kakaotalk', icon: ICONS.KAKAOTALK, href: ROUTES.KAKAOTALK }
+    { name: 'facebook', icon: ICONS.FACEBOOK, path: ROUTES.FACEBOOK },
+    { name: 'instagram', icon: ICONS.INSTAGRAM, path: ROUTES.INSTAGRAM },
+    { name: 'youtube', icon: ICONS.YOUTUBE, path: ROUTES.YOUTUBE },
+    { name: 'kakaotalk', icon: ICONS.KAKAOTALK, path: ROUTES.KAKAOTALK }
   ];
 
   return (
@@ -19,7 +19,7 @@ const SocialIcons = () => {
       {socialLinks.map((social) => (
         <Link
           key={social.name}
-          href={social.href}
+          href={social.path}
           className="w-6 h-6 flex items-center justify-center hover:opacity-70 transition-opacity"
           aria-label={social.name}
         >
