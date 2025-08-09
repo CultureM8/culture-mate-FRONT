@@ -20,6 +20,10 @@ export const ICONS = {
   HEART_EMPTY: "/img/heart-empty.svg",
   FIRE: "/img/fire.svg",
   FILTER: "/img/filter.svg",
+  FACEBOOK: "/img/facebook.svg",
+  KAKAOTALK: "/img/kakaotalk.svg",
+  INSTAGRAM: "/img/instagram.svg",
+  YOUTUBE: "/img/youtube.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
   VIEWTYPE_LIST: "/img/list.svg",
   VIEWTYPE_GALLERY: "/img/menu.svg"
