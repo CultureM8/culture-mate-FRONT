@@ -1,17 +1,18 @@
 "use client"
 
+import CategoryFilterModal from "@/components/events/CategoryFilterModal";
 import EventGallery from "@/components/events/EventGallery";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function Event() {
 
   const [title, intro] = ["이벤트", "무대 위의 감동부터 거리의 축제까지, 당신의 취향을 채울 다양한 이벤트를 만나보세요."];
 
-  const eventData = [
+  const eventData = useMemo(() => [
     { imgSrc: "", alt: "", title: "제목-1", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
     { imgSrc: "", alt: "", title: "제목-2", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
     { imgSrc: "", alt: "", title: "제목-3", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
@@ -39,9 +40,13 @@ export default function Event() {
     { imgSrc: "", alt: "", title: "제목-7", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
     { imgSrc: "", alt: "", title: "제목-8", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
     { imgSrc: "", alt: "", title: "제목-9", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-  ];
+  ], []);
 
   const [selectedType, setSelectedType] = useState("전체");
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false); // Set to true for demonstration
+
+  const openFilterModal = () => setIsFilterModalOpen(true);
+  const closeFilterModal = () => setIsFilterModalOpen(false);
 
   return (
     <>
@@ -70,8 +75,11 @@ export default function Event() {
       <SearchFilterSort
         enableTitle
         title={selectedType}
+        filterAction={openFilterModal}
       />
       <GalleryLayout Component={EventGallery} items={eventData} />
+
+      <CategoryFilterModal isOpen={isFilterModalOpen} onClose={closeFilterModal} />
     </>
   );
 }
