@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI 관련
+CLAUDE.md
+SUPERCLAUD_COMMANDS_KR.md
