@@ -1,6 +1,6 @@
 "use client"
 
-import CategoryFilterModal from "@/components/events/CategoryFilterModal";
+import EventFilterModal from "@/components/events/EventFilterModal";
 import EventGallery from "@/components/events/EventGallery";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -79,7 +79,7 @@ export default function Event() {
       />
       <GalleryLayout Component={EventGallery} items={eventData} />
 
-      <CategoryFilterModal isOpen={isFilterModalOpen} onClose={closeFilterModal} />
+      <EventFilterModal isOpen={isFilterModalOpen} onClose={closeFilterModal} />
     </>
   );
 }

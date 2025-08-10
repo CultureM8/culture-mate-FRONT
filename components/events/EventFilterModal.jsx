@@ -4,7 +4,7 @@ import Modal from "../global/Modal";
 import LocationSelector from "../global/LocationSelector";
 import { useState } from "react";
 
-export default function CategoryFilterModal({ isOpen, onClose }) {
+export default function EventFilterModal({ isOpen, onClose }) {
   // 기본 날짜 설정: 오늘부터 다음주까지
   const getDefaultDateRange = () => {
     const today = new Date();
@@ -52,7 +52,7 @@ export default function CategoryFilterModal({ isOpen, onClose }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-4 w-[520px] max-w-[90vw] max-h-[85vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-center">카테고리 필터</h2>
+        <h2 className="text-xl font-bold mb-4 text-center">이벤트 필터</h2>
 
         {/* 날짜 */}
         <div className="mb-4">
