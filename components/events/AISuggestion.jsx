@@ -66,16 +66,6 @@ export default function AISuggestion() {
   // 현재 중앙에 위치한 카드의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // 이전 카드로 이동 (첫 번째에서 마지막으로 순환)
-  const handlePrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev === 0 ? suggestionList.length - 1 : prev - 1));
-  }, []);
-
-  // 다음 카드로 이동 (마지막에서 첫 번째로 순환)
-  const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev === suggestionList.length - 1 ? 0 : prev + 1));
-  }, []);
-
   // 화면에 표시될 5개 카드 계산 (현재 카드 기준 앞뒤 2개씩)
   const displayItems = useMemo(() => {
     const items = [];
@@ -113,12 +103,6 @@ export default function AISuggestion() {
 
         {/* 카드 슬라이더 영역 */}
         <div className="w-full flex items-center justify-center relative h-[320px]">
-          <button 
-            onClick={handlePrev} 
-            className="absolute left-4 md:left-20 z-30 p-3 rounded-full bg-white/80 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-sm border border-gray-200/50"
-          >
-            <Image src={ICONS.LEFT_ARROW} alt="Previous" width={24} height={24} />
-          </button>
 
           {/* 5개 카드 컨테이너 */}
           <div className="flex items-center justify-center gap-x-8 px-2">
@@ -141,28 +125,19 @@ export default function AISuggestion() {
             ))}
           </div>
 
-          <button 
-            onClick={handleNext} 
-            className="absolute right-4 md:right-20 z-30 p-3 rounded-full bg-white/80 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-sm border border-gray-200/50"
-          >
-            <Image src={ICONS.RIGHT_ARROW} alt="Next" width={24} height={24} />
-          </button>
         
-          {/* 하단 진행바 */}
-          <div className="flex flex-col items-center absolute bottom-0">
-            {/* 전체 진행바 배경 */}
-            <div className="w-48 h-2 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
-              {/* 진행바 트랙 */}
-              <div className="w-full h-full bg-white/20 rounded-full relative">
-                {/* 현재 위치 표시바 */}
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-transform duration-700 ease-out"
-                  style={{
-                    width: `${suggestionList?.length ? 100 / suggestionList.length : 100}%`,
-                    transform: `translateX(${currentIndex * 100}%)`,
-                  }}
-                />
-              </div>
+          {/* 전체 진행바 배경 */}
+          <div className="absolute bottom-0 w-48 h-2 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
+            {/* 진행바 트랙 */}
+            <div className="w-full h-full bg-white/20 rounded-full relative">
+              {/* 현재 위치 표시바 */}
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-transform duration-700 ease-out"
+                style={{
+                  width: `${suggestionList?.length ? 100 / suggestionList.length : 100}%`,
+                  transform: `translateX(${currentIndex * 100}%)`,
+                }}
+              />
             </div>
           </div>
         </div>
