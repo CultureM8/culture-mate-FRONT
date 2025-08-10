@@ -23,7 +23,7 @@ export const ROUTES = {
 
 export const IMAGES = {
   LOGO: "/img/culture-mate-logo.svg",
-  GALLERY_DEFAULT_IMG: "/img/default-img.svg",
+  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
   SERVICEINTRO_EVENT_IMG: "/img/ServiceIntro_eventicon.svg",
   SERVICEINTRO_WITH_IMG: "/img/ServiceIntro_withicon.svg",
   SERVICEINTRO_COMMUNITY_IMG: "/img/ServiceIntro_communityicon.svg",

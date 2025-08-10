@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { getLocations1, getLocations2, getLocations3 } from "@/constants/regions";
+import { getLocations1, getLocations2, getLocations3 } from "@/constants/addressData";
 
 export default function LocationSelector({
   onRegionSelect,
