@@ -2,8 +2,9 @@
 
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 
+// AI 추천 이벤트 목록 (더미 데이터)
 const suggestionList = [
   { id: 1, imgSrc: "/img/default_img.svg", alt: "제목-1", title: "제목-1", date: "0000-00-00 ~ 0000-00-00" },
   { id: 2, imgSrc: "/img/default_img.svg", alt: "제목-2", title: "제목-2", date: "0000-00-00 ~ 0000-00-00" },
@@ -15,82 +16,112 @@ const suggestionList = [
   { id: 8, imgSrc: "/img/default_img.svg", alt: "제목-8", title: "제목-8", date: "0000-00-00 ~ 0000-00-00" },
 ];
 
-function EventCard({ imgSrc, alt, title, date, isCenter }) {
+// 개별 이벤트 카드 컴포넌트
+function EventCard({ imgSrc, alt, title, date, isCenter, onClick }) {
   return (
-    <div className={`w-[172px] h-[300px] shrink-0 flex flex-col justify-center items-center transition-all duration-500 ${isCenter ? "scale-110" : "scale-90"}`}>
-      {/* 포스터 이미지 영역 */}
-      <div className="relative w-full h-[240px] shadow-xl rounded-lg overflow-clip">
+    <div 
+      className={`shrink-0 flex flex-col justify-center items-center transition-all duration-700 ease-out cursor-pointer ${
+        isCenter 
+          ? "scale-100 z-20 hover:scale-[1.02]" 
+          : "scale-90 z-10 hover:scale-[0.93]"
+      }`}
+      onClick={onClick}
+    >
+      <div 
+        className="relative rounded-xl overflow-hidden shadow-2xl transition-all duration-700"
+        style={{ width: '172px', height: '240px' }}
+      >
         <Image
           src={imgSrc}
           alt={alt}
           fill
           className="object-cover"
         />
-        {!isCenter && <div className="absolute inset-0 bg-black/40" />}
+        {!isCenter && (
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
+        )}
+
       </div>
 
-      {/* 텍스트 영역 */}
-      <div className={`pt-2 text-center transition-opacity duration-500 ${isCenter ? "opacity-100 mb-6" : "opacity-70"}`}>
-        <h3 className="text-sm font-semibold truncate text-gray-800">{title}</h3>
-        <p className="text-xs text-gray-500 mt-1">{date}</p>
+      <div className={`pt-1.5 text-center transition-all duration-700`}>
+        <h3 className={`font-bold truncate transition-all duration-700 ${
+          isCenter ? "" : "text-sm text-gray-700" }`}
+        >
+          {title}
+        </h3>
+        <p className={`mt-1 transition-all duration-700 ${
+          isCenter 
+            ? "text-sm text-gray-600" 
+            : "text-xs text-gray-500"
+        }`}>
+          {date}
+        </p>
       </div>
     </div>
   );
 }
 
+// AI 추천 이벤트 슬라이더 메인 컴포넌트
 export default function AISuggestion() {
+  // 현재 중앙에 위치한 카드의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handlePrev = () => {
+  // 이전 카드로 이동 (첫 번째에서 마지막으로 순환)
+  const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? suggestionList.length - 1 : prev - 1));
-  };
+  }, []);
 
-  const handleNext = () => {
+  // 다음 카드로 이동 (마지막에서 첫 번째로 순환)
+  const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === suggestionList.length - 1 ? 0 : prev + 1));
-  };
+  }, []);
 
-  const getDisplayItems = () => {
+  // 화면에 표시될 5개 카드 계산 (현재 카드 기준 앞뒤 2개씩)
+  const displayItems = useMemo(() => {
     const items = [];
-    const totalItems = suggestionList.length;
     for (let i = -2; i <= 2; i++) {
-      const index = (currentIndex + i + totalItems) % totalItems;
+      const index = (currentIndex + i + suggestionList.length) % suggestionList.length;
       items.push(suggestionList[index]);
     }
     return items;
-  };
-
-  const displayItems = getDisplayItems();
+  }, [currentIndex]);
 
   return (
     <div>
-      {/* 배경 이미지 */}
-      <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[420px] z-0">
+      {/* 배경 이미지 (현재 선택된 카드의 이미지를 흐리게 표시) */}
+      <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[370px] z-0">
         <Image
           src={suggestionList[currentIndex].imgSrc}
           alt={suggestionList[currentIndex].alt}
           fill
-          className="object-cover opacity-50 blur-md"
+          className="object-cover opacity-50"
         />
       </div>
 
-      {/* 컨텐츠 영역 */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center gap-6">
+      {/* 메인 콘텐츠 영역 */}
+      <div className="relative z-10 h-[370px] flex flex-col items-center justify-between py-3">
+        {/* AI 추천 헤더 */}
         <div className="flex gap-2 items-center justify-center">
           <Image
             src={ICONS.AI}
             alt="AI추천"
-            width={28}
-            height={28}
+            width={24}
+            height={24}
           />
-          <h2 className="text-lg font-bold text-gray-800">AI 추천</h2>
+          <h2 className="text-lg font-bold text-gray-800" style={{ textShadow: '0 1px 2px rgba(255, 255, 255, 0.8)' }}>AI 추천</h2>
         </div>
 
-        <div className="w-full flex items-center justify-center relative h-[340px]">
-          <button onClick={handlePrev} className="absolute left-4 md:left-24 z-20 p-3 rounded-full bg-white/70 hover:bg-white transition-colors shadow-lg">
+        {/* 카드 슬라이더 영역 */}
+        <div className="w-full flex items-center justify-center relative h-[320px]">
+          <button 
+            onClick={handlePrev} 
+            className="absolute left-4 md:left-20 z-30 p-3 rounded-full bg-white/80 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-sm border border-gray-200/50"
+          >
             <Image src={ICONS.LEFT_ARROW} alt="Previous" width={24} height={24} />
           </button>
 
-          <div className="flex items-center justify-center gap-x-8">
+          {/* 5개 카드 컨테이너 */}
+          <div className="flex items-center justify-center gap-x-8 px-2">
             {displayItems.map((event, index) => (
               <EventCard
                 key={`${event.id}-${index}`}
@@ -99,25 +130,39 @@ export default function AISuggestion() {
                 title={event.title}
                 date={event.date}
                 isCenter={index === 2}
+                onClick={() => {
+                  // 클릭한 카드가 중앙(index=2)이 아니면 해당 카드를 중앙으로 이동
+                  if (index !== 2) {
+                    const targetIndex = (currentIndex + (index - 2) + suggestionList.length) % suggestionList.length;
+                    setCurrentIndex(targetIndex);
+                  }
+                }}
               />
             ))}
           </div>
 
-          <button onClick={handleNext} className="absolute right-4 md:right-24 z-20 p-3 rounded-full bg-white/70 hover:bg-white transition-colors shadow-lg">
+          <button 
+            onClick={handleNext} 
+            className="absolute right-4 md:right-20 z-30 p-3 rounded-full bg-white/80 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-sm border border-gray-200/50"
+          >
             <Image src={ICONS.RIGHT_ARROW} alt="Next" width={24} height={24} />
           </button>
         
-          {/* 하단 페이지네이션 바 */}
-          <div className="flex flex-col items-center gap-2 absolute bottom-0">
-            {/* <p className="text-sm text-gray-600">{`${currentIndex + 1} / ${suggestionList.length}`}</p> */}
-            <div className="w-48 h-2 bg-gray-300 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gray-600 rounded-full transition-transform duration-500"
-                style={{
-                  width: `${100 / suggestionList.length}%`,
-                  transform: `translateX(${currentIndex * 100}%)`,
-                }}
-              />
+          {/* 하단 진행바 */}
+          <div className="flex flex-col items-center absolute bottom-0">
+            {/* 전체 진행바 배경 */}
+            <div className="w-48 h-2 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
+              {/* 진행바 트랙 */}
+              <div className="w-full h-full bg-white/20 rounded-full relative">
+                {/* 현재 위치 표시바 */}
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full transition-transform duration-700 ease-out"
+                  style={{
+                    width: `${suggestionList?.length ? 100 / suggestionList.length : 100}%`,
+                    transform: `translateX(${currentIndex * 100}%)`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
