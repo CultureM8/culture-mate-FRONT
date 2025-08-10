@@ -5,38 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { IMAGES, ICONS } from "@/constants/path";
 
-// Edit 아이콘 컴포넌트
-function EditIcon() {
-  return (
-    <svg
-      className="w-full h-full"
-      fill="none"
-      viewBox="0 0 17 17"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8.5 15.2678H16M12.25 1.51777C12.5815 1.18625 13.0312 1 13.5 1C13.7321 1 13.962 1.04572 14.1765 1.13456C14.391 1.2234 14.5858 1.35361 14.75 1.51777C14.9142 1.68192 15.0444 1.8768 15.1332 2.09127C15.222 2.30575 15.2678 2.53562 15.2678 2.76777C15.2678 2.99991 15.222 3.22979 15.1332 3.44426C15.0444 3.65874 14.9142 3.85361 14.75 4.01777L4.33333 14.4344L1 15.2678L1.83333 11.9344L12.25 1.51777Z"
-      />
-    </svg>
-  );
-}
-
-// 수정 버튼 컴포넌트 (추후 Link 경로 추가 예정)
+// 수정 버튼 컴포넌트
 function EditButton() {
   return (
-    <div className="bg-[#c6c8ca] rounded-lg cursor-pointer hover:bg-gray-400 transition-colors px-3 py-2 md:px-4 md:py-2">
-      {/* 추후 Link 컴포넌트로 감쌀 예정 */}
-      {/* <Link href="/mypage/edit"> */}
+    <Link href="/mypage/useredit">
+      <div className="bg-[#c6c8ca] rounded-lg cursor-pointer hover:bg-gray-400 transition-colors px-3 py-2 md:px-4 md:py-2">
         <div className="flex flex-col font-medium justify-center text-white text-center">
           <p className="font-bold leading-[1.5] text-sm md:text-[16px] whitespace-pre">
             회원정보 수정
           </p>
         </div>
-      {/* </Link> */}
-    </div>
+      </div>
+    </Link>
   );
 }
 
@@ -44,7 +24,7 @@ function EditButton() {
 export default function ProfileInfo() {
   const [nickname, setNickname] = useState("사용자 별명");
   const [score, setScore] = useState(50);
-  const [introduction, setIntroduction] = useState("한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개 한줄 자기소개");
+  const [introduction, setIntroduction] = useState("한줄 자기 소개 작성 공간");
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [isHoveringBackground, setIsHoveringBackground] = useState(false);
@@ -136,13 +116,19 @@ export default function ProfileInfo() {
         >
           <span>프로필 배경 수정</span>
           <div className="w-4 h-4 md:w-5 md:h-5 cursor-pointer text-[#c6c8ca]">
-            <EditIcon />
+            <Image 
+              src={ICONS.EDIT_GRAY}
+              alt="edit-icon"
+              width={20}
+              height={20}
+              className="w-full h-full"
+            />
           </div>
         </div>
 
-        {/* 프로필 이미지 영역 - 반응형 크기 및 위치 */}
+        {/* 프로필 이미지 영역 - 수정된 반응형 위치 */}
         <div 
-          className="absolute left-4 sm:left-6 md:left-8 top-[180px] sm:top-[160px] md:top-[212px] 
+          className="absolute left-4 sm:left-6 md:left-8 top-[220px] sm:top-[160px] md:top-[212px] 
                      w-32 h-32 sm:w-40 sm:h-40 md:w-[200px] md:h-[200px] 
                      rounded-full overflow-hidden z-20"
           style={{
@@ -167,7 +153,13 @@ export default function ProfileInfo() {
                 >
                   <span>프로필 변경</span>
                   <div className="w-3 h-3 md:w-[15px] md:h-[14.27px] text-[#26282a]">
-                    <EditIcon />
+                    <Image 
+                      src={ICONS.EDIT}
+                      alt="edit-icon"
+                      width={15}
+                      height={15}
+                      className="w-full h-full"
+                    />
                   </div>
                 </div>
               </>
@@ -190,7 +182,13 @@ export default function ProfileInfo() {
                 >
                   <span>프로필 변경</span>
                   <div className="w-3 h-3 md:w-[15px] md:h-[14.27px] text-[#26282a]">
-                    <EditIcon />
+                    <Image 
+                      src={ICONS.EDIT}
+                      alt="edit-icon"
+                      width={15}
+                      height={15}
+                      className="w-full h-full"
+                    />
                   </div>
                 </div>
                 
@@ -205,9 +203,13 @@ export default function ProfileInfo() {
                 >
                   <span>프로필 삭제</span>
                   <div className="w-3 h-3 md:w-[14px] md:h-[14px] text-[#26282a]">
-                    <svg className="w-full h-full" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 1L1 11M1 1L11 11" />
-                    </svg>
+                    <Image 
+                      src={ICONS.X}
+                      alt="delete-icon"
+                      width={14}
+                      height={14}
+                      className="w-full h-full"
+                    />
                   </div>
                 </div>
               </div>
@@ -216,23 +218,26 @@ export default function ProfileInfo() {
         </div>
       </div>
 
-      {/* 프로필 정보 섹션 - 반응형 높이 및 패딩 */}
+      {/* 프로필 정보 섹션 - 새로운 반응형 레이아웃 */}
       <div className="flex flex-col h-auto min-h-[170px] items-center md:items-end justify-start px-4 md:px-8 py-4 w-full">
-        {/* 반응형 컨테이너 - 사용자 정보와 한줄 자기소개 */}
+        {/* 반응형 컨테이너 */}
         <div className="w-full max-w-[928px] min-h-[60px] p-2 md:p-4 flex flex-col items-start gap-6 sm:gap-8 md:gap-5">
-          {/* 사용자 별명과 동행 점수 */}
-          <div className="flex flex-col xl:flex-row items-end xl:items-center w-full gap-4 sm:gap-6 xl:gap-0">
-            <div className="flex flex-col font-semibold justify-center text-[#26282a] text-xl sm:text-2xl xl:text-[28px] text-right xl:text-left whitespace-nowrap self-end xl:self-start">
+          
+          {/* 데스크톱 레이아웃 (xl 이상) */}
+          <div className="hidden xl:flex xl:flex-row xl:items-center w-full xl:gap-0">
+            {/* 사용자 별명 - 데스크톱에서 왼쪽 정렬 */}
+            <div className="flex flex-col font-semibold justify-center text-[#26282a] text-[28px] xl:text-left whitespace-nowrap">
               <p className="leading-[1.28] whitespace-nowrap">{nickname}</p>
             </div>
             
-            <div className="flex flex-col sm:flex-row xl:flex-row items-end sm:items-center xl:items-center justify-start w-full xl:ml-6 gap-4 sm:gap-6 xl:gap-0">
-              <div className="flex flex-col font-normal justify-center text-[#26282a] text-sm xl:text-base text-right xl:text-left sm:mr-4 xl:mr-8 self-end xl:self-start">
+            {/* 동행점수/바/버튼 영역 - 데스크톱에서 가로 배치, 가운데 정렬, 우측 고정 */}
+            <div className="flex xl:flex-row xl:items-center justify-end w-full xl:ml-6 xl:gap-4">
+              <div className="flex flex-col font-normal justify-center text-[#26282a] text-base xl:text-left whitespace-nowrap">
                 <p className="leading-[1.5]">동행 점수</p>
               </div>
               
-              {/* 진행률 바 - 반응형 너비 */}
-              <div className="flex flex-col items-start justify-center relative w-full sm:max-w-[300px] xl:max-w-[458px]">
+              {/* 진행률 바 - 데스크톱 400px */}
+              <div className="flex flex-col items-start justify-center relative xl:max-w-[400px] w-[400px]">
                 {/* 배경 바 */}
                 <div className="h-2 w-full bg-[#eef0f2] rounded-[5px] relative">
                   {/* 진행률 바 */}
@@ -241,9 +246,9 @@ export default function ProfileInfo() {
                     style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
                   />
                   
-                  {/* 점수 표시 - 게이지 바의 오른쪽 위에 유동적으로 위치 */}
+                  {/* 점수 표시 */}
                   <div 
-                    className="absolute -top-6 text-[#26282a] text-sm xl:text-base transform -translate-x-1/2 transition-all duration-300"
+                    className="absolute -top-6 text-[#26282a] text-base transform -translate-x-1/2 transition-all duration-300"
                     style={{ 
                       left: `${Math.min(Math.max(score, 0), 100)}%`,
                       minWidth: 'max-content'
@@ -254,14 +259,55 @@ export default function ProfileInfo() {
                 </div>
               </div>
               
-              {/* 수정 버튼 - 반응형 여백 */}
-              <div className="mt-4 sm:mt-0 sm:ml-4 xl:ml-12 self-end xl:self-center">
+              {/* 수정 버튼 */}
+              <div className="xl:ml-4">
                 <EditButton />
               </div>
             </div>
           </div>
 
-          {/* 한줄 자기소개 - 표시 전용 */}
+          {/* 모바일/태블릿 레이아웃 (xl 미만) */}
+          <div className="flex xl:hidden flex-col w-full gap-4">
+            {/* 사용자 별명 - 모바일에서 오른쪽 정렬 */}
+            <div className="flex flex-col font-semibold justify-center text-[#26282a] text-xl sm:text-2xl text-right whitespace-nowrap self-end">
+              <p className="leading-[1.28] whitespace-nowrap">{nickname}</p>
+            </div>
+            
+            {/* 동행 점수 텍스트 - 모바일에서 오른쪽 정렬 */}
+            <div className="flex flex-col font-normal justify-center text-[#26282a] text-sm text-right self-end">
+              <p className="leading-[1.5]">동행 점수</p>
+            </div>
+            
+            {/* 동행 점수바 - 모바일에서 전체 너비, 300px 제한 */}
+            <div className="flex flex-col items-start justify-center relative w-full max-w-[300px] self-end">
+              {/* 배경 바 */}
+              <div className="h-2 w-full bg-[#eef0f2] rounded-[5px] relative">
+                {/* 진행률 바 */}
+                <div 
+                  className="h-2 bg-[#ffc37f] rounded-[5px] absolute top-0 left-0 transition-all duration-300"
+                  style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
+                />
+                
+                {/* 점수 표시 */}
+                <div 
+                  className="absolute -top-6 text-[#26282a] text-sm transform -translate-x-1/2 transition-all duration-300"
+                  style={{ 
+                    left: `${Math.min(Math.max(score, 0), 100)}%`,
+                    minWidth: 'max-content'
+                  }}
+                >
+                  <p className="leading-[1.5]">{score}점</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* 회원정보 수정 버튼 - 모바일에서 오른쪽 정렬 */}
+            <div className="self-end">
+              <EditButton />
+            </div>
+          </div>
+
+          {/* 한줄 자기소개 - 모든 화면에서 동일하게 표시 */}
           <div className="flex flex-col justify-center text-[#26282a] text-lg md:text-[20px] text-left w-full" style={{fontFamily: 'Inter, Noto Sans KR, sans-serif', fontWeight: 500, lineHeight: 1.4}}>
             <p className="leading-[1.4]">{introduction}</p>
           </div>

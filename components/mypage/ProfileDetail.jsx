@@ -75,6 +75,51 @@ function ProfileSection() {
             <p>00 세</p>
           </div>
         </div>
+        
+        {/* 스크롤바 스타일 */}
+        <style jsx global>{`
+          .gallery-scroll-container {
+            scrollbar-width: thin;
+            scrollbar-color: transparent transparent;
+          }
+          
+          .gallery-scroll-container::-webkit-scrollbar {
+            height: 8px;
+          }
+          
+          .gallery-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          
+          .gallery-scroll-container::-webkit-scrollbar-thumb {
+            background-color: transparent;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+          }
+          
+          /* 데스크톱: 호버 시 스크롤바 손잡이 나타남 */
+          @media (min-width: 768px) {
+            .gallery-scroll-container:hover::-webkit-scrollbar-thumb {
+              background-color: #F3F4F6;
+            }
+            
+            .gallery-scroll-container::-webkit-scrollbar-thumb:hover {
+              background-color: #EEF0F2;
+            }
+          }
+          
+          /* 모바일: 완전히 숨김 */
+          @media (max-width: 767px) {
+            .gallery-scroll-container::-webkit-scrollbar {
+              display: none;
+            }
+            
+            .gallery-scroll-container {
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+          }
+        `}</style>
       </div>
 
       {/* 성별 섹션 */}
@@ -468,7 +513,21 @@ function GalleryContainer() {
       <div className="bg-[#ffffff] box-border content-stretch flex flex-col gap-2.5 items-start justify-center p-[16px] relative rounded shrink-0 w-full min-h-[200px] sm:min-h-[232px] overflow-hidden">
         <div className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
         
-        <div className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start p-0 relative shrink-0 w-full h-full overflow-x-auto overflow-y-hidden scrollbar-hide" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+        <div 
+          className="box-border content-stretch flex flex-row gap-2.5 items-center justify-start p-0 relative shrink-0 w-full h-full overflow-x-auto overflow-y-hidden gallery-scroll-container" 
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'transparent transparent'
+          }}
+          onMouseEnter={(e) => {
+            if (window.innerWidth >= 768) {
+              e.target.style.scrollbarColor = '#F3F4F6 transparent';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.scrollbarColor = 'transparent transparent';
+          }}
+        >
           {images.length === 0 && (
             <button
               onClick={addImage}

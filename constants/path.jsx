@@ -5,12 +5,38 @@ export const ROUTES = {
   COMMUNITY: "/community",
   HELP: "/help",
   MYPAGE: "/mypage",
-};
+  FACEBOOK: 'https://facebook.com/yourpage',
+  INSTAGRAM: 'https://instagram.com/yourpage',
+  YOUTUBE: 'https://youtube.com/yourpage',
+  KAKAOTALK: 'https://open.kakao.com/yourpage',
+  TERMS: '/terms',
+  PRIVACY: '/privacy',
+  LOCATION_TERMS: '/location',
+  YOUTH_PROTECTION: '/youth',
+  EMAIL_POLICY: '/email-policy',
+  ABOUT: '/about',
+  GUIDE: '/guide',
+  NOTICE: '/notice',
+  FAQ: '/faq',
+  CONTACT: '/contact'
+}
 
 export const IMAGES = {
-  LOGO: "/img/culture_mate_logo.svg",
-  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
-};
+  LOGO: "/img/culture-mate-logo.svg",
+  GALLERY_DEFAULT_IMG: "/img/default-img.svg",
+  SERVICEINTRO_EVENT_IMG: "/img/ServiceIntro_eventicon.svg",
+  SERVICEINTRO_WITH_IMG: "/img/ServiceIntro_withicon.svg",
+  SERVICEINTRO_COMMUNITY_IMG: "/img/ServiceIntro_communityicon.svg",
+  SERVICEINTRO_MOBILE_IMG: "/img/ServiceIntro_mobileicon.svg",
+  SERVICEINTRO_TARGET_IMG: "/img/ServiceIntro_targeticon.svg",
+  SERVICEINTRO_PROCESS_IMG: "/img/ServiceIntro_processicon.svg",
+  SERVICEINTRO_SHIELD_IMG: "/img/ServiceIntro_shieldicon.svg",
+  SERVICEINTRO_JOIN_IMG: "/img/ServiceIntro_joinicon.svg",
+  GUIDE_FINDEVENT_IMG: "/img/Guide_findevent.png",
+  GUIDE_WITH_IMG: "/img/Guide_with.png",
+  GUIDE_RECRUIT_IMG: "/img/Guide_recruit.png",
+  GUIDE_FIREWORKS_IMG: "/img/Guide_fireworks.gif"
+}
 
 export const ICONS = {
   SEARCH: "/img/search.svg",
@@ -26,7 +52,6 @@ export const ICONS = {
   INSTAGRAM: "/img/instagram.svg",
   YOUTUBE: "/img/youtube.svg",
   EDIT: "/img/edit.svg",
-  EDIT_GRAY: "/img/edit_gray.svg",
   X: "/img/x.svg",
   ADD_GRAY: "/img/add_gray.svg",
   DOWN_GRAY: "/img/down_gray.svg",
@@ -36,12 +61,11 @@ export const ICONS = {
   CALENDAR: "/img/calendar.svg",
   GROUP: "/img/group.svg",
   PIN: "/img/pin.svg",
+  STAR_EMPTY: "/img/star_empty.svg",
+  STAR_FULL: "/img/star_full.svg",
+  STAR_HALF: "/img/star_half.svg",
+  UP_ARROW: "/img/up_arrow.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
-  VIEWTYPE_LIST: "/img/list.svg",
-  VIEWTYPE_GALLERY: "/img/menu.svg",
-  DELETE: "/img/delete.svg",
-  REPLY: "/img/curved_arrow.svg",
-  TOGGLE_ON: "/img/toggle_on.svg",
-  TOGGLE_OFF: "/img/toggle_off.svg",
-  SETTING: "/img/setting.svg",
-};
+  LEFT_ARROW: "/img/left_arrow.svg",
+  RIGHT_ARROW: "/img/right_arrow.svg"
+}
