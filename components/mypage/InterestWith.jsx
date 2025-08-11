@@ -1,7 +1,7 @@
 import MenuList from "../global/MenuList";
-import WithGallery from "@/components/mypage/WithGallery";
-import WithList from "./WithList";
-import WithGalleryLayout from "./ListWithGalleryLayout";
+import WithGallery from "@/components/together/TogetherGallery";
+import WithList from "../together/TogetherList";
+import WithGalleryLayout from "../global/ListGalleryLayout";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import EditSetting from "@/components/global/EditSetting";
 import { useState } from "react";
