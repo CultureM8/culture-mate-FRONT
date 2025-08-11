@@ -135,7 +135,7 @@ export default function AISuggestion({ suggestionList = [] }) {
                 isCenter={index === 2}
                 link={event.link}
                 onClick={() => {
-                  // 주변 카드만 클릭 시 중앙으로 이동 (중앙 카드는 Link로 처리)
+                  // 주변 카드 클릭 시 중앙으로 이동 (중앙 카드는 Link로 이동)
                   if (index !== 2) {
                     const targetIndex = (currentIndex + (index - 2) + suggestionList.length) % suggestionList.length;
                     setCurrentIndex(targetIndex);
@@ -146,7 +146,7 @@ export default function AISuggestion({ suggestionList = [] }) {
           </div>
 
         
-          {/* 전체 진행바 배경 */}
+          {/* 전체 진행바 영역 */}
           <div className="absolute bottom-0 w-48 h-2 bg-black/20 rounded-full overflow-hidden backdrop-blur-sm">
             {/* 진행바 트랙 */}
             <div className="w-full h-full bg-white/20 rounded-full relative">
