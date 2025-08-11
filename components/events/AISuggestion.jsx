@@ -2,7 +2,7 @@
 
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 
 // AI 추천 이벤트 목록 (더미 데이터)
 const suggestionList = [
@@ -65,6 +65,15 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick }) {
 export default function AISuggestion() {
   // 현재 중앙에 위치한 카드의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // 자동으로 다음 이미지로 넘어가는 기능
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex(prevIndex => (prevIndex + 1) % suggestionList.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // 화면에 표시될 5개 카드 계산 (현재 카드 기준 앞뒤 2개씩)
   const displayItems = useMemo(() => {
