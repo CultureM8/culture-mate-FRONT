@@ -1,4 +1,4 @@
-import ListGallery from "../global/ListGallery";
+import ListGallery from "../global/ListView";
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 

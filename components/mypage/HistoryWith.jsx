@@ -1,7 +1,7 @@
 import MenuList from "../global/MenuList";
 import TogetherGallery from "@/components/together/TogetherGallery";
 import TogetherList from "../together/TogetherList";
-import TogetherGalleryLayout from "../global/ListGalleryLayout";
+import ListLayout from "../global/ListLayout";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import EditSetting from "@/components/global/EditSetting";
 import { useState } from "react";
@@ -259,7 +259,7 @@ export default function HistoryWith() {
       {viewType === "gallery" ? (
         <GalleryLayout Component={TogetherGallery} items={eventData} />
       ) : (
-        <TogetherGalleryLayout Component={TogetherList} items={eventData} />
+        <ListLayout Component={TogetherList} items={eventData} />
       )}
     </>
   );
