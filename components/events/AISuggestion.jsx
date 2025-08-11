@@ -2,23 +2,12 @@
 
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useCallback, useMemo, useEffect } from "react";
 
-// AI 추천 이벤트 목록 (더미 데이터)
-const suggestionList = [
-  { id: 1, imgSrc: "/img/default_img.svg", alt: "제목-1", title: "제목-1", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 2, imgSrc: "/img/default_img.svg", alt: "제목-2", title: "제목-2", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 3, imgSrc: "/img/default_img.svg", alt: "제목-3", title: "제목-3", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 4, imgSrc: "/img/default_img.svg", alt: "제목-4", title: "제목-4", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 5, imgSrc: "/img/default_img.svg", alt: "제목-5", title: "제목-5", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 6, imgSrc: "/img/default_img.svg", alt: "제목-6", title: "제목-6", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 7, imgSrc: "/img/default_img.svg", alt: "제목-7", title: "제목-7", date: "0000-00-00 ~ 0000-00-00" },
-  { id: 8, imgSrc: "/img/default_img.svg", alt: "제목-8", title: "제목-8", date: "0000-00-00 ~ 0000-00-00" },
-];
-
 // 개별 이벤트 카드 컴포넌트
-function EventCard({ imgSrc, alt, title, date, isCenter, onClick }) {
-  return (
+function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
+  const cardContent = (
     <div 
       className={`shrink-0 flex flex-col justify-center items-center transition-all duration-700 ease-out cursor-pointer ${
         isCenter 
@@ -59,31 +48,52 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick }) {
       </div>
     </div>
   );
+
+  // 중앙 카드이고 링크가 있으면 Link로 감싸기
+  if (isCenter && link) {
+    return (
+      <Link href={link}>
+        {cardContent}
+      </Link>
+    );
+  }
+
+  // 주변 카드이거나 링크가 없으면 그냥 반환
+  return cardContent;
 }
 
 // AI 추천 이벤트 슬라이더 메인 컴포넌트
-export default function AISuggestion() {
+export default function AISuggestion({ suggestionList = [] }) {
   // 현재 중앙에 위치한 카드의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // 자동으로 다음 이미지로 넘어가는 기능
   useEffect(() => {
+    if (suggestionList.length === 0) return;
+    
     const interval = setInterval(() => {
       setCurrentIndex(prevIndex => (prevIndex + 1) % suggestionList.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [suggestionList.length]);
 
   // 화면에 표시될 5개 카드 계산 (현재 카드 기준 앞뒤 2개씩)
   const displayItems = useMemo(() => {
+    if (suggestionList.length === 0) return [];
+    
     const items = [];
     for (let i = -2; i <= 2; i++) {
       const index = (currentIndex + i + suggestionList.length) % suggestionList.length;
       items.push(suggestionList[index]);
     }
     return items;
-  }, [currentIndex]);
+  }, [currentIndex, suggestionList]);
+
+  // 데이터가 없으면 렌더링하지 않음
+  if (suggestionList.length === 0) {
+    return null;
+  }
 
   return (
     <div>
@@ -123,8 +133,9 @@ export default function AISuggestion() {
                 title={event.title}
                 date={event.date}
                 isCenter={index === 2}
+                link={event.link}
                 onClick={() => {
-                  // 클릭한 카드가 중앙(index=2)이 아니면 해당 카드를 중앙으로 이동
+                  // 주변 카드만 클릭 시 중앙으로 이동 (중앙 카드는 Link로 처리)
                   if (index !== 2) {
                     const targetIndex = (currentIndex + (index - 2) + suggestionList.length) % suggestionList.length;
                     setCurrentIndex(targetIndex);
