@@ -69,5 +69,12 @@ export const ICONS = {
   UP_ARROW: "/img/up_arrow.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
   LEFT_ARROW: "/img/left_arrow.svg",
-  RIGHT_ARROW: "/img/right_arrow.svg"
-}
+  RIGHT_ARROW: "/img/right_arrow.svg",
+  VIEWTYPE_LIST: "/img/list.svg",
+  VIEWTYPE_GALLERY: "/img/menu.svg",
+  DELETE: "/img/delete.svg",
+  REPLY: "/img/curved_arrow.svg",
+  TOGGLE_ON: "/img/toggle_on.svg",
+  TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+};
