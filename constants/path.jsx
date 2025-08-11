@@ -24,6 +24,18 @@ export const ROUTES = {
 export const IMAGES = {
   LOGO: "/img/culture_mate_logo.svg",
   GALLERY_DEFAULT_IMG: "/img/default_img.svg",
+  SERVICEINTRO_EVENT_IMG: "/img/ServiceIntro_eventicon.svg",
+  SERVICEINTRO_WITH_IMG: "/img/ServiceIntro_withicon.svg",
+  SERVICEINTRO_COMMUNITY_IMG: "/img/ServiceIntro_communityicon.svg",
+  SERVICEINTRO_MOBILE_IMG: "/img/ServiceIntro_mobileicon.svg",
+  SERVICEINTRO_TARGET_IMG: "/img/ServiceIntro_targeticon.svg",
+  SERVICEINTRO_PROCESS_IMG: "/img/ServiceIntro_processicon.svg",
+  SERVICEINTRO_SHIELD_IMG: "/img/ServiceIntro_shieldicon.svg",
+  SERVICEINTRO_JOIN_IMG: "/img/ServiceIntro_joinicon.svg",
+  GUIDE_FINDEVENT_IMG: "/img/Guide_findevent.png",
+  GUIDE_WITH_IMG: "/img/Guide_with.png",
+  GUIDE_RECRUIT_IMG: "/img/Guide_recruit.png",
+  GUIDE_FIREWORKS_IMG: "/img/Guide_fireworks.gif",
 };
 
 export const ICONS = {
@@ -58,4 +70,9 @@ export const ICONS = {
   RIGHT_ARROW: "/img/right_arrow.svg",
   VIEWTYPE_LIST: "/img/list.svg",
   VIEWTYPE_GALLERY: "/img/menu.svg",
+  DELETE: "/img/delete.svg",
+  REPLY: "/img/curved_arrow.svg",
+  TOGGLE_ON: "/img/toggle_on.svg",
+  TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
 };
