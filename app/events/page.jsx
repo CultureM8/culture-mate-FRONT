@@ -75,6 +75,7 @@ export default function Event() {
         enableTitle
         title={selectedType}
       />
+       {/* commonProps={{ enableInterest: false }}와 같이 공통으로 적용될 prop을 매개변수로 전달 가능 */}
       <GalleryLayout Component={EventGallery} items={eventData} />
     </>
   );
