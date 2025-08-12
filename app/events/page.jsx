@@ -8,8 +8,6 @@ import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import { getAllEvents, getEventsByType } from "@/lib/eventData";
 import { getAISuggestionData } from "@/lib/aiSuggestionData";
-import { IMAGES } from "@/constants/path";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 
 export default function Event() {
@@ -57,8 +55,8 @@ export default function Event() {
 
   return (
     <>
-      <h1 className="text-4xl font-bold py-[10px] h-16">{title}</h1>
-      <p className="text-xl pt-[10px] h-12 fill-gray-600">{intro}</p>
+      <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
+      <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
 
       <AISuggestion 
         suggestionList={aiSuggestionData || []} 
