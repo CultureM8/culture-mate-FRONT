@@ -23,7 +23,7 @@ export const ROUTES = {
 }
 
 export const IMAGES = {
-  GALLERY_DEFAULT_IMG: "/img/default-img.svg",
+  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
   GUIDE_FINDEVENT_IMG: "/img/Guide_findevent.png",
   GUIDE_FIREWORKS_IMG: "/img/Guide_fireworks.gif",
   GUIDE_RECRUIT_IMG: "/img/Guide_recruit.png",
