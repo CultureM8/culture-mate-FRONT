@@ -48,7 +48,7 @@ export default function NavigationBar() {
   const getNavMenu = () => {
     const baseMenu = [
       ["이벤트", ROUTES.EVENTS], 
-      ["동행찾기", ROUTES.WITH], 
+      ["동행찾기", ROUTES.TOGETHER], 
       ["커뮤니티", ROUTES.COMMUNITY], 
       ["고객센터", ROUTES.HELP],
     ];
