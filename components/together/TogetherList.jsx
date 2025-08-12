@@ -1,8 +1,8 @@
-import ListWithGallery from "./ListWithGallery";
+import ListGallery from "../global/ListView";
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 
-export default function WithList({
+export default function TogetherList({
   imgSrc,
   title = "모집글 제목",
   eventType = "이벤트유형",
@@ -16,7 +16,7 @@ export default function WithList({
   return (
     <>
       <div className="flex flex-wrap w-full">
-        <ListWithGallery src={imgSrc} alt={alt} />
+        <ListGallery src={imgSrc} alt={alt} />
         <div className="mt-6">
           <div className="flex items-center space-x-2 text-gray-400 opacity-70">
             <div className="border border-b-2 rounded-4xl px-2">

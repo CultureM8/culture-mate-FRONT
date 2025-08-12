@@ -43,7 +43,7 @@ export default function EventCode({ params }) {
       <div className="flex">
         <div className="relative mx-auto w-[500px] h-[600px] max-w-[500px] overflow-hidden">
           <Image 
-            src={eventData.imgSrc || IMAGES.GALLERY_DEFAULT_IMG}
+            src={eventData.imgSrc && eventData.imgSrc.trim() !== "" ? eventData.imgSrc : IMAGES.GALLERY_DEFAULT_IMG}
             alt={eventData.alt}
             fill
             className="object-cover"

@@ -74,7 +74,7 @@ export default function MyPostGrid() {
           >
             <div></div> {/* 분류열 (비움) */}
             <div className="text-left text-sm text-gray-500 flex items-center gap-1">
-              <Image src={ICONS.REPLY} alt="reply" width={20} height={20} />
+              <Image src={ICONS.CURVED_ARROW} alt="reply" width={20} height={20} />
               {post.reply}
             </div>
             <div className="flex items-center justify-center text-gray-400">
