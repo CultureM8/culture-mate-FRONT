@@ -94,6 +94,8 @@ export const ICONS = {
   THUMBSUP_EMPTY: "/img/thumbsup_empty.svg",
   THUMBSUP_FULL: "/img/thumbsup_full.svg",
   TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+  AI: "/img/ai_banner.svg",
   TOGGLE_ON: "/img/toggle_on.svg",
   UP_ARROW: "/img/up_arrow.svg",
   UP_GRAY: "/img/up_gray.svg",
