@@ -6,7 +6,6 @@ export const ROUTES = {
   HELP: "/help",
   MYPAGE: "/mypage",
   ADMIN: "/admin",
-  ADMIN: "/admin",
   FACEBOOK: 'https://facebook.com/yourpage',
   INSTAGRAM: 'https://instagram.com/yourpage',
   YOUTUBE: 'https://youtube.com/yourpage',

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { ICONS } from "@/constants/path";
 
 const RecruitmentContainer = () => {
@@ -65,10 +66,12 @@ const RecruitmentContainer = () => {
           onClick={() => handleDropdownToggle(tabName)}
           aria-label="공개 상태 선택"
         >
-          <img
+          <Image
             src={ICONS.DOWN_GRAY}
             alt="드롭다운 아이콘"
-            className="w-[17px] h-[17px] object-contain"
+            width={17}
+            height={17}
+            className="object-contain"
           />
         </button>
         
