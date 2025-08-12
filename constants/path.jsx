@@ -23,7 +23,7 @@ export const ROUTES = {
 }
 
 export const IMAGES = {
-  GALLERY_DEFAULT_IMG: "/img/default-img.svg",
+  GALLERY_DEFAULT_IMG: "/img/default_img.svg",
   GUIDE_FINDEVENT_IMG: "/img/Guide_findevent.png",
   GUIDE_FIREWORKS_IMG: "/img/Guide_fireworks.gif",
   GUIDE_RECRUIT_IMG: "/img/Guide_recruit.png",
@@ -59,6 +59,7 @@ export const ICONS = {
   COPY: "/img/copy.svg",
   CURVED_ARROW: "/img/curved_arrow.svg",
   DEFAULT_PROFILE: "/img/profile.svg",
+  LOGIN_BTN: "/img/login.svg",
   DELETE: "/img/delete.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
   DOWN_GRAY: "/img/down_gray.svg",
@@ -94,6 +95,8 @@ export const ICONS = {
   THUMBSUP_EMPTY: "/img/thumbsup_empty.svg",
   THUMBSUP_FULL: "/img/thumbsup_full.svg",
   TOGGLE_OFF: "/img/toggle_off.svg",
+  SETTING: "/img/setting.svg",
+  AI: "/img/ai_banner.svg",
   TOGGLE_ON: "/img/toggle_on.svg",
   UP_ARROW: "/img/up_arrow.svg",
   UP_GRAY: "/img/up_gray.svg",
