@@ -1,10 +1,12 @@
 "use client"
 
+import AISuggestion from "@/components/events/AISuggestion";
 import EventFilterModal from "@/components/events/EventFilterModal";
 import EventGallery from "@/components/events/EventGallery";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
+import { IMAGES } from "@/constants/path";
 import Image from "next/image";
 import { useState, useMemo } from "react";
 
