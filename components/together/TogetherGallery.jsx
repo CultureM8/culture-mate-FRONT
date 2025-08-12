@@ -1,8 +1,6 @@
-import Image from "next/image";
 import Gallery from "../global/Gallery";
-import { ICONS } from "@/constants/path";
 
-export default function EventGallery({
+export default function TogetherGallery({
   imgSrc,
   title = "모집글 제목",
   eventType = "이벤트유형",

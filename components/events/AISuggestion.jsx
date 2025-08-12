@@ -112,7 +112,7 @@ export default function AISuggestion({ suggestionList = [] }) {
         {/* AI 추천 헤더 */}
         <div className="flex gap-2 items-center justify-center">
           <Image
-            src={ICONS.AI}
+            src={ICONS.AI_BANNER}
             alt="AI추천"
             width={24}
             height={24}

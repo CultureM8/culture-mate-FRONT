@@ -1,7 +1,7 @@
 import MenuList from "../global/MenuList";
-import WithGallery from "@/components/mypage/WithGallery";
-import WithList from "./WithList";
-import WithGalleryLayout from "./ListWithGalleryLayout";
+import TogetherGallery from "@/components/together/TogetherGallery";
+import TogetherList from "../together/TogetherList";
+import ListLayout from "../global/ListLayout";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import EditSetting from "@/components/global/EditSetting";
 import { useState } from "react";
@@ -257,9 +257,9 @@ export default function InterestWith() {
       </div>
       {/* viewType에 따라 보여줄 컴포넌트 분기 */}
       {viewType === "gallery" ? (
-        <GalleryLayout Component={WithGallery} items={eventData} />
+        <GalleryLayout Component={TogetherGallery} items={eventData} />
       ) : (
-        <WithGalleryLayout Component={WithList} items={eventData} />
+        <ListLayout Component={TogetherList} items={eventData} />
       )}
     </>
   );
