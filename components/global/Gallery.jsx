@@ -2,9 +2,10 @@
 
 import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
-export default function Gallery({ src, alt = "이미지", title = "제목 없음", onClick, children }) {
+export default function Gallery({ src, alt = "이미지", title = "제목 없음", onClick, href = "", children }) {
 
   const [interest, setInterest] = useState(false);
 
@@ -25,19 +26,25 @@ export default function Gallery({ src, alt = "이미지", title = "제목 없음
           height={28}
         />
       </button>
-      <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400">
-        <Image
-          src={src ? src : IMAGES.GALLERY_DEFAULT_IMG}
-          alt={alt}
-          width={200}
-          height={150}
-          className="w-[280px] h-[200px] rounded-xl object-cover"
-        />
-        <div className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
-          {title}
+      <Link
+        href={href}
+      >
+        <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400">
+          <Image
+            src={src ? src : IMAGES.GALLERY_DEFAULT_IMG}
+            alt={alt}
+            width={200}
+            height={150}
+            className="w-[280px] h-[200px] rounded-xl object-cover"
+          />
+          <div className="px-2">
+            <div className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
+              {title}
+            </div>
+            {children}
+          </div>
         </div>
-        {children}
-      </div>
+      </Link>
     </div>
   );
 }
