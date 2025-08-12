@@ -3,13 +3,21 @@ import Gallery from "../global/Gallery"
 import { ICONS } from "@/constants/path"
 
 export default function EventGallery(
+<<<<<<< HEAD
+  { imgSrc, alt, title = "제목", date = "0000.00.00 ~ 0000.00.00", location = "지역 및 장소명", href = "", isHot = false }
+) {
+  return (
+    <Gallery title={title} src={imgSrc} alt={alt} href={href}>
+      <>
+=======
   { imgSrc, alt, title = "제목", date = "0000.00.00 ~ 0000.00.00", location = "지역 및 장소명", isHot = false, enableInterest=true }
 ) {
   return (
     <Gallery title={title} src={imgSrc} alt={alt} enableInterest={enableInterest}>
       <div>
+>>>>>>> develop
         {date}
-      </div>
+      </>
       <div className="flex items-center gap-1">
         {isHot && (
           <div className="flex items-center gap-1">
