@@ -2,7 +2,7 @@ import ListGallery from "../global/ListView";
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 
-export default function TogheterList({
+export default function TogetherList({
   imgSrc,
   title = "모집글 제목",
   eventType = "이벤트유형",
