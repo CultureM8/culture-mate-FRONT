@@ -59,6 +59,7 @@ export const ICONS = {
   COPY: "/img/copy.svg",
   CURVED_ARROW: "/img/curved_arrow.svg",
   DEFAULT_PROFILE: "/img/profile.svg",
+  LOGIN_BTN: "/img/login.svg",
   DELETE: "/img/delete.svg",
   DOWN_ARROW: "/img/down_arrow.svg",
   DOWN_GRAY: "/img/down_gray.svg",
