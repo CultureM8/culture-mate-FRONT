@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 임시데이터
+/이벤트사진/
+
+# AI 관련
+CLAUDE.md
+SUPERCLAUD_COMMANDS_KR.md
