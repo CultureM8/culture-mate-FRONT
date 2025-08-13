@@ -32,7 +32,7 @@ export default function TestReviewList({
   alt = "",
   eventType = "이벤트유형",
   eventName = "이벤트명",
-  score = 3.5,
+  score = 0,
   context = "이벤트 리뷰 본문"
 }) {
 

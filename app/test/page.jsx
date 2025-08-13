@@ -233,7 +233,10 @@ export default function test() {
       <List />
       <TogetherList />
       <TestTogetherList />
-      <TestReviewList />
+      
+      <TestReviewList 
+        score={3.5}
+      />
 
       <TestListLayout 
         Component={TestTogetherList}
