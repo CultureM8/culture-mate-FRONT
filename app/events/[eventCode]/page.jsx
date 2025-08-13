@@ -1,32 +1,17 @@
-"use client"
-
 import EventDetail from "@/components/events/EventDetail";
 import EventInfo from "@/components/events/EventInfo";
-import HorizontalTab from "@/components/global/HorizontalTab";
+import EventPageClient from "./EventPageClient";
 import { getEventByCode } from "@/lib/eventData";
-import { useState, useEffect, use } from "react";
 
-export default function EventCode({ params }) {
-  const { eventCode } = use(params);
-  const [currentMenu, setCurrentMenu] = useState("상세 정보");
-  const [eventData, setEventData] = useState(null);
+export default async function EventCode({ params }) {
+  const { eventCode } = await params;
   
-  const menuList = ["상세 정보", "후기", "모집중인 동행"];
-  
-  useEffect(() => {
-    const fetchEvent = async () => {
-      try {
-        const event = await getEventByCode(eventCode);
-        setEventData(event);
-      } catch (err) {
-        console.error("이벤트 데이터 로딩 실패:", err);
-      }
-    };
-    
-    if (eventCode) {
-      fetchEvent();
-    }
-  }, [eventCode]); 
+  let eventData = null;
+  try {
+    eventData = await getEventByCode(eventCode);
+  } catch (err) {
+    console.error("이벤트 데이터 로딩 실패:", err);
+  }
   
   if (!eventData) {
     return (
@@ -41,28 +26,8 @@ export default function EventCode({ params }) {
 
   return(
     <>
-      <EventInfo 
-        eventData={eventData}
-      />
-      <HorizontalTab 
-        currentMenu={currentMenu}
-        menuList={menuList}
-        setCurrentMenu={setCurrentMenu}
-        width={800}
-        align="center"
-      />
-      <div className="min-h-50">
-        {currentMenu === menuList[0] &&
-          <EventDetail />
-        }
-        {currentMenu === menuList[1] &&
-          <div>후기</div>
-        }
-        {currentMenu === menuList[2] &&
-          <div>모집중인 동행</div>
-        }
-      </div>
-
+      <EventInfo eventData={eventData} />
+      <EventPageClient eventData={eventData} />
     </>
   )
 }
