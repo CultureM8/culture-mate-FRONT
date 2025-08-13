@@ -12,8 +12,9 @@ import EventFilterModal from "@/components/events/EventFilterModal";
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
+  const [togetherViewType, setTogetherViewType] = useState("Gallery")
+  const [reviewViewType, setReviewViewType] = useState("Gallery")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [viewType, setViewType] = useState("Gallery")
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
@@ -29,20 +30,37 @@ export default function EventPageClient({ eventData }) {
       />
       <div className="min-h-50">
         {currentMenu === menuList[0] &&
+          // 이벤트 상세 정보
           <EventDetail eventData={eventData} />
         }
         {currentMenu === menuList[1] &&
-          <>후기</>
-        }
-        {currentMenu === menuList[2] &&
+          // 이벤트 리뷰
           <>
             <SearchFilterSort 
               enableViewType
-              viewType={viewType}
-              setViewType={setViewType}
+              viewType={reviewViewType}
+              setViewType={setReviewViewType}
               filterAction={openFilterModal}
             />
-            {viewType === "Gallery" ? 
+            {/* {togetherViewType === "Gallery" ? 
+              <GalleryLayout 
+                Component={ReviewGallery}
+                items={reviewData.filter(item => item.eventCode === eventData.eventCode)}
+              /> :
+              ""
+            } */}
+          </>
+        }
+        {currentMenu === menuList[2] &&
+          // 모집중인 동행
+          <>
+            <SearchFilterSort 
+              enableViewType
+              viewType={togetherViewType}
+              setViewType={setTogetherViewType}
+              filterAction={openFilterModal}
+            />
+            {togetherViewType === "Gallery" ? 
               <GalleryLayout 
                 Component={TogetherGallery}
                 items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
