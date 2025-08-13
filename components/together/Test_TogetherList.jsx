@@ -7,7 +7,7 @@ export default function TestTogetherList({
   title = "모집글 제목",
   eventType = "이벤트유형",
   eventName = "이벤트명",
-  people = "모집 인원",
+  people = "00/00",
   date = "0000.00.00",
   address = "00시 00구 00동",
   author = "-",
