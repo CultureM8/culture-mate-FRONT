@@ -15,11 +15,12 @@ export const ROUTES = {
   LOCATION_TERMS: '/location',
   YOUTH_PROTECTION: '/youth',
   EMAIL_POLICY: '/email-policy',
-  ABOUT: '/about',
-  GUIDE: '/guide',
-  NOTICE: '/notice',
-  FAQ: '/faq',
-  CONTACT: '/contact'
+  ABOUT: '/help/about',
+  GUIDE: '/help/guide',
+  NOTICE: '/help/notice',
+  FAQ: '/help',
+  CONTACT: '/help/contact',
+  CONTACT_HISTORY: '/help/contact-history',
 }
 
 export const IMAGES = {
