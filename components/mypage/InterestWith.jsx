@@ -6,234 +6,18 @@ import GalleryLayout from "@/components/global/GalleryLayout";
 import EditSetting from "@/components/global/EditSetting";
 import { useState } from "react";
 
-export default function InterestWith() {
+export default function InterestWith({ eventData }) {
   const [activeButton, setActiveButton] = useState("friend");
   const [viewType, setViewType] = useState("gallery");
 
-  const eventData = [
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-1",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-2",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-3",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-4",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-5",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-6",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-7",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-8",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-9",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-1",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-2",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-3",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-4",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-5",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-6",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-7",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-8",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-9",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-1",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-2",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-3",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-4",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-5",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-6",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-7",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-8",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-9",
-      date: "0000.00.00",
-      location: "지역 및 장소명",
-      isHot: false,
-    },
-  ];
-
   return (
     <>
+      {/* 관심동행 페이지 */}
       <div className="flex items-center justify-between">
         <div className="flex gap-6">
+          {/* 리스트형, 앨범형으로 나눌 것인지 확인하는 컴포넌트 */}
           <MenuList selected={viewType} onChange={setViewType} />
+          {/* 친구의 글만 보일지 완료된 모집만 보일지는 추후 개발 */}
           <div className="flex gap-6">
             <button
               onClick={() => setActiveButton("friend")}
@@ -253,9 +37,12 @@ export default function InterestWith() {
             </button>
           </div>
         </div>
+        {/* 편집, 설정 버튼 */}
         <EditSetting />
       </div>
       {/* viewType에 따라 보여줄 컴포넌트 분기 */}
+      {/* GalleryLayout컴포넌트와 ListLayout컴포넌트는 
+          items로 데이터를 받아들이기 때문에 items={eventData}로 코딩합니다.*/}
       {viewType === "gallery" ? (
         <GalleryLayout Component={TogetherGallery} items={eventData} />
       ) : (
