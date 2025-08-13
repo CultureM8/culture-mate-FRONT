@@ -1,6 +1,6 @@
 "use client"
 
-export default function HorizontalTab( {menuList=[], currentMenu, setCurrentMenu, width=1200, align="center"} ) {
+export default function HorizontalTab( {menuList=[], currentMenu, setCurrentMenu, width=1200, align="center", gap=0} ) {
   return(
     <div className="border-[#eef0f2] border-[0px_0px_1px] h-8">
       <div 
@@ -9,7 +9,10 @@ export default function HorizontalTab( {menuList=[], currentMenu, setCurrentMenu
             align === "left" ? "mr-auto" : 
             align === "right" ? "ml-auto" : ""
           }`}
-        style={{ width: `${width}px` }}
+        style={{ 
+          width: `${width}px`, 
+          gap: `${gap}px`
+        }}
       >
         {menuList.map((menu, _) => (
           <button
