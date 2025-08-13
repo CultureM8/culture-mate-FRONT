@@ -28,15 +28,15 @@ export default function TestTogetherList({
           </h3>
           <div className="flex gap-4 shrink-0 w-full">
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.CALENDAR} alt="calendar" width={22} height={22} />
+              <Image src={ICONS.CALENDAR} alt="calendar" width={20} height={20} />
               {date}
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.GROUP} alt="group" width={22} height={22} />
+              <Image src={ICONS.GROUP} alt="group" width={24} height={24} />
               {people}
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.PIN} alt="group" width={22} height={22} />
+              <Image src={ICONS.PIN} alt="group" width={20} height={20} />
               {address}
             </span>
           </div>
