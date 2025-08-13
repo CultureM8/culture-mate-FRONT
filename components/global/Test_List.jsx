@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function TestList({ src, alt = "이미지", title = "제목 없음", enableInterest=true, onClick, href = "", children }) {
+export default function TestList({ src, alt = "이미지", enableInterest=true, onClick, href = "", children }) {
 
   // 추후에 매개변수로 넘겨받아서 처리
   const [interest, setInterest] = useState(false);
@@ -41,10 +41,10 @@ export default function TestList({ src, alt = "이미지", title = "제목 없�
             "
         >
           <Image
-            src={src ? src : IMAGES.GALLERY_DEFAULT_IMG}
+            src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
             alt={alt}
-            width={0}
-            height={0}
+            width={120}
+            height={120}
             className="w-[120px] h-[120px] rounded-xl object-cover"
           />
           <div className="px-4 py-2 flex-1 min-w-0">

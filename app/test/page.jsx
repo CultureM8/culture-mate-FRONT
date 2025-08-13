@@ -1,7 +1,8 @@
+import TestReviewList from "@/components/community/Test_ReviewList";
 import ListGallery from "@/components/global/ListView";
 import List from "@/components/global/Test_List";
 import TestListLayout from "@/components/global/Test_ListLayout";
-import TestTogetherList from "@/components/global/Test_TogetherList";
+import TestTogetherList from "@/components/together/Test_TogetherList";
 import TogetherList from "@/components/together/TogetherList";
 
 export default function test() {
@@ -232,6 +233,7 @@ export default function test() {
       <List />
       <TogetherList />
       <TestTogetherList />
+      <TestReviewList />
 
       <TestListLayout 
         Component={TestTogetherList}
