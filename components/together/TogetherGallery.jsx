@@ -1,13 +1,13 @@
 import Gallery from "../global/Gallery";
 
 export default function TogetherGallery({
-  imgSrc,
-  title = "모집글 제목",
-  eventType = "이벤트유형",
-  eventName = "이벤트명",
-  people = "모집 인원",
-  date = "0000.00.00",
-  alt,
+  imgSrc, // 이미지 경로 (현재 빈 문자열)
+  title = "모집글 제목", // 동행 모집 게시글 제목
+  eventType = "이벤트유형", // 이벤트 유형 (태그)
+  eventName = "이벤트명", // 구체적인 이벤트명
+  group = "모집 인원", // 모집 현황 (현재인원/총인원)
+  date = "0000.00.00", // 이벤트 날짜
+  alt, // 이미지 대체텍스트 (접근성용)
 }) {
   return (
     <Gallery title={title} src={imgSrc} alt={alt}>
@@ -16,7 +16,7 @@ export default function TogetherGallery({
         <div>{eventName}</div>
       </div>
       <div>
-        {date} {people}
+        {date} {group}
       </div>
     </Gallery>
   );
