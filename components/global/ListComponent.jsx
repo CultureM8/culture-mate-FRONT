@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function TestList({ src, alt = "이미지", enableInterest=true, onClick, href = "", children }) {
+export default function ListComponent({ src, alt = "이미지", enableInterest=true, onClick, href = "", children }) {
 
   // 추후에 매개변수로 넘겨받아서 처리
   const [interest, setInterest] = useState(false);

@@ -8,8 +8,8 @@ import { useState } from "react";
 import { togetherData } from "@/lib/togetherData";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/EventFilterModal";
-import TestListLayout from "../global/Test_ListLayout";
-import TestTogetherList from "../together/Test_TogetherList";
+import ListLayout from "../global/ListLayout";
+import TogetherList from "../together/TogetherList";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
@@ -67,8 +67,8 @@ export default function EventPageClient({ eventData }) {
                 Component={TogetherGallery}
                 items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
               /> :
-              <TestListLayout 
-                Component={TestTogetherList}
+              <ListLayout 
+                Component={TogetherList}
                 items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
               />
             }

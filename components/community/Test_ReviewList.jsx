@@ -1,5 +1,5 @@
 import { ICONS } from "@/constants/path";
-import List from "../global/Test_List";
+import List from "../global/ListComponent";
 import Image from "next/image";
 
 function Stars({ score = 0 }) {
