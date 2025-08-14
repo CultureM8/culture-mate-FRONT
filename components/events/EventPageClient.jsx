@@ -8,6 +8,8 @@ import { useState } from "react";
 import { togetherData } from "@/lib/togetherData";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/EventFilterModal";
+import ListLayout from "../global/ListLayout";
+import TogetherList from "../together/TogetherList";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
@@ -65,7 +67,10 @@ export default function EventPageClient({ eventData }) {
                 Component={TogetherGallery}
                 items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
               /> :
-              ""
+              <ListLayout 
+                Component={TogetherList}
+                items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
+              />
             }
             {/* 필터 모달창 => 동행용 필터로 추후에 교체해야함. */}
             <EventFilterModal isOpen={isFilterModalOpen} onClose={closeFilterModal} />

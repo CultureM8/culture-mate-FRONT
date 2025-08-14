@@ -1,9 +1,9 @@
-export default function ListGalleryLayout({ Component, items }) {
+export default function ListLayout({ Component, items, commonProps={} }) {
   return (
-    <div className="grid grid-cols-1 gap-0 justify-center">
+    <div className="flex flex-col gap-0 w-full">
       {items.map((item, idx) => (
-        <Component key={idx} {...item} />
+        <Component key={idx} {...item} {...commonProps} />
       ))}
     </div>
-  );
+  )
 }
