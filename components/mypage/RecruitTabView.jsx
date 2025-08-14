@@ -1,9 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { ICONS } from "@/constants/path";
+import MyTogether from "./MyTogether";
+import MyTogetherHistory from "./MyTogetherHistory";
+// TODO: 추후 다른 탭 컴포넌트들 import 추가
+// import MyEventReview from "./MyEventReview";
 
-const RecruitmentContainer = () => {
+const RecruitTabView = () => {
   const [activeTab, setActiveTab] = useState("나의 모집글");
   const [dropdownStates, setDropdownStates] = useState({
     "나의 모집글": false,
@@ -18,7 +23,7 @@ const RecruitmentContainer = () => {
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
-    // TODO: 각 탭에 따른 페이지 라우팅 추가
+    // TODO: 각 탭에 따른 페이지 라우팅이 필요한 경우 추가
     // 예시:
     // if (tabName === "나의 모집글") {
     //   router.push("/mypage/recruitment");
@@ -65,10 +70,12 @@ const RecruitmentContainer = () => {
           onClick={() => handleDropdownToggle(tabName)}
           aria-label="공개 상태 선택"
         >
-          <img
+          <Image
             src={ICONS.DOWN_GRAY}
             alt="드롭다운 아이콘"
-            className="w-[17px] h-[17px] object-contain"
+            width={17}
+            height={17}
+            className="object-contain"
           />
         </button>
         
@@ -122,29 +129,58 @@ const RecruitmentContainer = () => {
     );
   };
 
+  // 탭별 컨텐츠 렌더링 함수
+  const renderTabContent = () => {
+    const currentStatus = selectedStatuses[activeTab];
+    
+    switch (activeTab) {
+      case "나의 모집글":
+        return <MyTogether status={currentStatus} />;
+      case "이벤트 리뷰":
+        // TODO: MyEventReview 컴포넌트 구현 후 연결
+        return (
+          <div className="w-full max-w-[1200px] mx-auto px-4 py-8 text-center text-gray-500">
+            이벤트 리뷰 컴포넌트가 준비 중입니다.
+          </div>
+        );
+      case "동행 기록":
+        return <MyTogetherHistory status={currentStatus} />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="w-full flex justify-center">
-      <div
-        className="box-border content-stretch flex flex-row items-end justify-start p-0 relative"
-        style={{ width: "1200px", height: "48px" }}
-        data-name="Recruitment container"
-      >
+    <div className="w-full">
+      {/* 탭 헤더 */}
+      <div className="w-full flex justify-center">
         <div
-          aria-hidden="true"
-          className="absolute border-[#eef0f2] border-[0px_0px_1px] border-solid inset-0 pointer-events-none"
-        />
-        
-        {/* 나의 모집글 탭 */}
-        {renderTab("나의 모집글", "Component 4")}
-        
-        {/* 이벤트 리뷰 탭 */}
-        {renderTab("이벤트 리뷰", "Component 5")}
-        
-        {/* 동행 기록 탭 */}
-        {renderTab("동행 기록", "Component 6")}
+          className="box-border content-stretch flex flex-row items-end justify-start p-0 relative"
+          style={{ width: "1200px", height: "48px" }}
+          data-name="Recruitment container"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute border-[#eef0f2] border-[0px_0px_1px] border-solid inset-0 pointer-events-none"
+          />
+          
+          {/* 나의 모집글 탭 */}
+          {renderTab("나의 모집글", "Component 4")}
+          
+          {/* 이벤트 리뷰 탭 */}
+          {renderTab("이벤트 리뷰", "Component 5")}
+          
+          {/* 동행 기록 탭 */}
+          {renderTab("동행 기록", "Component 6")}
+        </div>
+      </div>
+
+      {/* 탭별 컨텐츠 */}
+      <div className="w-full">
+        {renderTabContent()}
       </div>
     </div>
   );
 };
 
-export default RecruitmentContainer;
+export default RecruitTabView;
