@@ -21,7 +21,7 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
         style={{ width: '172px', height: '240px' }}
       >
         <Image
-          src={imgSrc}
+          src={imgSrc && imgSrc.trim() !== "" ? imgSrc : "/img/default_img.svg"}
           alt={alt}
           fill
           className="object-cover"
@@ -32,9 +32,9 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
 
       </div>
 
-      <div className={`pt-1.5 text-center transition-all duration-700`}>
+      <div className={`pt-1.5 text-center transition-all duration-700 w-[172px]`}>
         <h3 className={`font-bold truncate transition-all duration-700 ${
-          isCenter ? "" : "text-sm text-gray-700" }`}
+          isCenter ? "" : "text-sm text-gray-700" } overflow-hidden whitespace-nowrap text-ellipsis`}
         >
           {title}
         </h3>
@@ -42,7 +42,7 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
           isCenter 
             ? "text-sm text-gray-600" 
             : "text-xs text-gray-500"
-        }`}>
+        } overflow-hidden whitespace-nowrap text-ellipsis`}>
           {date}
         </p>
       </div>
@@ -99,11 +99,12 @@ export default function AISuggestion({ suggestionList = [] }) {
     <div>
       {/* 배경 이미지 (현재 선택된 카드의 이미지를 흐리게 표시) */}
       <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[370px] z-0">
+        <div className="w-full h-full bg-black opacity-20" />
         <Image
-          src={suggestionList[currentIndex].imgSrc}
+          src={suggestionList[currentIndex].imgSrc && suggestionList[currentIndex].imgSrc.trim() !== "" ? suggestionList[currentIndex].imgSrc : "/img/default_img.svg"}
           alt={suggestionList[currentIndex].alt}
           fill
-          className="object-cover opacity-50"
+          className="object-cover opacity-50 blur-xs"
         />
       </div>
 
@@ -131,7 +132,7 @@ export default function AISuggestion({ suggestionList = [] }) {
                 imgSrc={event.imgSrc}
                 alt={event.alt}
                 title={event.title}
-                date={event.date}
+                date={`${event.startDate} ~ ${event.endDate}`}
                 isCenter={index === 2}
                 link={event.link}
                 onClick={() => {

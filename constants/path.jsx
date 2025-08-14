@@ -5,6 +5,11 @@ export const ROUTES = {
   COMMUNITY: "/community",
   HELP: "/help",
   MYPAGE: "/mypage",
+  FRIENDS: "/mypage/friends",
+  HISTORY: "/mypage/history",
+  INTEREST: "/mypage/interest",
+  POST_MANAGE: "/mypage/post-manage",
+  SETTINGS: "/mypage/settings",
   ADMIN: "/admin",
   FACEBOOK: 'https://facebook.com/yourpage',
   INSTAGRAM: 'https://instagram.com/yourpage',
@@ -15,11 +20,12 @@ export const ROUTES = {
   LOCATION_TERMS: '/location',
   YOUTH_PROTECTION: '/youth',
   EMAIL_POLICY: '/email-policy',
-  ABOUT: '/about',
-  GUIDE: '/guide',
-  NOTICE: '/notice',
-  FAQ: '/faq',
-  CONTACT: '/contact'
+  ABOUT: '/help/about',
+  GUIDE: '/help/guide',
+  NOTICE: '/help/notice',
+  FAQ: '/help',
+  CONTACT: '/help/contact',
+  CONTACT_HISTORY: '/help/contact-history',
 }
 
 export const IMAGES = {

@@ -2,37 +2,7 @@ import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import SearchFilterSort from "@/components/global/SearchSort";
 
-export default function MyPostGrid() {
-  const posts = [
-    {
-      id: 1,
-      category: "게시물분류",
-      title: "제목(공백 포함 30자 이후 말줄임...여기까지 30자)...",
-      comments: 1,
-      likes: 2,
-      favorites: 3,
-      date: "2025-08-06 00:00:00",
-    },
-    {
-      id: 2,
-      category: "게시물분류",
-      title: "제목(공백 포함 30자 이후 말줄임...여기까지 30자)...",
-      comments: 4,
-      likes: 5,
-      favorites: 6,
-      date: "2025-08-06 00:00:00",
-    },
-    {
-      id: 3,
-      category: "게시물분류",
-      title: "제목(공백 포함 30자 이후 말줄임...여기까지 30자)...",
-      comments: 7,
-      likes: 8,
-      favorites: 9,
-      date: "2025-08-06 00:00:00",
-    },
-  ];
-
+export default function MyPostGrid({ posts }) {
   const gridCols = "120px 1fr 60px 60px 60px 190px 60px 60px";
 
   return (

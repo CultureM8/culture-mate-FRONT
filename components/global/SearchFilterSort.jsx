@@ -3,7 +3,7 @@ import SearchBar from "./SearchBar";
 import { ICONS } from "@/constants/path";
 
 export default function SearchFilterSort({ enableTitle = false, title="전체", enableViewType = false, viewType="Gallery", setViewType, filterAction, sortAction }) {
-  const viewTypes = [["Gallery", ICONS.VIEWTYPE_GALLERY], ["List", ICONS.VIEWTYPE_LIST]];
+  const viewTypes = [["Gallery", ICONS.MENU], ["List", ICONS.LIST]];
 
   return (
     <div className="px-2.5 h-16 flex items-center justify-between">
