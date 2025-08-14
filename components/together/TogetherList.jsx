@@ -4,14 +4,14 @@ import ListComponent from "../global/ListComponent";
 
 export default function TogetherList({
   imgSrc,
+  alt = "",
   title = "모집글 제목",
   eventType = "이벤트유형",
   eventName = "이벤트명",
-  people = "00/00",
+  group = "00/00",
   date = "0000.00.00",
   address = "00시 00구 00동",
   author = "-",
-  alt = "",
   isClosed = false,
 }) {
   return (
@@ -33,7 +33,7 @@ export default function TogetherList({
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
               <Image src={ICONS.GROUP} alt="group" width={24} height={24} />
-              {people}
+              {group}
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
               <Image src={ICONS.PIN} alt="group" width={20} height={20} />
