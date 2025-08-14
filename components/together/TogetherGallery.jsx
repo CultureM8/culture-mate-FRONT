@@ -1,3 +1,5 @@
+import { ICONS } from "@/constants/path";
+import Image from "next/image";
 import Gallery from "../global/Gallery";
 
 export default function TogetherGallery({
@@ -18,8 +20,15 @@ export default function TogetherGallery({
           <div className="border border-b-2 rounded-4xl px-2">{eventType}</div>
           <div>{eventName}</div>
         </div>
-        <div>
-          {date} {group}
+        <div className="flex gap-4">
+          <span className="flex items-center gap-2">
+            <Image src={ICONS.CALENDAR} alt="calendar" width={16} height={16} />
+            {date}
+          </span>
+          <span className="flex items-center gap-2">
+            <Image src={ICONS.GROUP} alt="group" width={20} height={20} />
+            {group}
+          </span>
         </div>
       </Gallery>
     </div>
