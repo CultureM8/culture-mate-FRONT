@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function ListComponent({ src, alt = "이미지", enableInterest=true, onClick, href = "", children }) {
+export default function ListComponent({ src, alt = "이미지", title = "", enableInterest=true, onClick, href = "", children }) {
 
   // 추후에 매개변수로 넘겨받아서 처리
   const [interest, setInterest] = useState(false);
@@ -17,7 +17,7 @@ export default function ListComponent({ src, alt = "이미지", enableInterest=t
   }
   
   return (
-    <div className="bg-white w-full min-w-[300px] relative border-b border-gray-200">
+    <div className="bg-white w-full min-w-[300px] relative border-b border-gray-200" title={title}>
       {enableInterest &&
         <button className={`absolute top-0 left-0 mt-4 ml-4 ${interest ? "" : "opacity-30"} hover:cursor-pointer`}
           onClick={interestHandler}

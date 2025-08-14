@@ -17,7 +17,7 @@ export default function TogetherList({
   return (
     <div className="relative">
       {isClosed && <div className="absolute inset-0 w-full h-full bg-black opacity-10 z-10" />}
-      <ListComponent src={imgSrc} alt={alt}>
+      <ListComponent src={imgSrc} alt={alt} title={title}>
         <div className="flex flex-col justify-around h-full">
           <div className="flex gap-2">
             <span className="border border-b-2 rounded-4xl px-2 w-fit">{eventType}</span>
