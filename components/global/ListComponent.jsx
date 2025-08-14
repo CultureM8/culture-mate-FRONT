@@ -17,7 +17,7 @@ export default function ListComponent({ src, alt = "이미지", enableInterest=t
   }
   
   return (
-    <div className="bg-white w-full min-w-[300px] relative">
+    <div className="bg-white w-full min-w-[300px] relative border-b border-gray-200">
       {enableInterest &&
         <button className={`absolute top-0 left-0 mt-4 ml-4 ${interest ? "" : "opacity-30"} hover:cursor-pointer`}
           onClick={interestHandler}
