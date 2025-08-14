@@ -3,7 +3,7 @@ import { useState } from "react";
 import MyPostGrid from "./MyPostGrid";
 import MyRepGrid from "./MyRepGrid";
 
-export default function MyPostManageTab() {
+export default function MyPostManageTab({ posts, reply }) {
   const [activeTab, setActiveTab] = useState("MyPostTab");
   return (
     <div className="mt-3">
@@ -30,8 +30,8 @@ export default function MyPostManageTab() {
         </button>
       </div>
       <div className="mt-8">
-        {activeTab === "MyPostTab" && <MyPostGrid />}
-        {activeTab === "MyRepTab" && <MyRepGrid />}
+        {activeTab === "MyPostTab" && <MyPostGrid posts={posts} />}
+        {activeTab === "MyRepTab" && <MyRepGrid reply={reply} />}
       </div>
     </div>
   );
