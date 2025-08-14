@@ -6,10 +6,13 @@ import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
 import { useState } from "react";
 import { togetherData } from "@/lib/togetherData";
+import { eventReviewData } from "@/lib/eventReviewData";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/EventFilterModal";
 import ListLayout from "../global/ListLayout";
 import TogetherList from "../together/TogetherList";
+import EventReviewGallery from "../community/EventReviewGallery";
+import EventReviewList from "../community/EventReviewList";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
@@ -44,13 +47,16 @@ export default function EventPageClient({ eventData }) {
               setViewType={setReviewViewType}
               filterAction={openFilterModal}
             />
-            {/* {togetherViewType === "Gallery" ? 
+            {reviewViewType === "Gallery" ? 
               <GalleryLayout 
-                Component={ReviewGallery}
-                items={reviewData.filter(item => item.eventCode === eventData.eventCode)}
+                Component={EventReviewGallery}
+                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
               /> :
-              ""
-            } */}
+              <ListLayout 
+                Component={EventReviewList}
+                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
+              />
+            }
           </>
         }
         {currentMenu === menuList[2] &&
