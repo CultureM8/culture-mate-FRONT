@@ -4,7 +4,7 @@ import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
 import { useState } from "react";
 
-export default function ListWithGallery({
+export default function ListGallery({
   src,
   eventType,
   eventName,

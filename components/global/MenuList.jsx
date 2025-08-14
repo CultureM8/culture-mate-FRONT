@@ -16,7 +16,7 @@ export default function MenuList({ selected, onChange }) {
           onClick={() => onChange("gallery")}
         >
           <Image
-            src={ICONS.VIEWTYPE_GALLERY}
+            src={ICONS.MENU}
             alt="메뉴(갤러리형)"
             width={24}
             height={24}
@@ -31,7 +31,7 @@ export default function MenuList({ selected, onChange }) {
           onClick={() => onChange("list")}
         >
           <Image
-            src={ICONS.VIEWTYPE_LIST}
+            src={ICONS.LIST}
             alt="리스트"
             width={24}
             height={24}
