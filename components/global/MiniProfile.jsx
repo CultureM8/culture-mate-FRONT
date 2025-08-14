@@ -25,10 +25,11 @@ export default function MiniProfile() {
 
   const menuItems = [
     { label: "프로필", path: ROUTES.MYPAGE },
-    { label: "친구/채팅", path: "/mypage/friends" }, // TODO: 친구/채팅 경로명 추후 재설정 필요
-    { label: "나의 활동", path: "/mypage/history" }, // TODO: path.jsx 파일에 경로 확정되면 ROUTES로 변경 필요
-    { label: "환경설정", path: "/mypage/preferences" }, // TODO: path.jsx 파일에 경로 확정되면 ROUTES로 변경 필요
-    { label: "고객 지원", path: ROUTES.HELP }
+    { label: "친구/채팅", path: ROUTES.FRIENDS },
+    { label: "관심목록", path: ROUTES.INTEREST },
+    { label: "히스토리", path: ROUTES.HISTORY },
+    { label: "게시물 관리", path: ROUTES.POST_MANAGE },
+    { label: "환경설정", path: ROUTES.SETTINGS },
   ];
 
   const handleLogout = () => {
