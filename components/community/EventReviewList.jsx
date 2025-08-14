@@ -27,7 +27,7 @@ function Stars({ score = 0 }) {
   );
 }
 
-export default function TestReviewList({
+export default function EventReviewList({
   imgSrc,
   alt = "",
   eventType = "이벤트유형",
