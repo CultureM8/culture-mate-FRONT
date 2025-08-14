@@ -6,69 +6,60 @@ import EventGallery from "@/components/events/EventGallery";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
-import { IMAGES } from "@/constants/path";
-import Image from "next/image";
-import { useState, useMemo } from "react";
+import { getAllEvents, getEventsByType } from "@/lib/eventData";
+import { getAISuggestionData } from "@/lib/aiSuggestionData";
+import { useState, useEffect } from "react";
 
 export default function Event() {
 
   const [title, intro] = ["이벤트", "무대 위의 감동부터 거리의 축제까지, 당신의 취향을 채울 다양한 이벤트를 만나보세요."];
 
-  // AI 추천 이벤트 목록
-  const aiSuggestionData = [
-    { id: 1, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-1", title: "제목-1", date: "0000-00-00 ~ 0000-00-00", link: "/events/1" },
-    { id: 2, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-2", title: "제목-2", date: "0000-00-00 ~ 0000-00-00", link: "/events/2" },
-    { id: 3, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-3", title: "제목-3", date: "0000-00-00 ~ 0000-00-00", link: "/events/3" },
-    { id: 4, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-4", title: "제목-4", date: "0000-00-00 ~ 0000-00-00", link: "/events/4" },
-    { id: 5, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-5", title: "제목-5", date: "0000-00-00 ~ 0000-00-00", link: "/events/5" },
-    { id: 6, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-6", title: "제목-6", date: "0000-00-00 ~ 0000-00-00", link: "/events/6" },
-    { id: 7, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-7", title: "제목-7", date: "0000-00-00 ~ 0000-00-00", link: "/events/7" },
-    { id: 8, imgSrc: IMAGES.GALLERY_DEFAULT_IMG, alt: "제목-8", title: "제목-8", date: "0000-00-00 ~ 0000-00-00", link: "/events/8" },
-  ];
-
-  const eventData = useMemo(() => [
-    { imgSrc: "", alt: "", title: "제목-1", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-2", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-3", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-4", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-5", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-6", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-7", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-8", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-9", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-1", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-2", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-3", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-4", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-5", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-6", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-7", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-8", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-9", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-1", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-2", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-3", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-4", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-5", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-6", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-7", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-    { imgSrc: "", alt: "", title: "제목-8", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: true },
-    { imgSrc: "", alt: "", title: "제목-9", date: "0000.00.00 ~ 0000.00.00", location: "지역 및 장소명", isHot: false },
-  ], []);
-
+  const [eventData, setEventData] = useState([]);
+  const [aiSuggestionData, setAiSuggestionData] = useState([]);
   const [selectedType, setSelectedType] = useState("전체");
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false); // Set to true for demonstration
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        if (selectedType === "전체") {
+          const events = await getAllEvents();
+          setEventData(events);
+        } else {
+          const events = await getEventsByType(selectedType);
+          setEventData(events);
+        }
+      } catch (error) {
+        console.error("이벤트 데이터를 가져오는데 실패했습니다:", error);
+      }
+    };
+
+    fetchEvents();
+  }, [selectedType]);
+
+  useEffect(() => {
+    const fetchAISuggestions = async () => {
+      try {
+        const suggestions = await getAISuggestionData();
+        setAiSuggestionData(suggestions);
+      } catch (error) {
+        console.error("AI 추천 데이터를 가져오는데 실패했습니다:", error);
+      }
+    };
+
+    fetchAISuggestions();
+  }, []);
+
   return (
     <>
-      <h1 className="text-4xl font-bold py-[10px] h-16">{title}</h1>
-      <p className="text-xl pt-[10px] h-12 fill-gray-600">{intro}</p>
+      <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
+      <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
 
       <AISuggestion 
-        suggestionList={aiSuggestionData} 
+        suggestionList={aiSuggestionData || []} 
       />
 
       <EventSelector 

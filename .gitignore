@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # 임시데이터
-/이벤트사진/
+
 
 # AI 관련
 CLAUDE.md
