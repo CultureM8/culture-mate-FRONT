@@ -3,7 +3,7 @@
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
 // 개별 이벤트 카드 컴포넌트
 function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
@@ -66,17 +66,39 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
 export default function AISuggestion({ suggestionList = [] }) {
   // 현재 중앙에 위치한 카드의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
+  // 타이머 참조
+  const intervalRef = useRef(null);
+
+  // 타이머를 시작하는 함수
+  const startAutoSlide = useCallback(() => {
+    if (suggestionList.length === 0) return;
+    
+    // 기존 타이머가 있으면 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    // 새 타이머 시작
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex(prevIndex => (prevIndex + 1) % suggestionList.length);
+    }, 5000);
+  }, [suggestionList.length]);
+
+  // 타이머를 재시작하는 함수 (수동 클릭 시 사용)
+  const restartAutoSlide = useCallback(() => {
+    startAutoSlide();
+  }, [startAutoSlide]);
 
   // 자동으로 다음 이미지로 넘어가는 기능
   useEffect(() => {
-    if (suggestionList.length === 0) return;
-    
-    const interval = setInterval(() => {
-      setCurrentIndex(prevIndex => (prevIndex + 1) % suggestionList.length);
-    }, 5000);
+    startAutoSlide();
 
-    return () => clearInterval(interval);
-  }, [suggestionList.length]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [startAutoSlide]);
 
   // 화면에 표시될 5개 카드 계산 (현재 카드 기준 앞뒤 2개씩)
   const displayItems = useMemo(() => {
@@ -140,6 +162,8 @@ export default function AISuggestion({ suggestionList = [] }) {
                   if (index !== 2) {
                     const targetIndex = (currentIndex + (index - 2) + suggestionList.length) % suggestionList.length;
                     setCurrentIndex(targetIndex);
+                    // 수동 선택 시 타이머 재시작
+                    restartAutoSlide();
                   }
                 }}
               />

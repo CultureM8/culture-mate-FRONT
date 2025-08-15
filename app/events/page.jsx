@@ -50,8 +50,9 @@ export default function Event() {
       }
     };
 
+    // 페이지 마운트될 때마다 AI 추천 데이터 새로 가져오기
     fetchAISuggestions();
-  }, []);
+  }, []); // 빈 배열로 페이지 새로고침/첫 로드 시에만 실행
 
   return (
     <>

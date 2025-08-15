@@ -15,7 +15,7 @@ export default function EventReviewList({
 }) {
 
   return (
-    <ListComponent src={imgSrc} alt={alt} enableInterest={false} >
+    <ListComponent src={imgSrc} alt={alt} title={title} enableInterest={false} >
       <div className="flex justify-between">
         <div className="flex flex-col justify-around h-full flex-1 min-w-0">
           <div className="flex gap-2">
