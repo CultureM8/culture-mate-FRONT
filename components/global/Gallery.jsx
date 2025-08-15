@@ -35,7 +35,7 @@ export default function Gallery({ src, alt = "이미지", title = "제목 없음
       >
         <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400">
           <Image
-            src={src ? src : IMAGES.GALLERY_DEFAULT_IMG}
+            src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
             alt={alt}
             width={200}
             height={150}
