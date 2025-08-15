@@ -17,8 +17,8 @@ import EventReviewList from "../community/EventReviewList";
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
-  const [togetherViewType, setTogetherViewType] = useState("Gallery")
-  const [reviewViewType, setReviewViewType] = useState("Gallery")
+  const [togetherViewType, setTogetherViewType] = useState("List")
+  const [reviewViewType, setReviewViewType] = useState("List")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const openFilterModal = () => setIsFilterModalOpen(true);
