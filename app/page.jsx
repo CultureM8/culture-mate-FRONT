@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ICONS } from "@/constants/path";
+import Link from "next/link";
+import { ICONS, ROUTES } from "@/constants/path";
 import Gallery from "@/components/global/Gallery";
 import EventGallery from "@/components/events/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
+import TogetherGallery from "@/components/together/TogetherGallery";
 
 export default function MainLanding() {
   return (
@@ -33,7 +35,7 @@ export default function MainLanding() {
         
         {/* 6. MainSubcategoryBar3 - 이벤트 후기 */}
         <div className="py-2.5">
-          <MainSubcategoryBar title="이벤트 후기" subtitle="내가 찾는 이벤트의 후기가 궁금하다면" />
+          <MainSubcategoryBar title="이벤트 후기" subtitle="내가 찾는 이벤트의 후기가 궁금하다면" linkTo={ROUTES.COMMUNITY} />
         </div>
       </div>
 
@@ -44,7 +46,7 @@ export default function MainLanding() {
       <div className="w-full min-w-full overflow-x-hidden">
         {/* 8. MainSubcategoryBar4 - 지금 핫한 카테고리 */}
         <div className="py-2.5">
-          <MainSubcategoryBar title="지금 핫한 카테고리" subtitle="지금 가장 인기있는 이벤트 카테고리" />
+          <MainSubcategoryBar title="지금 핫한 카테고리" subtitle="지금 가장 인기있는 이벤트 카테고리" linkTo={ROUTES.EVENTS} />
         </div>
         
         {/* 9. InterestEvent - 4개의 이벤트 갤러리 */}
@@ -60,7 +62,7 @@ export default function MainLanding() {
         
         {/* 12. MainSubcategoryBar6 - 추천 (컨텐츠/SNS/화제글) top */}
         <div className="py-2.5">
-          <MainSubcategoryBar title="추천 (컨텐츠/SNS/화제글) top" isSimple={true} />
+          <MainSubcategoryBar title="추천 (컨텐츠/SNS/화제글) top" isSimple={true} linkTo={ROUTES.COMMUNITY} />
         </div>
         
         {/* 13. RecommendedCardsGroup - 3개의 추천글 카드 */}
@@ -119,7 +121,7 @@ function MainBanner() {
   };
 
   return (
-    <section className="bg-[#C6C8CA] w-full h-[400px] relative">
+    <section className="bg-[#C6C8CA] w-[100vw] h-[400px] relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
       <div className="relative w-full h-full flex items-center justify-center">
         {/* 검색창 배경 (블러 효과) - 포커스 시에만 표시 */}
         {isFocused && (
@@ -177,7 +179,7 @@ function MainBanner() {
   );
 }
 
-function MainSubcategoryBar({ title, subtitle, isSimple = false }) {
+function MainSubcategoryBar({ title, subtitle, isSimple = false, linkTo = ROUTES.TOGETHER }) {
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
@@ -188,7 +190,7 @@ function MainSubcategoryBar({ title, subtitle, isSimple = false }) {
               {title}
             </h2>
             
-            <div className="flex items-center gap-1 cursor-pointer">
+            <Link href={linkTo} className="flex items-center gap-1 cursor-pointer">
               <span className="text-base text-[#c6c8ca] leading-[1.5]">
                 더보기
               </span>
@@ -199,7 +201,7 @@ function MainSubcategoryBar({ title, subtitle, isSimple = false }) {
                 height={8}
                 className="rotate-270"
               />
-            </div>
+            </Link>
           </div>
         ) : (
           <>
@@ -215,7 +217,7 @@ function MainSubcategoryBar({ title, subtitle, isSimple = false }) {
                 {subtitle}
               </p>
               
-              <div className="flex items-center gap-1 cursor-pointer">
+              <Link href={linkTo} className="flex items-center gap-1 cursor-pointer">
                 <span className="text-base text-[#c6c8ca] leading-[1.5]">
                   더보기
                 </span>
@@ -226,7 +228,7 @@ function MainSubcategoryBar({ title, subtitle, isSimple = false }) {
                   height={8}
                   className="rotate-270"
                 />
-              </div>
+              </Link>
             </div>
           </>
         )}
@@ -239,41 +241,41 @@ function TogetherCardGrid() {
   const togetherData = [
     {
       imgSrc: "",
-      alt: "모집글 제목",
+      alt: "",
       title: "모집글 제목",
       eventType: "이벤트유형",
       eventName: "이벤트명",
-      group: "0/0",
+      group: "00/00",
       date: "0000.00.00",
       isClosed: false,
     },
     {
       imgSrc: "",
-      alt: "모집글 제목",
+      alt: "",
       title: "모집글 제목",
       eventType: "이벤트유형",
       eventName: "이벤트명",
-      group: "0/0",
+      group: "00/00",
       date: "0000.00.00",
       isClosed: false,
     },
     {
       imgSrc: "",
-      alt: "모집글 제목",
+      alt: "",
       title: "모집글 제목",
       eventType: "이벤트유형",
       eventName: "이벤트명",
-      group: "0/0",
+      group: "00/00",
       date: "0000.00.00",
       isClosed: false,
     },
     {
       imgSrc: "",
-      alt: "모집글 제목",
+      alt: "",
       title: "모집글 제목",
       eventType: "이벤트유형",
       eventName: "이벤트명",
-      group: "0/0",
+      group: "00/00",
       date: "0000.00.00",
       isClosed: false,
     },
@@ -282,104 +284,23 @@ function TogetherCardGrid() {
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-4 gap-6 place-items-center">
           {togetherData.map((item, index) => (
-            <TogetherCard key={index} {...item} />
+            <div key={index} className="w-[290px] h-auto flex justify-center">
+              <TogetherGallery 
+                imgSrc={item.imgSrc}
+                alt={item.alt}
+                title={item.title}
+                eventType={item.eventType}
+                eventName={item.eventName}
+                group={item.group}
+                date={item.date}
+                isClosed={item.isClosed}
+              />
+            </div>
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-function TogetherCard({
-  imgSrc,
-  title = "모집글 제목",
-  eventType = "이벤트유형",
-  eventName = "이벤트명",
-  group = "0/0",
-  date = "0000.00.00",
-  alt,
-  isClosed = false,
-}) {
-  return (
-    <div className="w-full max-w-[290px]">
-      <Gallery title={title} src={imgSrc} alt={alt}>
-        {/* 모집 마감 오버레이 */}
-        {isClosed && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-xl">
-            <span className="text-white text-lg font-bold">모집마감</span>
-          </div>
-        )}
-        
-        <div className="flex flex-col gap-2.5 px-0 py-[3px]">
-          <div className="flex items-center gap-2">
-            <div 
-              className="relative flex items-center justify-center px-2 py-0 rounded-[15px]"
-              style={{ 
-                color: "#76787a",
-                fontSize: "16px",
-                fontFamily: "Inter",
-                fontWeight: 400,
-                lineHeight: 1.5
-              }}
-            >
-              <div className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-              {eventType}
-            </div>
-            <div 
-              className="truncate"
-              style={{ 
-                color: "#9ea0a2",
-                fontSize: "16px",
-                fontFamily: "Inter",
-                fontWeight: 400,
-                lineHeight: 1.5
-              }}
-            >
-              {eventName}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div 
-              className="flex items-center gap-1"
-              style={{ 
-                color: "#9ea0a2",
-                fontSize: "16px",
-                fontFamily: "Inter",
-                fontWeight: 400,
-                lineHeight: 1.5
-              }}
-            >
-              <Image 
-                src={ICONS.CALENDAR}
-                alt="calendar"
-                width={16}
-                height={16}
-              />
-              {date}
-            </div>
-            <div 
-              className="flex items-center gap-1"
-              style={{ 
-                color: "#9ea0a2",
-                fontSize: "16px",
-                fontFamily: "Inter",
-                fontWeight: 400,
-                lineHeight: 1.5
-              }}
-            >
-              <Image 
-                src={ICONS.GROUP}
-                alt="group"
-                width={16}
-                height={16}
-              />
-              {group}
-            </div>
-          </div>
-        </div>
-      </Gallery>
     </div>
   );
 }
@@ -397,7 +318,6 @@ function ReviewCard({
   const renderStars = (rating) => {
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
     
     const stars = [];
     
@@ -421,19 +341,6 @@ function ReviewCard({
           key="half"
           src={ICONS.STAR_HALF} 
           alt="half star" 
-          width={20} 
-          height={19} 
-        />
-      );
-    }
-    
-    // 빈 별
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <Image 
-          key={`empty-${i}`}
-          src={ICONS.STAR_EMPTY} 
-          alt="empty star" 
           width={20} 
           height={19} 
         />
@@ -550,7 +457,7 @@ function ReviewCardsSection({ reviews = [] }) {
   const reviewData = reviews.length > 0 ? reviews : defaultReviews;
 
   return (
-    <section className="bg-gray-100 w-full py-5">
+    <section className="bg-gray-100 w-[100vw] py-5 relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
       <div className="w-full flex justify-center">
         <div className="w-[1200px]">
           <div className="grid grid-cols-4 gap-6">
