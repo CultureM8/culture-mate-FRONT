@@ -4,7 +4,7 @@ import { useState } from "react";
 import InterestEvent from "./InterestEvent";
 import InterestWith from "./InterestWith";
 
-export default function InterestTab() {
+export default function InterestTab({ eventData }) {
   const [activeTab, setActiveTab] = useState("InterEventTab");
 
   return (
@@ -32,8 +32,12 @@ export default function InterestTab() {
         </button>
       </div>
       <div className="mt-8">
-        {activeTab === "InterEventTab" && <InterestEvent />}
-        {activeTab === "InterWithTab" && <InterestWith />}
+        {/* 이전페이지(interest/page.jsx)쪽에서 끌고 온 이벤트데이터를 관심목록의 관심이벤트로 끌고갑니다 */}
+        {activeTab === "InterEventTab" && (
+          <InterestEvent eventData={eventData} />
+        )}
+        {/* 이전페이지(interest/page.jsx)쪽에서 끌고 온 이벤트데이터를 관심목록의 관심동행으로 끌고갑니다 */}
+        {activeTab === "InterWithTab" && <InterestWith eventData={eventData} />}
       </div>
     </div>
   );
