@@ -3,7 +3,7 @@
 
 import SearchToWrite from './SearchToWrite';
 import mockEvents from '@/components/community/mockEvents';
-import AddContent from '@/components/community/AddContent';
+// import AddContent from '@/components/community/AddContent'; // TODO: AddContent 컴포넌트 구현 필요
 import Link from 'next/link';
 
 export default function ReviewWriteOption({ onPickEvent }) {
@@ -31,7 +31,8 @@ export default function ReviewWriteOption({ onPickEvent }) {
           컨텐츠 추가
         </span>
         <div className="flex-1 ml-[20px]">
-          <AddContent />
+          {/* <AddContent /> */}
+          <div className="text-gray-400">컨텐츠 추가 기능 구현 예정</div>
         </div>
       </div>
     </div>
