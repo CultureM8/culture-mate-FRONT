@@ -12,7 +12,7 @@ import EventFilterModal from "@/components/events/EventFilterModal";
 import ListLayout from "../global/ListLayout";
 import TogetherList from "../together/TogetherList";
 import EventReviewGallery from "../community/EventReviewGallery";
-import EventReviewList from "../community/EventReviewList";
+import EventReviewList from "./EventReviewList";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
@@ -41,12 +41,10 @@ export default function EventPageClient({ eventData }) {
         {currentMenu === menuList[1] &&
           // 이벤트 리뷰
           <>
-            <SearchFilterSort 
-              enableViewType
-              viewType={reviewViewType}
-              setViewType={setReviewViewType}
+            {/* <SearchFilterSort 
               filterAction={openFilterModal}
-            />
+            /> */}
+            <div className="h-16" />
             {reviewViewType === "Gallery" ? 
               <GalleryLayout 
                 Component={EventReviewGallery}
