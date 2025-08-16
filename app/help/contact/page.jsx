@@ -223,12 +223,12 @@ export default function InquiryPage() {
         <div className="flex-1 w-full lg:max-w-[980px]">
           {/* 1:1 문의하기 소제목 */}
           <div className="relative w-full pb-6">
-            <div className="flex flex-col justify-center px-5 pt-8 pb-4">
-              <h2 className="font-bold text-[18px] text-[#26282a] leading-[1.55] whitespace-nowrap">
+            <div className="flex flex-col justify-center px-5 pt-2.5 pb-2.5">
+              <h2 className="font-bold text-[24px] text-[#26282a] leading-[1.55] whitespace-nowrap">
                 1:1 문의하기
               </h2>
             </div>
-            <div className="w-full h-px bg-[#eef0f2]"></div>
+            <div className="w-[980px] h-px bg-[#eef0f2]"></div>
           </div>
 
           {/* 문의 폼 */}

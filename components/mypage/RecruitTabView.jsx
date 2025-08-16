@@ -5,8 +5,7 @@ import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import MyTogether from "./MyTogether";
 import MyTogetherHistory from "./MyTogetherHistory";
-// TODO: 추후 다른 탭 컴포넌트들 import 추가
-// import MyEventReview from "./MyEventReview";
+import MyEventReview from "./MyEventReview";
 
 const RecruitTabView = () => {
   const [activeTab, setActiveTab] = useState("나의 모집글");
@@ -23,15 +22,6 @@ const RecruitTabView = () => {
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
-    // TODO: 각 탭에 따른 페이지 라우팅이 필요한 경우 추가
-    // 예시:
-    // if (tabName === "나의 모집글") {
-    //   router.push("/mypage/recruitment");
-    // } else if (tabName === "이벤트 리뷰") {
-    //   router.push("/mypage/event-review");
-    // } else if (tabName === "동행 기록") {
-    //   router.push("/mypage/companion-record");
-    // }
   };
 
   const handleDropdownToggle = (tabName) => {
@@ -137,12 +127,7 @@ const RecruitTabView = () => {
       case "나의 모집글":
         return <MyTogether status={currentStatus} />;
       case "이벤트 리뷰":
-        // TODO: MyEventReview 컴포넌트 구현 후 연결
-        return (
-          <div className="w-full max-w-[1200px] mx-auto px-4 py-8 text-center text-gray-500">
-            이벤트 리뷰 컴포넌트가 준비 중입니다.
-          </div>
-        );
+        return <MyEventReview status={currentStatus} />;
       case "동행 기록":
         return <MyTogetherHistory status={currentStatus} />;
       default:

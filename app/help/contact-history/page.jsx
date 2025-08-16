@@ -115,12 +115,12 @@ export default function ContactHistoryPage() {
               flex-col 
               justify-center 
               px-5
-              pt-8
-              pb-4
+              pt-2.5
+              pb-2.5
             ">
               <h2 className="
                 font-bold 
-                text-[18px] 
+                text-[24px] 
                 text-[#26282a] 
                 leading-[1.55]
                 whitespace-nowrap

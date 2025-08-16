@@ -726,7 +726,7 @@ export default function MyPageEdit() {
     uppercase: /[A-Z]/,
     lowercase: /[a-z]/,
     number: /\d/,
-    special: /[!@#$%^&*()_+\-=\[\]{};':"|,.<>\/?]/
+    special: /[!@#$^&*()+-[]{}:|,.?]/
   };
 
   // 이미지 업로드 핸들러
