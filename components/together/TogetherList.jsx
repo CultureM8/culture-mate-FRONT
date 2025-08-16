@@ -17,7 +17,7 @@ export default function TogetherList({
   return (
     <div className="relative">
       {isClosed && <div className="absolute inset-0 w-full h-full bg-black opacity-10 z-10" />}
-      <ListComponent src={imgSrc} alt={alt}>
+      <ListComponent src={imgSrc} alt={alt} title={title}>
         <div className="flex flex-col justify-around h-full">
           <div className="flex gap-2">
             <span className="border border-b-2 rounded-4xl px-2 w-fit">{eventType}</span>
@@ -28,15 +28,15 @@ export default function TogetherList({
           </h3>
           <div className="flex gap-4 shrink-0 w-full">
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.CALENDAR} alt="calendar" width={20} height={20} />
+              <Image src={ICONS.CALENDAR} alt="calendar" width={16} height={16} />
               {date}
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.GROUP} alt="group" width={24} height={24} />
+              <Image src={ICONS.GROUP} alt="group" width={20} height={20} />
               {group}
             </span>
             <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.PIN} alt="group" width={20} height={20} />
+              <Image src={ICONS.PIN} alt="group" width={16} height={16} />
               {address}
             </span>
           </div>

@@ -6,16 +6,19 @@ import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
 import { useState } from "react";
 import { togetherData } from "@/lib/togetherData";
+import { eventReviewData } from "@/lib/eventReviewData";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/EventFilterModal";
 import ListLayout from "../global/ListLayout";
 import TogetherList from "../together/TogetherList";
+import EventReviewGallery from "../community/EventReviewGallery";
+import EventReviewList from "../community/EventReviewList";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
-  const [togetherViewType, setTogetherViewType] = useState("Gallery")
-  const [reviewViewType, setReviewViewType] = useState("Gallery")
+  const [togetherViewType, setTogetherViewType] = useState("List")
+  const [reviewViewType, setReviewViewType] = useState("List")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   const openFilterModal = () => setIsFilterModalOpen(true);
@@ -44,13 +47,16 @@ export default function EventPageClient({ eventData }) {
               setViewType={setReviewViewType}
               filterAction={openFilterModal}
             />
-            {/* {togetherViewType === "Gallery" ? 
+            {reviewViewType === "Gallery" ? 
               <GalleryLayout 
-                Component={ReviewGallery}
-                items={reviewData.filter(item => item.eventCode === eventData.eventCode)}
+                Component={EventReviewGallery}
+                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
               /> :
-              ""
-            } */}
+              <ListLayout 
+                Component={EventReviewList}
+                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
+              />
+            }
           </>
         }
         {currentMenu === menuList[2] &&
