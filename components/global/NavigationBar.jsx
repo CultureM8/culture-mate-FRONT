@@ -47,6 +47,8 @@ export default function NavigationBar() {
   // 로그인 상태에 따른 메뉴 구성
   const getNavMenu = () => {
     const baseMenu = [
+      ["서비스 소개", ROUTES.ABOUT],
+      ["이용 가이드", ROUTES.GUIDE], 
       ["이벤트", ROUTES.EVENTS], 
       ["동행찾기", ROUTES.TOGETHER], 
       ["커뮤니티", ROUTES.COMMUNITY], 
