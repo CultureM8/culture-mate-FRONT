@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -9,6 +9,7 @@ import TogetherList from "@/components/together/TogetherList";
 import EventSelector from "@/components/global/EventSelector";
 import SearchBar from "@/components/global/SearchBar";
 import TogetherFilterModal from "@/components/together/TogetherFilterModal";
+import { getAllTogetherPosts, getTogetherPostsByType } from "@/lib/togetherData";
 
 export default function TogetherPage() {
   // 페이지 제목과 소개 문구 설정
@@ -23,97 +24,27 @@ export default function TogetherPage() {
   // 필터 모달 열림/닫힘 상태
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // 동행 모집 게시글 더미 데이터 배열 (group으로 통일)
-  const togetherData = [
-    { 
-      imgSrc: "", // 이미지 경로 (현재 빈 문자열)
-      alt: "동행 모집 이미지", // 이미지 대체텍스트 (접근성용)
-      title: "GD 보러 가즈아", // 동행 모집 게시글 제목
-      eventType: "페스티벌", // 이벤트 유형 (태그)
-      eventName: "메들리 메들리", // 구체적인 이벤트명
-      group: "05/10", // 모집 현황 (현재인원/총인원)
-      date: "2025-10-18", // 이벤트 날짜
-      pin: "인천 파라다이스시티", // 장소 정보
-      nickName: "경윤기" // 작성자 이름 또는 닉네임
-    },
-    { 
-      imgSrc: "/img/Guide_findevent.png", 
-      alt: "동행 모집 이미지", 
-      title: "이미지 나오나 테스트", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "이벤트 정보에 대한 내용을 듣지을 이내로 간력하게 보이도록 표현", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "동행모집글 제목", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "이벤트 정보에 대한 내용을 듣지을 이내로 간력하게 보이도록 표현", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "동행모집글 제목", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "동행모집글 제목", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    },
-    { 
-      imgSrc: "", 
-      alt: "동행 모집 이미지", 
-      title: "동행모집글 제목", 
-      eventType: "이벤트 유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000-00-00", 
-      pin: "00시 00구 00동",
-      nickName: "작성자 · 서울시 명동"
-    }
-  ];
+  // 동행 모집 게시글 데이터 상태 (togetherData.js에서 가져옴)
+  const [togetherData, setTogetherData] = useState([]);
+
+  // 선택된 이벤트 타입에 따라 데이터 가져오기
+  useEffect(() => {
+    const fetchTogetherPosts = async () => {
+      try {
+        if (selectedEventType === "전체") {
+          const posts = await getAllTogetherPosts();
+          setTogetherData(posts);
+        } else {
+          const posts = await getTogetherPostsByType(selectedEventType);
+          setTogetherData(posts);
+        }
+      } catch (error) {
+        console.error("동행 데이터를 가져오는데 실패했습니다:", error);
+      }
+    };
+
+    fetchTogetherPosts();
+  }, [selectedEventType]);
 
   // 필터 버튼 클릭 핸들러
   const handleFilterClick = () => {
@@ -134,10 +65,10 @@ export default function TogetherPage() {
   return (
     <>
       {/* 페이지 제목 */}
-      <h1 className="text-4xl font-bold py-[10px] h-16">{title}</h1>
+      <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
       
       {/* 페이지 소개 문구 */}
-      <p className="text-xl pt-[10px] h-12 fill-gray-600">{intro}</p>
+      <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
 
       {/* 안내 메시지 배경 이미지 : 현재는 따로 필요없음 */}
       {/* <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[100px] z-0">
@@ -167,7 +98,7 @@ export default function TogetherPage() {
         {/* 왼쪽: 뷰 모드 전환 버튼과 제목 */}
         <div className="flex items-center gap-2">
           {/* 섹션 제목 - 선택된 이벤트 타입 표시 */}
-            <h2 className="text-xl font-semibold">{selectedEventType}</h2>
+          <h2 className="text-xl font-semibold">{selectedEventType}</h2>
           {/* 그리드/리스트 뷰 전환 버튼 */}
           <div className="flex items-center gap-1">
             {/* 갤러리 뷰 버튼 */}
@@ -260,4 +191,3 @@ export default function TogetherPage() {
     </>
   );
 }
-
