@@ -14,9 +14,7 @@ export const fmtStar = (v) =>
 
 export const toCard = (ev = {}) => ({
   id: ev.id,
-
   eventImage: ev.eventImage ?? ev.image ?? '/img/default_img.svg',
-
   eventType: ev.eventType ?? ev.type ?? '이벤트',
   eventName: ev.eventName ?? ev.name ?? '',
   description: ev.description ?? '',
@@ -40,10 +38,6 @@ export const scoreOf = (ev, ql) => {
 
   if (hay.includes(ql)) s += 10;
 
-  s += (ev.rating ?? ev.starScore ?? 0) * 2;
-  /*s +=
-    Math.min(ev.recommendations ?? ev.recommend ?? ev.likes ?? 0, 1000) / 100;
-    추천수만큼 추가는 일단 보류*/
   return s;
 };
 
