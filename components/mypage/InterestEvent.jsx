@@ -1,6 +1,6 @@
 "use client";
 
-import EventGallery from "@/components/events/EventGallery";
+import EventGallery from "@/components/events/main/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import EditSetting from "@/components/global/EditSetting";
 import { useState } from "react";

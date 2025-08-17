@@ -1,5 +1,5 @@
 import Image from "next/image"
-import Gallery from "../global/Gallery"
+import Gallery from "../../global/Gallery"
 import { ICONS } from "@/constants/path"
 
 export default function EventGallery(

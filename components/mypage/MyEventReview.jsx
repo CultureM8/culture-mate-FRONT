@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import EventReviewGallery from "../community/EventReviewGallery";
-import EventReviewList from "../community/EventReviewList";
+import EventReviewList from "../events/detail/review/EventReviewList";
 
 export default function MyEventReview() {
   const [isEditMode, setIsEditMode] = useState(false);

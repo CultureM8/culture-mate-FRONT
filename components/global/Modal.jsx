@@ -1,4 +1,5 @@
 // Modal.jsx
+// disableBackgroundClose: 배경 클릭 시 모달 닫힘 방지 (true: 비활성화, false: 활성화)
 export default function Modal({ isOpen, onClose, children, disableBackgroundClose = false }) {
   if (!isOpen) return null; // 모달이 열리지 않으면 렌더링 안 함
 

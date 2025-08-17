@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ICONS, ROUTES } from "@/constants/path";
 import Gallery from "@/components/global/Gallery";
-import EventGallery from "@/components/events/EventGallery";
+import EventGallery from "@/components/events/main/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import TogetherGallery from "@/components/together/TogetherGallery";
 

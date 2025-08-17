@@ -1,9 +1,10 @@
 "use client"
 
-import Modal from "../global/Modal";
-import LocationSelector from "../global/LocationSelector";
+import Modal from "../../global/Modal";
+import LocationSelector from "../../global/LocationSelector";
 import { useState } from "react";
 
+// 이벤트 필터 모달 컴포넌트
 export default function EventFilterModal({ isOpen, onClose }) {
   // 기본 날짜 설정: 오늘부터 다음주까지
   const getDefaultDateRange = () => {
@@ -17,29 +18,34 @@ export default function EventFilterModal({ isOpen, onClose }) {
     ];
   };
 
-  // State for filter options
-  const [dateRange, setDateRange] = useState(getDefaultDateRange());
-  const [selectedRegions, setSelectedRegions] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
+  // 필터 옵션 상태 관리
+  const [dateRange, setDateRange] = useState(getDefaultDateRange()); // 날짜 범위
+  const [selectedRegions, setSelectedRegions] = useState([]); // 선택된 지역
+  const [priceRange, setPriceRange] = useState([0, 1000000]); // 가격 범위
 
+  // 시작 날짜 변경 핸들러
   const handleStartDateChange = (e) => {
     setDateRange([e.target.value, dateRange[1]]);
   };
 
+  // 종료 날짜 변경 핸들러
   const handleEndDateChange = (e) => {
     setDateRange([dateRange[0], e.target.value]);
   };
 
+  // 최소 가격 변경 핸들러
   const handleMinPriceChange = (e) => {
     const value = parseInt(e.target.value) || 0;
     setPriceRange([value, priceRange[1]]);
   };
 
+  // 최대 가격 변경 핸들러
   const handleMaxPriceChange = (e) => {
     const value = parseInt(e.target.value) || 0;
     setPriceRange([priceRange[0], value]);
   };
 
+  // 필터 적용 핸들러
   const handleApply = () => {
     console.log("Applying filters:", {
       dateRange,
