@@ -1,6 +1,6 @@
 "use client"
 
-import EventDetail from "@/components/events/EventDetail";
+import EventDetail from "@/components/events/detail/EventDetail";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
@@ -8,21 +8,23 @@ import { useState } from "react";
 import { togetherData } from "@/lib/togetherData";
 import { eventReviewData } from "@/lib/eventReviewData";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
-import EventFilterModal from "@/components/events/EventFilterModal";
-import ListLayout from "../global/ListLayout";
-import TogetherList from "../together/TogetherList";
-import EventReviewGallery from "../community/EventReviewGallery";
-import EventReviewList from "./EventReviewList";
+import EventFilterModal from "@/components/events/main/EventFilterModal";
+import ListLayout from "@/components/global/ListLayout";
+import TogetherList from "@/components/together/TogetherList";
+import EventReviewList from "@/components/events/detail/review/EventReviewList";
+import EventReviewModal from "@/components/events/detail/review/EventReviewModal";
 
 export default function EventPageClient({ eventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
   const [togetherViewType, setTogetherViewType] = useState("List")
-  const [reviewViewType, setReviewViewType] = useState("List")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
+  const openReviewModal = () => setIsReviewModalOpen(true);
+  const closeReviewModal = () => setIsReviewModalOpen(false);
 
   return (
     <>
@@ -41,20 +43,18 @@ export default function EventPageClient({ eventData }) {
         {currentMenu === menuList[1] &&
           // 이벤트 리뷰
           <>
-            {/* <SearchFilterSort 
-              filterAction={openFilterModal}
-            /> */}
-            <div className="h-16" />
-            {reviewViewType === "Gallery" ? 
-              <GalleryLayout 
-                Component={EventReviewGallery}
-                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
-              /> :
-              <ListLayout 
-                Component={EventReviewList}
-                items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
-              />
-            }
+            <div className="flex justify-end py-4">
+              <button
+                onClick={openReviewModal}
+                className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
+                후기 작성
+              </button>
+            </div>
+            <ListLayout 
+              Component={EventReviewList}
+              items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
+            />
+            <EventReviewModal isOpen={isReviewModalOpen} onClose={closeReviewModal} />
           </>
         }
         {currentMenu === menuList[2] &&

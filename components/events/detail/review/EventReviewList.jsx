@@ -1,7 +1,7 @@
 import StarScore from "@/lib/StarScore";
-import ListComponent from "../global/ListComponent";
+import ListComponent from "../../../global/ListComponent";
 import { useState } from "react";
-import EventReviewModal from "../../backup/EventReviewModal";
+import EventReviewModal from "./EventReviewModal";
 import Image from "next/image";
 import { IMAGES } from "@/constants/path";
 
@@ -10,7 +10,7 @@ export default function EventReviewList({
   userNickname = "사용자별명",
   userProfileImg = "",
   userProfileImgAlt = "",
-  context = "이벤트 후기 내용",
+  content = "이벤트 후기 내용",
   score = 0,
   createdDate = "00.00.00",
 }) {
@@ -24,7 +24,8 @@ export default function EventReviewList({
       className="
         flex justify-between bg-white w-full min-w-[300px] relative 
         border border-gray-200 rounded-2xl p-4
-        hover:cursor-pointer"
+        hover:cursor-pointer
+        mb-2"
       onClick={extendReviewTab}
     >
 
@@ -59,7 +60,7 @@ export default function EventReviewList({
             ${!reviewTabExtend && "overflow-hidden whitespace-nowrap text-ellipsis"}
           `}
         >
-          {context}
+          {content}
         </div>
       </div>
       <div className="flex items-center gap-6 mb-1 flex-shrink-0">

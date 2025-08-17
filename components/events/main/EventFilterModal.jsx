@@ -1,7 +1,7 @@
 "use client"
 
-import Modal from "../global/Modal";
-import LocationSelector from "../global/LocationSelector";
+import Modal from "../../global/Modal";
+import LocationSelector from "../../global/LocationSelector";
 import { useState } from "react";
 
 // 이벤트 필터 모달 컴포넌트

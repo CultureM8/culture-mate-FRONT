@@ -1,5 +1,5 @@
-import EventInfo from "@/components/events/EventInfo";
-import EventPageClient from "@/components/events/EventPageClient";
+import EventInfo from "./EventInfo";
+import EventPageClient from "./EventPageClient";
 import { getEventByCode } from "@/lib/eventData";
 
 export default async function EventCode({ params }) {
