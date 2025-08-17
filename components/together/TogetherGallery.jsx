@@ -3,6 +3,7 @@ import Image from "next/image";
 import Gallery from "../global/Gallery";
 
 export default function TogetherGallery({
+  togetherCode,
   imgSrc,
   alt = "",
   title = "모집글 제목",
@@ -15,7 +16,7 @@ export default function TogetherGallery({
   return (
     <div className="relative">
       {isClosed && <div className="absolute inset-0 w-full h-full bg-black opacity-10 z-10" />}
-      <Gallery title={title} src={imgSrc} alt={alt}>
+      <Gallery title={title} src={imgSrc} alt={alt} href={`/together/${togetherCode}`}>
         <div className="flex items-center gap-2">
           <div className="border border-b-2 rounded-4xl px-2">{eventType}</div>
           <div>{eventName}</div>
