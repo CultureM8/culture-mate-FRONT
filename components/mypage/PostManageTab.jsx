@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import MyPostGrid from "./MyPostGrid";
-import MyRepGrid from "./MyRepGrid";
+import HistoryWith from "./HistoryWith";
 
-export default function MyPostManageTab({ posts, reply }) {
+export default function MyPostManageTab({ posts }) {
   const [activeTab, setActiveTab] = useState("MyPostTab");
   return (
     <div className="mt-3">
@@ -19,19 +19,19 @@ export default function MyPostManageTab({ posts, reply }) {
           내 게시물
         </button>
         <button
-          onClick={() => setActiveTab("MyRepTab")}
+          onClick={() => setActiveTab("HistoryWith")}
           className={`w-1/4 px-4 py-2 text-center ${
-            activeTab === "MyRepTab"
+            activeTab === "HistoryWith"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
           }`}
         >
-          내 댓글
+          이벤트 리뷰
         </button>
       </div>
       <div className="mt-8">
         {activeTab === "MyPostTab" && <MyPostGrid posts={posts} />}
-        {activeTab === "MyRepTab" && <MyRepGrid reply={reply} />}
+        {activeTab === "HistoryWith" && <HistoryWith posts={posts} />}
       </div>
     </div>
   );
