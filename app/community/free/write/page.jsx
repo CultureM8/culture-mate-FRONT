@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PromoteWriteOption from '@/components/community/promote/PromoteWriteOption';
-import EditorFunction from '@/components/community/promote/EditorFunction';
+import FreeWriteOption from '@/components/community/free/FreeWriteOption';
 import ConfirmModal from '@/components/global/ConfirmModal';
 import PostEventMiniCard from '@/components/global/PostEventMiniCard';
-import GuideModal from '@/components/community/promote/GuideModal';
 import { makePost } from '@/lib/schema';
 import { addPost } from '@/lib/storage';
 
-export default function PromoteWrite() {
+export default function FreeWrite() {
   const router = useRouter();
 
   const [mode, setMode] = useState('plain');
@@ -24,7 +22,7 @@ export default function PromoteWrite() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   useEffect(() => {
-    setIsGuideOpen(true); // ✅ 존재하는 setter로 변경
+    setIsGuideOpen(true);
   }, []);
 
   const trySubmit = () => {
@@ -38,12 +36,12 @@ export default function PromoteWrite() {
       {/* 페이지 타이틀 */}
       <div className="w-full max-w-[1200px] h-[108px] flex items-center">
         <h1 className="font-inter font-semibold text-[36px] leading-[44px] tracking-[-0.005em] text-[#26282A]">
-          홍보 게시판
+          자유 게시판
         </h1>
       </div>
 
       {/* 옵션 박스 (이벤트/컨텐츠/글쓰기 방식) */}
-      <PromoteWriteOption
+      <FreeWriteOption
         mode={mode}
         onModeChange={setMode}
         onPickEvent={setSelectedEvent} // 이벤트 선택 콜백 연결
@@ -64,10 +62,14 @@ export default function PromoteWrite() {
           className="w-full h-[60px] border border-gray-300 rounded px-4 text-base outline-none focus:border-gray-400 focus:ring-2 focus:ring-blue-500"
         />
       </div>
-
-      {/* 에디터 */}
-      <div className=" <div className=w-full max-w-[1200px] mt-4">
-        <EditorFunction mode={mode} value={content} onChange={setContent} />
+      {/* 본문 */}
+      <div className="w-[1200px] mt-4">
+        <textarea
+          placeholder="내용을 입력해 주세요."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="w-full min-h-[500px] p-4 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       {/* 가이드 박스 */}
@@ -105,7 +107,7 @@ export default function PromoteWrite() {
         cancelText="아니오"
         onConfirm={() => {
           setOpenCancel(false);
-          router.push('/community/promote');
+          router.push('/community/free');
         }}
         onClose={() => setOpenCancel(false)}
         variant="danger"
@@ -123,7 +125,7 @@ export default function PromoteWrite() {
           if (!content.trim()) return alert('내용을 입력해주세요.');
 
           const post = makePost({
-            board: 'promote',
+            board: 'free',
             title,
             content,
             mode,
@@ -134,23 +136,9 @@ export default function PromoteWrite() {
 
           addPost(post);
           setOpenSubmit(false);
-          router.push(`/community/promote/${post.id}`);
+          router.push(`/community/free/${post.id}`);
         }}
         onClose={() => setOpenSubmit(false)}
-      />
-
-      {/* 안내 모달 */}
-      <GuideModal
-        open={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-        title="홍보 게시판 작성 시 꼭 확인하세요!"
-        description={`1.광고 내용이 사실과 다르거나 소비자를 오인시킬 우려가 있는 내용은 금지됩니다.\n
-          2.허위·과장 광고를 하거나, 표시 의무를 위반할 경우 법적 제재를 받을 수 있습니다.\n
-          3.과태료 부과 및 광고 중단 등의 조치가 취해질 수 있습니다.\n
-          4.공정거래위원회는 "추천·보증 등에 관한 표시·광고 심사지침"을 통해 광고성 게시글 작성 시 준수해야 할 사항을 규정하고 있습니다. `}
-        confirmText="확인"
-        actionText="이벤트 업체 가이드 보기"
-        actionPath="/help/guide"
       />
     </div>
   );
