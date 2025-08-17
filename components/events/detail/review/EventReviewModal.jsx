@@ -3,15 +3,17 @@
 import { useState } from "react";
 import Modal from "../../../global/Modal";
 import StarRating from "@/lib/StarRating";
+import { addEventReview } from "@/lib/eventReviewData";
 
 export default function EventReviewModal({ isOpen, onClose, 
-  eventType = "이벤트유형", 
-  eventName = "이벤트명", 
+  eventCode,
+  onReviewAdded
 }) {
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // 별점이 0점인 경우 확인
     if (rating === 0) {
       const confirmed = confirm("별점이 0점입니다. 정말로 0점을 주시겠습니까?");
@@ -26,9 +28,43 @@ export default function EventReviewModal({ isOpen, onClose,
       return;
     }
 
-    // 여기에 후기 등록 로직 추가
-    console.log("후기 등록:", { content, rating });
-    onClose();
+    if (!eventCode) {
+      alert("이벤트 코드가 없습니다.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 새 리뷰 데이터 생성
+      const newReview = {
+        eventCode,
+        userNickname: "익명", // 실제로는 로그인한 사용자 닉네임을 사용
+        score: rating,
+        content: content.trim()
+      };
+
+      // 더미데이터에 리뷰 추가
+      const addedReview = await addEventReview(newReview);
+      
+      alert("후기가 성공적으로 등록되었습니다!");
+      
+      // 폼 초기화
+      setContent("");
+      setRating(0);
+      
+      // 부모 컴포넌트에 새 리뷰 추가를 알림
+      if (onReviewAdded) {
+        onReviewAdded(addedReview);
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error("리뷰 등록 중 오류 발생:", error);
+      alert("리뷰 등록 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,8 +106,9 @@ export default function EventReviewModal({ isOpen, onClose,
           </button>
           <button
             onClick={handleSubmit}
-            className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
-            등록
+            disabled={isSubmitting}
+            className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed">
+            {isSubmitting ? "등록 중..." : "등록"}
           </button>
         </div>
       </div>

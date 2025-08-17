@@ -20,11 +20,16 @@ export default function EventPageClient({ eventData }) {
   const [togetherViewType, setTogetherViewType] = useState("List")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviews, setReviews] = useState(eventReviewData.filter(item => item.eventCode === eventData.eventCode));
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => setIsReviewModalOpen(true);
   const closeReviewModal = () => setIsReviewModalOpen(false);
+  
+  const handleReviewAdded = (newReview) => {
+    setReviews(prev => [...prev, newReview]);
+  };
 
   return (
     <>
@@ -52,9 +57,14 @@ export default function EventPageClient({ eventData }) {
             </div>
             <ListLayout 
               Component={EventReviewList}
-              items={eventReviewData.filter(item => item.eventCode === eventData.eventCode)}
+              items={reviews}
             />
-            <EventReviewModal isOpen={isReviewModalOpen} onClose={closeReviewModal} />
+            <EventReviewModal 
+              isOpen={isReviewModalOpen} 
+              onClose={closeReviewModal}
+              eventCode={eventData.eventCode}
+              onReviewAdded={handleReviewAdded}
+            />
           </>
         }
         {currentMenu === menuList[2] &&
