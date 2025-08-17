@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ROUTES } from "@/constants/path";
 
 export default function HelpSideBar() {
+  const pathname = usePathname();
+
   // 메뉴 데이터 구조
   const menuItems = [
     {
@@ -18,7 +21,7 @@ export default function HelpSideBar() {
       category: "고객지원", 
       isCategory: true,
       items: [
-        { name: "공지사항", path: ROUTES.NOTICE, isActive: true },
+        { name: "공지사항", path: ROUTES.NOTICE },
         { name: "FAQ", path: ROUTES.FAQ },
         { name: "1:1 문의하기", path: ROUTES.CONTACT },
         { name: "1:1 문의내역", path: ROUTES.CONTACT_HISTORY }
@@ -55,38 +58,41 @@ export default function HelpSideBar() {
             </h3>
           </div>
           
-          {/* 하위 메뉴 항목들 */}
-          {section.items.map((item, itemIndex) => (
-            <Link 
-              key={itemIndex}
-              href={item.path}
-              className="
-                flex 
-                items-center 
-                px-4 
-                py-2.5
-                w-full
-                hover:bg-gray-50
-                transition-colors
-                group
-              "
-            >
-              <span className={`
-                text-[16px] 
-                leading-[1.5]
-                whitespace-nowrap
-                font-normal
-                group-hover:font-bold
-                transition-all
-                ${item.isActive 
-                  ? "text-[#76787a]" 
-                  : "text-[#76787a]"
-                }
-              `}>
-                {item.name}
-              </span>
-            </Link>
-          ))}
+          {/* 하위 메뉴 항목들 - 1칸 들여쓰기 추가 */}
+          {section.items.map((item, itemIndex) => {
+            const isActive = pathname === item.path;
+            
+            return (
+              <Link 
+                key={itemIndex}
+                href={item.path}
+                className="
+                  flex 
+                  items-center 
+                  pl-8
+                  pr-4
+                  py-2.5
+                  w-full
+                  hover:bg-gray-50
+                  transition-colors
+                  group
+                "
+              >
+                <span className={`
+                  text-[16px] 
+                  leading-[1.5]
+                  whitespace-nowrap
+                  transition-all
+                  ${isActive 
+                    ? "font-bold text-[#4E5052]" 
+                    : "font-normal text-[#76787a] group-hover:font-bold"
+                  }
+                `}>
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       ))}
     </div>
