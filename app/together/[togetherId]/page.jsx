@@ -7,25 +7,25 @@ import { ICONS } from "@/constants/path";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import Link from "next/link";
 import { togetherData } from "@/lib/togetherData";
-import { getEventByCode } from "@/lib/eventData";
+import { getEventById } from "@/lib/eventData";
 
 export default function TogetherDetailPage() {
   const params = useParams();
-  const { togetherCode } = params;
+  const { togetherId } = params;
   const [postData, setPostData] = useState(null);
   const [eventData, setEventData] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      // togetherData에서 해당 togetherCode의 데이터 찾기
-      const foundPost = togetherData.find(post => post.togetherCode === togetherCode);
+      // togetherData에서 해당 togetherId의 데이터 찾기
+      const foundPost = togetherData.find(post => post.togetherId === togetherId);
       if (foundPost) {
         setPostData(foundPost);
         
         // 해당 동행 글의 이벤트 정보 가져오기
         try {
-          const eventInfo = await getEventByCode(foundPost.eventCode);
+          const eventInfo = await getEventById(foundPost.eventId);
           setEventData(eventInfo);
         } catch (error) {
           console.error("이벤트 데이터를 가져오는데 실패했습니다:", error);
@@ -34,7 +34,7 @@ export default function TogetherDetailPage() {
     };
     
     fetchData();
-  }, [togetherCode]);
+  }, [togetherId]);
 
   // 데이터 로딩 중
   if (!postData) {
@@ -46,9 +46,9 @@ export default function TogetherDetailPage() {
   }
 
   // 같은 이벤트에 대한 동행 모집글 개수 계산
-  const registeredPostsCount = togetherData.filter(post => post.eventCode === postData.eventCode).length;
+  const registeredPostsCount = togetherData.filter(post => post.eventId === postData.eventId).length;
 
-  // 이벤트 카드용 더미 데이터 (실제로는 eventCode로 연결)
+  // 이벤트 카드용 더미 데이터 (실제로는 eventId로 연결)
   const mockupPostEventMiniCard = {
     eventImage: postData.imgSrc,
     eventType: postData.eventType,

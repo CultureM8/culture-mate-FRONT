@@ -1,13 +1,13 @@
 import EventInfo from "./EventInfo";
 import EventPageClient from "./EventPageClient";
-import { getEventByCode } from "@/lib/eventData";
+import { getEventById } from "@/lib/eventData";
 
-export default async function EventCode({ params }) {
-  const { eventCode } = await params;
+export default async function EventId({ params }) {
+  const { eventId } = await params;
   
   let eventData = null;
   try {
-    eventData = await getEventByCode(eventCode);
+    eventData = await getEventById(eventId);
   } catch (err) {
     console.error("이벤트 데이터 로딩 실패:", err);
   }
