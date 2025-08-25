@@ -8,7 +8,7 @@ export default function PostEventMiniCard({
   eventImage = "/img/default_img.svg", // 기본 디폴트 이미지
   eventType = "이벤트 유형",
   eventName = "이벤트명",
-  description = "이벤트 설명에 대한 내용을 둘 줄 정도로 작성 가능할 경우의 글자수 길이로 보입니다. 콘서트, 뮤지컬 등의 행사에 해당하는 설명입니다...",
+  description = "이벤트 설명에 대한 내용을 아무것도 입력 안할 경우 디폴트...",
   recommendations = 0, // 추천
   starScore = 0, // 별점
   initialLiked = false, // 초기 좋아요
@@ -103,7 +103,7 @@ export default function PostEventMiniCard({
           {/* 등록된 동행 수 */}
           <div className="flex items-center gap-2">
             <Image 
-              src={ICONS.FILTER} 
+              src={ICONS.BOOKMARK} 
               alt="filter" 
               width={16} 
               height={16} 
