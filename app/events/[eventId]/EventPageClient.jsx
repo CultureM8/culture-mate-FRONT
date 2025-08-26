@@ -20,7 +20,7 @@ export default function EventPageClient({ eventData }) {
   const [togetherViewType, setTogetherViewType] = useState("List")
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [reviews, setReviews] = useState(eventReviewData.filter(item => item.eventCode === eventData.eventCode));
+  const [reviews, setReviews] = useState(eventReviewData.filter(item => item.eventId === eventData.eventId));
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
@@ -62,7 +62,7 @@ export default function EventPageClient({ eventData }) {
             <EventReviewModal 
               isOpen={isReviewModalOpen} 
               onClose={closeReviewModal}
-              eventCode={eventData.eventCode}
+              eventId={eventData.eventId}
               onReviewAdded={handleReviewAdded}
             />
           </>
@@ -79,11 +79,11 @@ export default function EventPageClient({ eventData }) {
             {togetherViewType === "Gallery" ? 
               <GalleryLayout 
                 Component={TogetherGallery}
-                items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
+                items={togetherData.filter(item => item.eventId === eventData.eventId)}
               /> :
               <ListLayout 
                 Component={TogetherList}
-                items={togetherData.filter(item => item.eventCode === eventData.eventCode)}
+                items={togetherData.filter(item => item.eventId === eventData.eventId)}
               />
             }
             {/* 필터 모달창 => 동행용 필터로 추후에 교체해야함. */}

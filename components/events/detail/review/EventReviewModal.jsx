@@ -6,7 +6,7 @@ import StarRating from "@/lib/StarRating";
 import { addEventReview } from "@/lib/eventReviewData";
 
 export default function EventReviewModal({ isOpen, onClose, 
-  eventCode,
+  eventId,
   onReviewAdded
 }) {
   const [content, setContent] = useState("");
@@ -28,8 +28,8 @@ export default function EventReviewModal({ isOpen, onClose,
       return;
     }
 
-    if (!eventCode) {
-      alert("이벤트 코드가 없습니다.");
+    if (!eventId) {
+      alert("이벤트 아이디가 없습니다.");
       return;
     }
 
@@ -38,7 +38,7 @@ export default function EventReviewModal({ isOpen, onClose,
     try {
       // 새 리뷰 데이터 생성
       const newReview = {
-        eventCode,
+        eventId,
         userNickname: "익명", // 실제로는 로그인한 사용자 닉네임을 사용
         score: rating,
         content: content.trim()

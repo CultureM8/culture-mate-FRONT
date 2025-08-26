@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -11,9 +12,13 @@ import SearchBar from "@/components/global/SearchBar";
 import TogetherFilterModal from "@/components/together/TogetherFilterModal";
 import { getAllTogetherPosts, getTogetherPostsByType } from "@/lib/togetherData";
 
+
 export default function TogetherPage() {
   // 페이지 제목과 소개 문구 설정
   const [title, intro] = ["동행 모집", "혼자도 좋지만, 함께라면 더 특별한 공연과 축제의 시간"];
+
+  // router 선언 - 추가
+  const router = useRouter();
   
   // 뷰 모드를 관리하는 상태 (Gallery: 갤러리형 기본값, List: 리스트형)
   const [viewType, setViewType] = useState("Gallery");
@@ -57,6 +62,11 @@ export default function TogetherPage() {
     // 추후 정렬 드롭다운 등 기능 추가
   };
 
+  // 글쓰기 버튼 클릭 핸들러
+  const handleWriteClick = () => {
+    router.push("/together/write");
+  };
+
   // 필터 모달 닫기
   const closeFilterModal = () => {
     setIsFilterOpen(false);
@@ -81,10 +91,14 @@ export default function TogetherPage() {
       </div> */}
       
       {/* 안내 메시지 박스 */}
-      <div className="border w-full h-[100px] flex items-center justify-center relative z-10">
-        <p className="text-sm text-gray-700 text-center px-4">
-          동행 관련 공고/일정을 인리어 배너(혹시 광고 or 동행 관련 소식 등등) /동행 콘텐츠가 없는 배너도 OK
-        </p>
+      <div className="border w-full h-[200px] flex items-center justify-center relative z-10">
+        <div className="border w-full h-full flex items-center justify-center relative z-10 bg-white">
+          <img 
+            src="/together-main-img/togetherBanner.png"
+            alt="동행 모집 배너" 
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
       </div>
 
       {/* 이벤트 타입 선택 버튼들 (가운데 정렬) */}
@@ -104,9 +118,7 @@ export default function TogetherPage() {
             {/* 갤러리 뷰 버튼 */}
             <button
               onClick={() => setViewType("Gallery")}
-              className={`p-2 rounded transition-colors ${
-                viewType === "Gallery" ? "bg-gray-200" : "hover:bg-gray-100"
-              }`}
+              className="p-2 transition-colors"
               title="갤러리 보기"
             >
               <Image 
@@ -114,15 +126,14 @@ export default function TogetherPage() {
                 alt="갤러리 보기"
                 width={20}
                 height={20}
+                className={viewType === "Gallery" ? "opacity-100" : "opacity-40"}
               />
             </button>
-            
+
             {/* 리스트 뷰 버튼 */}
             <button
               onClick={() => setViewType("List")}
-              className={`p-2 rounded transition-colors ${
-                viewType === "List" ? "bg-gray-200" : "hover:bg-gray-100"
-              }`}
+              className="p-2 transition-colors"
               title="리스트 보기"
             >
               <Image 
@@ -130,19 +141,20 @@ export default function TogetherPage() {
                 alt="리스트 보기"
                 width={20}
                 height={20}
+                className={viewType === "List" ? "opacity-100" : "opacity-40"}
               />
             </button>
           </div>
         </div>
         
-        {/* 오른쪽: 검색창, 필터, 정렬 */}
-        <div className="flex items-center gap-6">
+        {/* 오른쪽: 검색창, 필터, 정렬, 글쓰기 */}
+        <div className="flex items-center gap-2">
           {/* 검색창 컴포넌트 */}
           <SearchBar />
           
           {/* 필터 버튼 */}
           <button 
-            className="flex items-center gap-2 hover:cursor-pointer"
+            className="flex items-center gap-3 hover:cursor-pointer"
             onClick={handleFilterClick}
           >
             필터
@@ -163,6 +175,20 @@ export default function TogetherPage() {
             <Image 
               src={ICONS.DOWN_ARROW}
               alt="정렬"
+              width={24}
+              height={24}
+            />
+          </button>
+
+          {/* 글쓰기 버튼 */}
+          <button 
+            className="flex items-center gap-2 hover:cursor-pointer"
+            onClick={handleWriteClick}
+          >
+            글쓰기
+            <Image 
+              src={ICONS.ADD_WRITE}
+              alt="글쓰기"
               width={24}
               height={24}
             />
