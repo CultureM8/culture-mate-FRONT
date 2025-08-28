@@ -25,7 +25,7 @@ export default function MiniProfile() {
 
   const menuItems = [
     { label: "프로필", path: ROUTES.MYPAGE },
-    { label: "친구/채팅", path: ROUTES.FRIENDS },
+n   { label: "내 동행관리", path: ROUTES.FRIENDLIST },
     { label: "관심목록", path: ROUTES.INTEREST },
     { label: "히스토리", path: ROUTES.HISTORY },
     { label: "게시물 관리", path: ROUTES.POST_MANAGE },
