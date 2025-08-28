@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { loadPosts } from '@/lib/storage';
-import Routing from '@/components/community/Routing';
 import Image from 'next/image';
 import SearchBar from '@/components/global/SearchBar';
+import useLogin from '@/hooks/useLogin';
+import { ICONS } from '@/constants/path';
+import { useRouter } from 'next/navigation';
 
 function fmtDate(iso) {
   if (!iso) return '0000-00-00 00:00:00';
@@ -32,8 +34,12 @@ export default function CommunityListTablePage() {
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState('createdAt');
   const [sortDir, setSortDir] = useState('desc');
+  const { ready, isLogined } = useLogin();
+  const router = useRouter();
+  const handleWriteClick = () => {
+    router.push('/community/write');
+  };
 
-  // 로드
   useEffect(() => {
     const arr = loadPosts('community');
 
@@ -96,14 +102,14 @@ export default function CommunityListTablePage() {
       <div className="w-full max-w-[1200px] mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar />
 
-        <span className="flex items-center gap-3">
+        <span className="flex items-center gap-2">
           {/* 검색 */}
 
           {/* 정렬: 기준 */}
           <select
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value)}
-            className="h-10 px-3 text-sm bg-white">
+            className="h-10 px-2  bg-white">
             <option value="createdAt">작성일</option>
             <option value="comments">댓글수</option>
             <option value="recommendations">추천수</option>
@@ -114,13 +120,27 @@ export default function CommunityListTablePage() {
           <select
             value={sortDir}
             onChange={(e) => setSortDir(e.target.value)}
-            className="h-10 px-3 text-sm bg-white">
+            className="h-10 px-2  bg-white">
             <option value="desc">내림차순</option>
             <option value="asc">오름차순</option>
           </select>
           {/* </div> */}
+          {ready && isLogined ? (
+            <button
+              className="flex items-center gap-1 hover:cursor-pointer"
+              onClick={handleWriteClick}>
+              글쓰기
+              <Image
+                src={ICONS.ADD_WRITE}
+                alt="글쓰기"
+                width={24}
+                height={24}
+              />
+            </button>
+          ) : null}
         </span>
       </div>
+
       {/* 테이블 */}
       <div className="overflow-hidden">
         <table className="w-full table-fixed border-separate border-spacing-y-2">
@@ -150,7 +170,7 @@ export default function CommunityListTablePage() {
                 </td>
                 <td className="py-3 px-4 border-t border-b border-gray-300">
                   <Link
-                    href={`/community/community/${r.id}`}
+                    href={`/community/${r.id}`}
                     className="text-sm text-gray-900 hover:underline line-clamp-1">
                     {r.title}
                   </Link>
@@ -172,12 +192,6 @@ export default function CommunityListTablePage() {
           </tbody>
         </table>
       </div>
-      <Routing
-        src="/img/add_write.svg"
-        alt="글작성"
-        className="fixed !bottom-6 !right-6 !z-50 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 !w-8 !h-8"
-        to="/community/write"
-      />
     </>
   );
 }

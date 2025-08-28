@@ -12,6 +12,7 @@ import { toCard } from '@/lib/schema';
 import CommentsSection from '@/components/community/CommentsSection';
 import { useRef } from 'react';
 import { ICONS, IMAGES } from '@/constants/path';
+import CommentGate from '@/components/auth/CommentGate';
 
 import {
   getPost,
@@ -179,13 +180,19 @@ export default function CommunityDonePage() {
         </div>
 
         {/* 댓글  */}
-        <CommentsSection
-          postId={postId}
-          bodyRef={bodyRef}
-          onCountChange={setCommentCount}
-        />
 
-        <div className="flex gap-2 mb-10 justify-end">
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold ">댓글</h2>
+          <CommentGate>
+            <CommentsSection
+              postId={postId}
+              bodyRef={bodyRef}
+              onCountChange={setCommentCount}
+            />
+          </CommentGate>
+        </section>
+
+        <div className="flex gap-2 mt-3 mb-10 justify-end">
           <button
             className="px-2 py-2 rounded border border-red text-red-600 hover:bg-red-400 hover:text-white"
             onClick={() => setOpenDelete(true)}>
