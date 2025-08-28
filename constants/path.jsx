@@ -11,22 +11,23 @@ export const ROUTES = {
   POST_MANAGE: "/mypage/post-manage",
   SETTINGS: "/mypage/settings",
   ADMIN: "/admin",
-  FACEBOOK: 'https://facebook.com/yourpage',
-  INSTAGRAM: 'https://instagram.com/yourpage',
-  YOUTUBE: 'https://youtube.com/yourpage',
-  KAKAOTALK: 'https://open.kakao.com/yourpage',
-  TERMS: '/terms',
-  PRIVACY: '/privacy',
-  LOCATION_TERMS: '/location',
-  YOUTH_PROTECTION: '/youth',
-  EMAIL_POLICY: '/email-policy',
-  ABOUT: '/help/about',
-  GUIDE: '/help/guide',
-  NOTICE: '/help/notice',
-  FAQ: '/help',
-  CONTACT: '/help/contact',
-  CONTACT_HISTORY: '/help/contact-history',
-}
+  FACEBOOK: "https://facebook.com/yourpage",
+  INSTAGRAM: "https://instagram.com/yourpage",
+  YOUTUBE: "https://youtube.com/yourpage",
+  KAKAOTALK: "https://open.kakao.com/yourpage",
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
+  LOCATION_TERMS: "/location",
+  YOUTH_PROTECTION: "/youth",
+  EMAIL_POLICY: "/email-policy",
+  ABOUT: "/help/about",
+  GUIDE: "/help/guide",
+  NOTICE: "/help/notice",
+  FAQ: "/help",
+  CONTACT: "/help/contact",
+  CONTACT_HISTORY: "/help/contact-history",
+  LOGIN: "/login",
+};
 
 export const IMAGES = {
   GALLERY_DEFAULT_IMG: "/img/default_img.svg",
@@ -42,8 +43,8 @@ export const IMAGES = {
   SERVICEINTRO_PROCESS_IMG: "/img/ServiceIntro_processicon.svg",
   SERVICEINTRO_SHIELD_IMG: "/img/ServiceIntro_shieldicon.svg",
   SERVICEINTRO_TARGET_IMG: "/img/ServiceIntro_targeticon.svg",
-  SERVICEINTRO_TOGETHER_IMG: "/img/ServiceIntro_togethericon.svg"
-}
+  SERVICEINTRO_TOGETHER_IMG: "/img/ServiceIntro_togethericon.svg",
+};
 
 export const ICONS = {
   ADD: "/img/add.svg",
@@ -105,5 +106,5 @@ export const ICONS = {
   UP_GRAY: "/img/up_gray.svg",
   VISIBLE: "/img/visible.svg",
   X: "/img/x.svg",
-  YOUTUBE: "/img/youtube.svg"
-}
+  YOUTUBE: "/img/youtube.svg",
+};
