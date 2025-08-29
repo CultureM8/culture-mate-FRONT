@@ -1,19 +1,14 @@
-"use client"; /**이벤트타일 */
+"use client";
+
+/**이벤트타일 */
 
 import Image from "next/image";
 
-import { getStarImage } from "./helpers";
+import StarRating from "@/lib/StarRating";
 import { ICONS } from "@/constants/path";
 
 export default function EventTile({ card, onPick }) {
-  const {
-    eventImage,
-    eventType,
-    eventName,
-    description,
-    starScore = 0,
-    recommendations = 0,
-  } = card;
+  const { eventImage, eventType, eventName, description, starScore = 0 } = card;
 
   return (
     <button
@@ -44,26 +39,11 @@ export default function EventTile({ card, onPick }) {
       </div>
 
       {/* 별점 추천 */}
-      <div className="mt-2 flex items-center gap-2 text-[12px] text-gray-700 whitespace-nowrap">
-        <Image
-          className="mb-[2px]"
-          src={getStarImage(starScore)}
-          alt="star"
-          width={16}
-          height={16}
-        />
-        <span>{Number(starScore).toFixed(1)}</span>
+      <div className="mt-2 flex items-center gap-1 text-[12px] text-gray-700 whitespace-nowrap">
+        <div className="scale-70 origin-left">
+          <StarRating rating={starScore} readonly={true} />
+        </div>
         <span className="text-gray-400">·</span>
-        <span>
-          <Image
-            className="mb-[2px]"
-            src={ICONS.THUMBSUP_FULL}
-            alt="like"
-            width={16}
-            height={16}
-          />
-        </span>
-        <span>{Number(recommendations).toLocaleString()}</span>
       </div>
     </button>
   );

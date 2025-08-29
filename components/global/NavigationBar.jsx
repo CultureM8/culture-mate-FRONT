@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /*
  * TODO: 로그인 시스템 구현 후 수정 필요사항
@@ -11,18 +11,18 @@
  *    pathname.startsWith() 방식으로 조건 확장 필요
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 
-import Link from 'next/link';
-import Image from 'next/image';
+import Link from "next/link";
+import Image from "next/image";
 
-import useLogin from '@/hooks/useLogin';
-import { ROUTES, IMAGES, ICONS } from '@/constants/path';
-import SearchBar from './SearchBar';
-import MiniProfile from './MiniProfile';
+import useLogin from "@/hooks/useLogin";
+import { ROUTES, IMAGES, ICONS } from "@/constants/path";
+import SearchBar from "./SearchBar";
+import MiniProfile from "./MiniProfile";
 
 export default function NavigationBar() {
   const { ready, isLogined, user, logout, loading } = useLogin();
@@ -43,8 +43,8 @@ export default function NavigationBar() {
   /**임시 관리자 체크방식 */
   useEffect(() => {
     const userRole =
-      typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    const adminByRole = userRole === 'admin';
+      typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    const adminByRole = userRole === "admin";
     const adminByPath = pathname === ROUTES.ADMIN;
     setIsAdmin(Boolean(adminByRole || adminByPath));
   }, [pathname, user]);
@@ -70,21 +70,27 @@ useEffect(() => {
   };
 
   const flexStyle =
-    'flex items-center justify-between md:gap-[clamp(8px,3vw,48px)] sm:gap-3';
+    "flex items-center justify-between md:gap-[clamp(8px,3vw,48px)] sm:gap-3";
 
   /**로그인 상태에 따른 메뉴 구성*/
   const getNavMenu = () => {
     const baseMenu = [
-      ['서비스 소개', ROUTES.ABOUT],
-      ['이용 가이드', ROUTES.GUIDE],
-      ['이벤트', ROUTES.EVENTS],
-      ['동행찾기', ROUTES.TOGETHER],
-      ['커뮤니티', ROUTES.COMMUNITY],
-      ['고객센터', ROUTES.HELP],
+      ["서비스 소개", ROUTES.ABOUT],
+      ["이용 가이드", ROUTES.GUIDE],
+      ["이벤트", ROUTES.EVENTS],
+      ["동행찾기", ROUTES.TOGETHER],
+      ["커뮤니티", ROUTES.COMMUNITY],
+      ["고객센터", ROUTES.HELP],
     ];
-    return isAdmin ? [...baseMenu, ['관리자', ROUTES.ADMIN]] : baseMenu;
+    return isAdmin ? [...baseMenu, ["관리자", ROUTES.ADMIN]] : baseMenu;
   };
   const navMenu = getNavMenu();
+  /**선택메뉴 굵게 */
+  const isActiveMenu = (href) => {
+    if (pathname === href) return true;
+
+    return false;
+  };
 
   /*flicker방지 자리차지용*/
   const RightPlaceHolder = () => (
@@ -129,7 +135,14 @@ useEffect(() => {
           <div className={`${flexStyle} shrink-0`}>
             {/* 상단 메뉴 */}
             {navMenu.map(([label, href], i) => (
-              <Link key={i} href={href} className="text-xl">
+              <Link
+                key={i}
+                href={href}
+                className={`text-xl transition-all duration-200 hover:font-semibold ${
+                  isActiveMenu(href)
+                    ? "font-bold text-black"
+                    : "font-normal text-gray-700 hover:text-black"
+                }`}>
                 {label}
               </Link>
             ))}
@@ -168,7 +181,7 @@ useEffect(() => {
                     alt="logout-btn"
                     width={24}
                     height={24}
-                    className={loading ? 'opacity-60' : ''}
+                    className={loading ? "opacity-60" : ""}
                   />
                 </button>
               </>

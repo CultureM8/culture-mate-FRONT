@@ -1,4 +1,4 @@
-"use client"; /**홍보 글 작성 옵션박스 */
+"use client"; /**자유게시판 글 작성 옵션박스 */
 
 import SearchToWrite from "./SearchToWrite";
 import AddContent from "./AddContent";

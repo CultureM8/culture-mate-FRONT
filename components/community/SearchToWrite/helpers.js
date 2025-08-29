@@ -1,17 +1,3 @@
-/* 별 이미지 선택*/
-export const getStarImage = (rating) => {
-  const r = Number(rating) || 0;
-  if (r <= 1) return "/img/star_empty.svg";
-  if (r >= 2 && r <= 3) return "/img/star_half.svg";
-  if (r >= 4 && r <= 5) return "/img/star_full.svg";
-  return "/img/star_empty.svg";
-};
-/* 별점 숫자를 문자열로 변환*/
-export const fmtStar = (v) =>
-  typeof v === "number" && Number.isFinite(v)
-    ? v.toFixed(1)
-    : String(v ?? "0.0");
-
 export const toCard = (ev = {}) => ({
   id: ev.id,
   eventImage: ev.eventImage ?? ev.image ?? "/img/default_img.svg",
