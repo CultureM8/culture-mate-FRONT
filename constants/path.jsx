@@ -27,6 +27,9 @@ export const ROUTES = {
   CONTACT: "/help/contact",
   CONTACT_HISTORY: "/help/contact-history",
   LOGIN: "/login",
+  SIGNUP: "/login/signup",
+  FIND_ID: "/login/find-id",
+  RESET_PW: "/login/reset-password",
 };
 
 export const IMAGES = {

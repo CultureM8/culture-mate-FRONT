@@ -1,28 +1,29 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { loadPosts } from '@/lib/storage';
-import Image from 'next/image';
-import SearchBar from '@/components/global/SearchBar';
-import useLogin from '@/hooks/useLogin';
-import { ICONS } from '@/constants/path';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { loadPosts } from "@/lib/storage";
+import Image from "next/image";
+import SearchBar from "@/components/global/SearchBar";
+import useLogin from "@/hooks/useLogin";
+import { ICONS } from "@/constants/path";
+import { useRouter } from "next/navigation";
+import SlidingBanner from "@/components/community/SlidingBanner";
 
 function fmtDate(iso) {
-  if (!iso) return '0000-00-00 00:00:00';
+  if (!iso) return "0000-00-00 00:00:00";
   const d = new Date(iso);
-  if (Number.isNaN(+d)) return '0000-00-00 00:00:00';
-  const pad = (n) => String(n).padStart(2, '0');
+  if (Number.isNaN(+d)) return "0000-00-00 00:00:00";
+  const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
     d.getHours()
   )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function getCommentCount(id) {
-  if (typeof window === 'undefined') return 0;
+  if (typeof window === "undefined") return 0;
   try {
-    const arr = JSON.parse(localStorage.getItem(`comments:${id}`) || '[]');
+    const arr = JSON.parse(localStorage.getItem(`comments:${id}`) || "[]");
     return Array.isArray(arr) ? arr.length : 0;
   } catch {
     return 0;
@@ -30,23 +31,30 @@ function getCommentCount(id) {
 }
 
 export default function CommunityListTablePage() {
+  const [title, intro] = ["커뮤니티", "자유게시판"];
   const [rows, setRows] = useState([]);
-  const [query, setQuery] = useState('');
-  const [sortKey, setSortKey] = useState('createdAt');
-  const [sortDir, setSortDir] = useState('desc');
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState("createdAt");
+  const [sortDir, setSortDir] = useState("desc");
   const { ready, isLogined } = useLogin();
   const router = useRouter();
   const handleWriteClick = () => {
-    router.push('/community/write');
+    router.push("/community/write");
   };
 
   useEffect(() => {
-    const arr = loadPosts('community');
+    const arr = loadPosts("community");
 
     const mapped = arr.map((p) => ({
       id: p.id,
-      title: p.title || '제목',
-      author: (p.author && p.author.name) || p.author || '익명',
+      title: p.title || "제목",
+
+      author:
+        p.author_login_id ??
+        (typeof p.author === "string"
+          ? p.author
+          : p.author?.login_id ?? p.author?.id ?? p.author?.name ?? ""),
+
       createdAt: p.createdAt,
       views: p.stats?.views ?? 0,
       recommendations: p.stats?.recommendations ?? p.recommendations ?? 0,
@@ -66,9 +74,9 @@ export default function CommunityListTablePage() {
           r.author.toLowerCase().includes(q)
       );
     }
-    const dir = sortDir === 'asc' ? 1 : -1;
+    const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (sortKey === 'createdAt') {
+      if (sortKey === "createdAt") {
         const av = new Date(a.createdAt || 0).getTime();
         const bv = new Date(b.createdAt || 0).getTime();
         return (av - bv) * dir;
@@ -79,26 +87,29 @@ export default function CommunityListTablePage() {
 
   const toggleSort = (key) => {
     if (key === sortKey) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir('desc');
+      setSortDir("desc");
     }
   };
   /*ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ */
   return (
     <>
-      <div className="absolute left-1/2 top-[0px] -translate-x-1/2 w-screen h-[380px] z-0">
-        <Image
-          src={'/img/default_img.svg'}
+      <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
+      <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
+      {/* <div className="absolute left-1/2 top-[0px] -translate-x-1/2 w-screen h-[370px] z-0 "> */}
+      {/* <Image
+          src={"/img/default_img.svg"}
           alt="배너 이미지"
           fill
           className="object-cover opacity-30"
-        />
-      </div>
-      <div className="border w-full h-[380px]">
-        {/* 배경 위에 올라갈 메인 이미지 */}
-      </div>
+        /> */}
+      <SlidingBanner />
+      {/* </div> */}
+      {/* <div className="border w-full h-[370px]"> */}
+      {/* 배경 위에 올라갈 메인 이미지 */}
+      {/* </div> */}
       <div className="w-full max-w-[1200px] mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar />
 
@@ -143,7 +154,7 @@ export default function CommunityListTablePage() {
 
       {/* 테이블 */}
       <div className="overflow-hidden">
-        <table className="w-full table-fixed border-separate border-spacing-y-2">
+        <table className="w-full table-fixed border-separate border-spacing-y-2 mb-10">
           <colgroup>
             <col className="w-[140px]" />
             <col />

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /** 로그인 페이지 (아이디 + 비밀번호, 프론트 전용)
  * - 아이디와 비밀번호를 모두 입력해야 제출 가능
@@ -7,46 +7,72 @@
  * - 아무 next가 없으면 referrer → 없으면 홈으로
  */
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import useLogin from '@/hooks/useLogin';
-import { ROUTES, IMAGES } from '@/constants/path';
-import Image from 'next/image';
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import useLogin from "@/hooks/useLogin";
+import { ROUTES, IMAGES } from "@/constants/path";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const { ready, isLogined, loading, doLogin } = useLogin();
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const nextUrl = nextParam && nextParam.startsWith("/") ? nextParam : "/";
+  /**id찾기라우팅 */
+  const goFindId = () => {
+    router.push(
+      `${ROUTES.FIND_ID || "/login/find-id"}?next=${encodeURIComponent(
+        nextUrl
+      )}`
+    );
+  };
+
+  /**pw찾기라우팅 */
+  const goResetPw = () => {
+    router.push(
+      `${ROUTES.RESET_PW || "/login/reset-password"}?next=${encodeURIComponent(
+        nextUrl
+      )}`
+    );
+  };
+
+  /**회원가입라우팅 */
+  const goSignup = () => {
+    router.push(
+      `${ROUTES.SIGNUP || "/login/signup"}?next=${encodeURIComponent(nextUrl)}`
+    );
+  };
 
   /*로그인 후 돌아갈 곳*/
   const getAfterLoginTarget = () => {
-    const next = searchParams.get('next');
+    const next = searchParams.get("next");
     if (
       next &&
-      typeof next === 'string' &&
-      next.startsWith('/') &&
-      next !== '/login'
+      typeof next === "string" &&
+      next.startsWith("/") &&
+      next !== "/login"
     ) {
       return next;
     }
-    if (typeof window !== 'undefined' && document.referrer) {
+    if (typeof window !== "undefined" && document.referrer) {
       try {
         const ref = new URL(document.referrer);
         if (
           ref.origin === window.location.origin &&
-          ref.pathname !== '/login'
+          ref.pathname !== "/login"
         ) {
-          return ref.pathname + (ref.search || '') + (ref.hash || '');
+          return ref.pathname + (ref.search || "") + (ref.hash || "");
         }
       } catch {}
     }
-    return ROUTES.HOME || '/';
+    return ROUTES.HOME || "/";
   };
 
   /**이미 로그인 상태면 복귀*/
@@ -60,14 +86,14 @@ export default function LoginPage() {
   /**로그인 폼 제출*/
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!username.trim()) {
-      setError('아이디를 입력해주세요.');
+      setError("아이디를 입력해주세요.");
       return;
     }
     if (!password.trim()) {
-      setError('비밀번호를 입력해주세요.');
+      setError("비밀번호를 입력해주세요.");
       return;
     }
     /**로그인 실행 */
@@ -80,13 +106,13 @@ export default function LoginPage() {
       });
       router.replace(getAfterLoginTarget());
     } catch (err) {
-      setError(err?.message || '로그인에 실패했습니다.');
+      setError(err?.message || "로그인에 실패했습니다.");
     }
   };
 
   /**ui렌더링*/
   return (
-    <div className="min-h-[60vh] w-full flex items-center justify-center px-4">
+    <div className="min-h-[60vh] w-full flex items-center justify-center px-4 mb-4 mt-4">
       <div className="w-full max-w-[560px] border border-gray-200 rounded-2xl p-8 bg-white shadow-sm">
         {/* 로고 */}
         <div className="flex justify-center mb-6">
@@ -161,17 +187,23 @@ export default function LoginPage() {
             type="submit"
             disabled={!ready || loading}
             className="w-full h-11 rounded-lg bg-black text-white disabled:opacity-60">
-            {loading ? '로그인 중...' : '로그인'}
+            {loading ? "로그인 중..." : "로그인"}
           </button>
         </form>
 
         {/* 추가 링크(모의) */}
         <div className="mt-6 text-sm text-gray-600 flex items-center justify-center gap-4">
-          <span className="underline">아이디 찾기 </span>
+          <button onClick={goFindId} className="text-sm underline">
+            아이디 찾기
+          </button>
           <span className="text-gray-300">|</span>
-          <span className="underline">비밀번호 찾기</span>
+          <button onClick={goResetPw} className="text-sm underline">
+            비밀번호 찾기
+          </button>
           <span className="text-gray-300">|</span>
-          <span className="underline">회원가입</span>
+          <button onClick={goSignup} className="text-sm underline">
+            회원가입
+          </button>
         </div>
 
         {/* <div className="mt-3 text-xs text-gray-400 text-center">
