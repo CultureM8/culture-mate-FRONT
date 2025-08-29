@@ -1,13 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
-import useLogin from '@/hooks/useLogin';
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import useLogin from "@/hooks/useLogin";
+import { ROUTES } from "@/constants/path";
 
 /** 로컬스토리지 키 유틸 */
 const KEY = (postId) => `comments:${postId}`;
 const load = (postId) => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(KEY(postId));
     return raw ? JSON.parse(raw) : [];
@@ -16,19 +19,29 @@ const load = (postId) => {
   }
 };
 const save = (postId, list) => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.setItem(KEY(postId), JSON.stringify(list));
 };
 
 export default function CommentsSection({ postId, bodyRef, onCountChange }) {
   /**로그인 */
+
   const { ready, isLogined, user } = useLogin();
 
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const fullPath = useMemo(() => {
+    const q = searchParams?.toString();
+    return q ? `${pathname}?${q}` : pathname;
+  }, [pathname, searchParams]);
+  const loginUrl =
+    (ROUTES?.LOGIN || "/login") + `?next=${encodeURIComponent(fullPath)}`;
+
   const [comments, setComments] = useState([]);
-  const [order, setOrder] = useState('oldest'); /* 'oldest' | 'newest'*/
+  const [order, setOrder] = useState("oldest"); /* 'oldest' | 'newest'*/
   const [collapsed, setCollapsed] = useState(false);
 
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [replies, setReplies] = useState({}); /* parentId => text*/
   const [editing, setEditing] = useState({}); /*commentId => text*/
 
@@ -43,7 +56,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
   const sorted = useMemo(() => {
     const list = [...comments];
     list.sort((a, b) =>
-      order === 'oldest'
+      order === "oldest"
         ? new Date(a.createdAt) - new Date(b.createdAt)
         : new Date(b.createdAt) - new Date(a.createdAt)
     );
@@ -62,9 +75,6 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
     return map;
   }, [sorted]);
 
-  /* 가드: 로그인 준비 전/비로그인 시 렌더 안 함*/
-  if (!ready || !isLogined) return null;
-
   /*저장 헬퍼*/
   const persist = (next) => {
     setComments(next);
@@ -78,29 +88,29 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
     const entry = {
       id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       parentId: null,
-      author: user?.login_id ?? '',
+      author: user?.login_id ?? "",
       userId: user?.id ?? null,
       content: content.trim(),
       createdAt: new Date().toISOString(),
     };
     persist([entry, ...comments]);
-    setContent('');
+    setContent("");
   };
 
   /*대댓글 등록*/
   const submitReply = (parentId) => {
-    const text = (replies[parentId] || '').trim();
+    const text = (replies[parentId] || "").trim();
     if (!text) return;
     const entry = {
       id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       parentId,
-      author: user?.login_id ?? '',
+      author: user?.login_id ?? "",
       userId: user?.id ?? null,
       content: text,
       createdAt: new Date().toISOString(),
     };
     persist([entry, ...comments]);
-    setReplies((s) => ({ ...s, [parentId]: '' }));
+    setReplies((s) => ({ ...s, [parentId]: "" }));
   };
 
   /* 수정 모드 on/off + 저장*/
@@ -112,7 +122,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
       return x;
     });
   const saveEdit = (id) => {
-    const text = (editing[id] || '').trim();
+    const text = (editing[id] || "").trim();
     if (!text) return cancelEdit(id);
     const next = comments.map((c) =>
       c.id === id
@@ -131,15 +141,15 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
 
   /* 단축키*/
   const onKeyDownSubmit = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      submitRoot();
+      if (isLogined) submitRoot();
     }
   };
   const onKeyDownReply = (parentId) => (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      submitReply(parentId);
+      if (isLogined) submitReply(parentId);
     }
   };
 
@@ -151,10 +161,10 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
       {/* 상단 컨트롤 바 */}
       <div className="flex items-center justify-between text-[13px] text-gray-700">
         <button
-          onClick={() => setOrder(order === 'oldest' ? 'newest' : 'oldest')}
+          onClick={() => setOrder(order === "oldest" ? "newest" : "oldest")}
           className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100">
           <span className="font-medium">
-            {order === 'oldest' ? '등록순' : '최신순'}
+            {order === "oldest" ? "등록순" : "최신순"}
           </span>
           <span className="text-gray-400">▼</span>
         </button>
@@ -162,7 +172,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
         <div className="flex items-center gap-3">
           <button
             onClick={() =>
-              bodyRef?.current?.scrollIntoView({ behavior: 'smooth' })
+              bodyRef?.current?.scrollIntoView({ behavior: "smooth" })
             }
             className="px-2 py-1 rounded hover:bg-gray-100">
             본문 보기
@@ -170,7 +180,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100">
-            {collapsed ? '댓글 펼치기' : '댓글 접기'}{' '}
+            {collapsed ? "댓글 펼치기" : "댓글 접기"}{" "}
             <span className="text-gray-400">▼</span>
           </button>
         </div>
@@ -192,7 +202,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                     {editing[c.id] !== undefined ? (
                       <>
                         <div className="mb-1 text-[12px] text-gray-500">
-                          {c.author || '작성자'}
+                          {c.author}
                         </div>
                         <textarea
                           value={editing[c.id]}
@@ -208,7 +218,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                     ) : (
                       <div className="flex items-baseline gap-4 flex-wrap">
                         <span className="shrink-0 text-[14px] text-gray-500">
-                          {c.author || '작성자'}
+                          {c.author}
                         </span>
                         <p className="break-words text-[14px] leading-relaxed text-gray-900">
                           {c.content}
@@ -221,6 +231,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                     <span className="whitespace-nowrap">
                       {fmt(c.createdAt)}
                     </span>
+                    {/* 댓글수정기능 */}
                     {editing[c.id] !== undefined ? (
                       <>
                         <button
@@ -266,27 +277,33 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                 </div>
 
                 {/* 답글 쓰기 토글 */}
-                <div className="mt-2">
-                  <button
-                    onClick={() =>
-                      setReplies((s) => ({
-                        ...s,
-                        [c.id]: s[c.id] === undefined ? '' : undefined, // undefined면 숨김, ''면 표시
-                      }))
-                    }
-                    className="text-[12px] text-gray-600 underline-offset-2 hover:underline mt-2">
-                    {replies[c.id] === undefined ? '답글 쓰기' : '답글 닫기'}
-                  </button>
-                </div>
 
-                {/* 대댓글 작성 */}
-                {replies[c.id] !== undefined && (
+                {isLogined && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() =>
+                        setReplies((s) => ({
+                          ...s,
+                          [c.id]: s[c.id] === undefined ? "" : undefined,
+                        }))
+                      }
+                      className="text-[12px] text-gray-600 underline-offset-2 hover:underline mt-2">
+                      {replies[c.id] === undefined ? "답글 쓰기" : "답글 닫기"}
+                    </button>
+                  </div>
+                )}
+
+                {/* 답글 작성 */}
+
+                {/* (토글) 답글 작성 영역: 로그인 시에만 렌더 */}
+                {isLogined && replies[c.id] !== undefined && (
                   <div className="mt-3 pl-5 border-l border-gray-200">
                     <div className="flex items-start gap-4">
                       <span className="mt-2 text-gray-400">↳</span>
                       <div className="flex-1">
                         <div className="mb-1 text-[12px] text-gray-500">
-                          대댓 작성자
+                          <span className="mr-1">작성자</span>
+                          <span>{user?.login_id}</span>
                         </div>
                         <textarea
                           value={replies[c.id]}
@@ -297,7 +314,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                             }))
                           }
                           onKeyDown={onKeyDownReply(c.id)}
-                          placeholder="대댓글 작성란"
+                          placeholder="답글 작성란"
                           className="w-full min-h-[72px] rounded border border-gray-300 px-2 py-1 text-[13px] focus:outline-none focus:ring-1 focus:ring-gray-400"
                         />
                         <div className="mt-2 flex justify-end">
@@ -306,8 +323,8 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                             disabled={!replies[c.id]?.trim()}
                             className={`h-8 rounded px-3 text-xs text-white ${
                               replies[c.id]?.trim()
-                                ? 'bg-gray-900 hover:bg-gray-800'
-                                : 'bg-gray-300 cursor-not-allowed'
+                                ? "bg-gray-900 hover:bg-gray-800"
+                                : "bg-gray-300 cursor-not-allowed"
                             }`}>
                             등록
                           </button>
@@ -317,7 +334,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                   </div>
                 )}
 
-                {/* 대댓글 리스트 */}
+                {/* 답글 리스트 */}
                 {(childOf.get(c.id) || []).length > 0 && (
                   <div className="mt-3 space-y-2 pl-5">
                     {(childOf.get(c.id) || []).map((r) => (
@@ -329,7 +346,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                             {editing[r.id] !== undefined ? (
                               <>
                                 <div className="mb-1 text-[12px] text-gray-500">
-                                  ↳ {r.author || '대댓 작성자'}
+                                  ↳ {r.author}
                                 </div>
                                 <textarea
                                   value={editing[r.id]}
@@ -345,7 +362,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                             ) : (
                               <div className="flex items-baseline gap-2 flex-wrap">
                                 <span className="shrink-0 text-[12px] text-gray-500">
-                                  ↳ {r.author || '대댓 작성자'}
+                                  ↳ {r.author}
                                 </span>
                                 <p className="break-words text-[13px] leading-relaxed text-gray-900">
                                   {r.content}
@@ -409,37 +426,52 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
         </ul>
       )}
 
-      {/* 하단: 새 댓글 작성 */}
+      {/* 새 댓글 작성 영역 */}
       <div className="mt-8 border-t border-gray-200 pt-6 mb-5">
         <div className="rounded-md border border-gray-300 bg-white p-4">
-          <div className="flex gap-3 min-h-[100px]">
-            {/* 작성자 라벨(인풋 제거) */}
-            <div className="w-44 px-3 py-2 text-sm text-gray-600">
-              <span className="text-gray-400 mr-1">작성자</span>
-              <span className="font-medium">{user?.log}</span>
+          {ready && !isLogined ? (
+            /* 비로그인: 작성 불가 + 로그인 유도 */
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                로그인 후 댓글을 작성할 수 있습니다.
+              </p>
+              <Link
+                href={loginUrl}
+                className="px-3 py-2 text-sm rounded bg-black text-white hover:bg-gray-800">
+                로그인하기
+              </Link>
             </div>
-
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onKeyDown={onKeyDownSubmit}
-              placeholder={`타인의 권리를 침해하거나 명예를 훼손하는 댓글은 운영원칙 및 관련법률에 제재를 받을 수 있습니다.
-Shift+Enter 키를 동시에 누르면 줄바꿈이 됩니다.`}
-              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
-          </div>
-          <div className="mt-3 flex justify-end">
-            <button
-              onClick={submitRoot}
-              disabled={!content.trim()}
-              className={`h-7 rounded px-4 text-sm text-white ${
-                content.trim()
-                  ? 'bg-gray-900 hover:bg-gray-800'
-                  : 'bg-gray-300 cursor-not-allowed'
-              }`}>
-              등록
-            </button>
-          </div>
+          ) : (
+            /*  로그인: 작성 가능 */
+            <div>
+              <div className="flex gap-3 min-h-[100px]">
+                <div className="w-44 px-3 py-2 text-sm text-gray-600">
+                  <span className="text-gray-400 mr-1">작성자</span>
+                  <span className="font-medium">{user?.login_id}</span>
+                </div>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onKeyDown={onKeyDownSubmit}
+                  placeholder={`타인의 권리를 침해하거나 명예를 훼손하는 댓글은 제재를 받을 수 있습니다.
++Shift+Enter 키를 동시에 누르면 줄바꿈이 됩니다.`}
+                  className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+                />
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={submitRoot}
+                  disabled={!content.trim()}
+                  className={`h-7 rounded px-4 text-sm text-white ${
+                    content.trim()
+                      ? "bg-gray-900 hover:bg-gray-800"
+                      : "bg-gray-300 cursor-not-allowed"
+                  }`}>
+                  등록
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

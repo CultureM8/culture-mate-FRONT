@@ -1,15 +1,10 @@
-'use client'; /**홍보 글 작성 옵션박스 */
+"use client"; /**홍보 글 작성 옵션박스 */
 
-import SearchToWrite from './SearchToWrite';
-import AddContent from './AddContent';
-import mockEvents from './mockEvents';
-import Link from 'next/link';
+import SearchToWrite from "./SearchToWrite";
+import AddContent from "./AddContent";
+import Link from "next/link";
 
-export default function CommunityWriteOption({
-  mode = 'plain',
-  onModeChange = () => {},
-  onPickEvent = () => {},
-}) {
+export default function CommunityWriteOption({ onPickEvent = () => {} }) {
   return (
     <div className="w-full max-w-[1200px] border border-gray-300 rounded-lg bg-white px-6 py-7 space-y-6">
       {/*  이벤트 선택/추가 */}
@@ -18,8 +13,8 @@ export default function CommunityWriteOption({
           이벤트 선택/추가
         </span>
         <div className="flex-1 ml-[20px]">
-          {/* ✅ SearchToWrite 에 콜백과 목업 주입 */}
-          <SearchToWrite onSelect={onPickEvent} mockData={mockEvents} />
+          {/* SearchToWrite 컴포넌트 - 이제 내부에서 eventData 사용 */}
+          <SearchToWrite onSelect={onPickEvent} />
         </div>
         <p className="ml-6 text-[12px] leading-5 text-gray-400">
           ※ 찾는 이벤트가 없을 경우 ‘1:1’ 문의 부탁드립니다.

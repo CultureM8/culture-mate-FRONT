@@ -1,25 +1,34 @@
-'use client';
+"use client";
 
-import ConfirmModal from '@/components/global/ConfirmModal';
-import { deletePost } from '@/lib/storage';
-import Image from 'next/image';
+import ConfirmModal from "@/components/global/ConfirmModal";
+import { deletePost } from "@/lib/storage";
+import Image from "next/image";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import PostEventMiniCard from '@/components/global/PostEventMiniCard';
-import mockEvents from '@/components/community/mockEvents';
-import { toCard } from '@/lib/schema';
-import CommentsSection from '@/components/community/CommentsSection';
-import { useRef } from 'react';
-import { ICONS, IMAGES } from '@/constants/path';
-import CommentGate from '@/components/auth/CommentGate';
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import PostEventMiniCard from "@/components/global/PostEventMiniCard";
+import { DUMMY_EVENTS } from "@/lib/eventData";
+import { toCard } from "@/lib/schema";
+import CommentsSection from "@/components/community/CommentsSection";
+import { useRef } from "react";
+import { ICONS } from "@/constants/path";
 
 import {
   getPost,
   bumpViews,
   isRecommended,
   toggleRecommendation,
-} from '@/lib/storage';
+} from "@/lib/storage";
+
+/* 작성자 표시*/
+function getAuthorId(post) {
+  if (!post) return "";
+  if (post.author_login_id) return post.author_login_id;
+  const a = post.author;
+  if (!a) return "";
+  if (typeof a === "string") return a;
+  return a.login_id || a.id || a.name || "";
+}
 
 export default function CommunityDonePage() {
   const { postId } = useParams();
@@ -32,18 +41,18 @@ export default function CommunityDonePage() {
   const [commentCount, setCommentCount] = useState(0);
 
   useEffect(() => {
-    const p = getPost('community', postId);
+    const p = getPost("community", postId);
     setPost(p || null);
 
     const onceKey = `viewed:community:${postId}`;
     if (p && !sessionStorage.getItem(onceKey)) {
-      bumpViews('community', postId);
-      sessionStorage.setItem(onceKey, '1');
-      const updated = getPost('community', postId);
+      bumpViews("community", postId);
+      sessionStorage.setItem(onceKey, "1");
+      const updated = getPost("community", postId);
       setPost(updated || p);
     }
 
-    setRecommended(isRecommended('community', postId));
+    setRecommended(isRecommended("community", postId));
 
     const raw = localStorage.getItem(`comments:${postId}`);
     const list = raw ? JSON.parse(raw) : [];
@@ -54,8 +63,29 @@ export default function CommunityDonePage() {
     if (!post) return null;
     if (post.eventSnapshot) return post.eventSnapshot;
     if (!post.eventId) return null;
-    const raw = mockEvents.find((e) => String(e.id) === String(post.eventId));
-    return raw ? toCard(raw) : null;
+
+    const raw = DUMMY_EVENTS.find(
+      (e) => String(e.eventId) === String(post.eventId)
+    );
+    if (raw) {
+      /* eventData변환*/
+      const transformedEvent = {
+        id: raw.eventId,
+        name: raw.title,
+        eventName: raw.title,
+        eventType: raw.eventType,
+        type: raw.eventType,
+        image: raw.imgSrc,
+        description: raw.title,
+        rating: raw.score,
+        likes: raw.likesCount,
+        postsCount: 0,
+        isLiked: false,
+      };
+      return toCard(transformedEvent);
+    }
+
+    return null;
   }, [post]);
 
   if (!post) {
@@ -70,7 +100,7 @@ export default function CommunityDonePage() {
           </button>
           <button
             className="px-4 py-2 border rounded"
-            onClick={() => router.push('/community')}>
+            onClick={() => router.push("/community")}>
             목록으로
           </button>
         </div>
@@ -82,8 +112,8 @@ export default function CommunityDonePage() {
 
   const recommendations =
     post?.stats?.recommendations ?? post?.recommendations ?? 0;
-  const displayAuthor = post?.author || '익명';
-  /*반환부------------------------------------------------------------------------*/
+  const displayAuthor = getAuthorId(post);
+  /*------------------------------------------------------------------------*/
   return (
     <>
       <div className="mx-6 my-4 max-w-[1200px] h-[108px] flex items-center">
@@ -99,7 +129,7 @@ export default function CommunityDonePage() {
           </h1>
           <div className="flex mt-2 py-6 px-6 text-base text-gray-400 border-b-2 border-gray-300 justify-between">
             <div className="flex items-center gap-6">
-              <span>작성자 {displayAuthor}</span>
+              <span className="gap-2">작성자{displayAuthor}</span>
               <span>{new Date(post.createdAt).toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-6">
@@ -113,7 +143,7 @@ export default function CommunityDonePage() {
         {card && <PostEventMiniCard {...card} />}
         {/* 본문영역 */}
         <div ref={bodyRef} className="mt-6 min-h-[600]">
-          {post.mode === 'plain' ? (
+          {post.mode === "plain" ? (
             <p className="whitespace-pre-line text-gray-800">{post.content}</p>
           ) : (
             <div
@@ -126,14 +156,14 @@ export default function CommunityDonePage() {
           <button
             className="flex flex-col items-center gap-2 px-4 py-3"
             onClick={() => {
-              const ret = toggleRecommendation('community', postId);
+              const ret = toggleRecommendation("community", postId);
 
               const nextCount =
-                typeof ret === 'number'
+                typeof ret === "number"
                   ? ret
                   : ret?.count ?? ret?.recommendations ?? 0;
               const nextRecommended =
-                typeof ret === 'number' ? !recommended : !!ret?.recommended;
+                typeof ret === "number" ? !recommended : !!ret?.recommended;
 
               setRecommended(nextRecommended);
               setPost((prev) =>
@@ -180,16 +210,13 @@ export default function CommunityDonePage() {
         </div>
 
         {/* 댓글  */}
-
         <section className="mt-8">
           <h2 className="text-xl font-semibold ">댓글</h2>
-          <CommentGate>
-            <CommentsSection
-              postId={postId}
-              bodyRef={bodyRef}
-              onCountChange={setCommentCount}
-            />
-          </CommentGate>
+          <CommentsSection
+            postId={postId}
+            bodyRef={bodyRef}
+            onCountChange={setCommentCount}
+          />{" "}
         </section>
 
         <div className="flex gap-2 mt-3 mb-10 justify-end">
@@ -200,7 +227,7 @@ export default function CommunityDonePage() {
           </button>
           <button
             className="px-2 py-2 border rounded border-gray-700  hover:bg-gray-500 hover:text-white"
-            onClick={() => router.push('/community')}>
+            onClick={() => router.push("/community")}>
             목록으로
           </button>
         </div>
@@ -213,10 +240,10 @@ export default function CommunityDonePage() {
         cancelText="취소"
         variant="danger"
         onConfirm={() => {
-          deletePost('community', postId, { purgeExtras: true });
+          deletePost("community", postId, { purgeExtras: true });
           setOpenDelete(false);
           // 목록으로 이동
-          router.push('/community');
+          router.push("/community");
         }}
         onClose={() => setOpenDelete(false)}
       />
