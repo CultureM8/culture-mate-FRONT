@@ -23,6 +23,10 @@ export default function AdminAlarmsContents() {
   // 검색 상태 관리
   const [searchQuery, setSearchQuery] = useState("");
   
+  // 정렬 상태 관리 (추가)
+  const [sortType, setSortType] = useState("신고일 최신순");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
@@ -208,8 +212,23 @@ export default function AdminAlarmsContents() {
     
     return matchesSearch && matchesType && matchesStatus && matchesDateRange;
   }).sort((a, b) => {
-    // 신고 일시 기준으로 정렬 (최신순)
-    return new Date(b.reportDate) - new Date(a.reportDate);
+    // 정렬 타입에 따른 정렬 (추가)
+    switch (sortType) {
+      case "신고일 최신순":
+        return new Date(b.reportDate) - new Date(a.reportDate);
+      case "신고일 오래된순":
+        return new Date(a.reportDate) - new Date(b.reportDate);
+      case "신고 번호 오름차순":
+        return a.id.localeCompare(b.id);
+      case "신고 번호 내림차순":
+        return b.id.localeCompare(a.id);
+      case "신고자 ID 오름차순":
+        return a.reporter.localeCompare(b.reporter);
+      case "신고자 ID 내림차순":
+        return b.reporter.localeCompare(a.reporter);
+      default:
+        return new Date(b.reportDate) - new Date(a.reportDate);
+    }
   });
 
   // 전체 선택/해제
@@ -249,6 +268,7 @@ export default function AdminAlarmsContents() {
       setSelectedReports([...selectedReports, reportId]);
     }
   };
+  
   const totalPages = 3;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentReportData = currentPage === 1 
@@ -265,6 +285,13 @@ export default function AdminAlarmsContents() {
   // 필터 변경 시 첫 페이지로 리셋
   const resetToFirstPage = () => {
     setCurrentPage(1);
+  };
+
+  // 정렬 변경 핸들러 (추가)
+  const handleSortChange = (newSortType) => {
+    setSortType(newSortType);
+    setShowSortDropdown(false);
+    resetToFirstPage();
   };
 
   // 필터 변경 시 첫 페이지로 리셋되도록 핸들러 수정
@@ -429,15 +456,37 @@ export default function AdminAlarmsContents() {
           </div>
 
           {/* 정렬 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[16px] font-medium text-black">정렬</span>
-            <Image
-              src={ICONS.DOWN_ARROW}
-              alt="down-arrow"
-              width={24}
-              height={10}
-              className="cursor-pointer"
-            />
+          <div className="relative">
+            <div 
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              <span className="text-[16px] font-medium text-black">정렬</span>
+              <Image
+                src={ICONS.DOWN_ARROW}
+                alt="sort-arrow"
+                width={24}
+                height={10}
+                className="cursor-pointer"
+              />
+            </div>
+            
+            {/* 정렬 드롭다운 */}
+            {showSortDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
+                {["신고일 최신순", "신고일 오래된순", "신고 번호 오름차순", "신고 번호 내림차순", "신고자 ID 오름차순", "신고자 ID 내림차순"].map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSortChange(option)}
+                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
+                      sortType === option ? "text-black bg-gray-100 font-bold" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
