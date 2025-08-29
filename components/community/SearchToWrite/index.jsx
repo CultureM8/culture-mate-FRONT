@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { ICONS } from '@/constants/path';
-import { toCard } from '@/lib/schema';
-import EventTile from './EventTile';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { ICONS } from "@/constants/path";
+import { toCard } from "@/lib/schema";
+import { DUMMY_EVENTS } from "@/lib/eventData";
+import EventTile from "./EventTile";
 
-export default function SearchToWrite({ onSelect = () => {}, mockData = [] }) {
-  const [query, setQuery] = useState('');
+export default function SearchToWrite({ onSelect = () => {} }) {
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [warnOpen, setWarnOpen] = useState(false);
   const [results, setResults] = useState([]);
@@ -16,28 +17,45 @@ export default function SearchToWrite({ onSelect = () => {}, mockData = [] }) {
   const MIN_QUERY_LEN = 1;
   const PAGE_SIZE = 6;
 
+  /* eventData호환 형식으로 변환*/
+  const transformEventData = (events) => {
+    return events.map((event) => ({
+      id: event.eventId,
+      name: event.title,
+      eventName: event.title,
+      eventType: event.eventType,
+      type: event.eventType,
+      image: event.imgSrc,
+      description: event.title,
+      rating: event.score,
+      likes: event.likesCount,
+      postsCount: 0,
+      isLiked: false,
+    }));
+  };
+
   useEffect(() => {
     const isModalOpen = open || warnOpen;
 
     if (isModalOpen) {
       const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
+      document.body.style.position = "fixed";
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
+      document.body.style.width = "100%";
     } else {
       const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
       if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
       }
     }
 
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
     };
   }, [open, warnOpen]);
 
@@ -49,11 +67,13 @@ export default function SearchToWrite({ onSelect = () => {}, mockData = [] }) {
       return;
     }
 
+    /* DUMMY_EVENTS를 변환된 형태로 사용*/
+    const transformedData = transformEventData(DUMMY_EVENTS);
     const lower = q.toLowerCase();
-    const filtered = mockData.filter((ev) => {
-      const name = (ev.name || ev.eventName || '').toLowerCase();
-      const desc = (ev.description || '').toLowerCase();
-      const type = (ev.type || ev.eventType || '').toLowerCase();
+    const filtered = transformedData.filter((ev) => {
+      const name = (ev.name || ev.eventName || "").toLowerCase();
+      const desc = (ev.description || "").toLowerCase();
+      const type = (ev.type || ev.eventType || "").toLowerCase();
       return (
         name.includes(lower) || desc.includes(lower) || type.includes(lower)
       );
@@ -134,9 +154,9 @@ export default function SearchToWrite({ onSelect = () => {}, mockData = [] }) {
                       setShowAll(false);
 
                       const scroller = document.querySelector(
-                        '.bg-white.w-full.max-w-\\[1000px\\].max-h-\\[75vh\\].rounded-lg.p-4.flex.flex-col.overflow-hidden .overflow-y-auto'
+                        ".bg-white.w-full.max-w-\\[1000px\\].max-h-\\[75vh\\].rounded-lg.p-4.flex.flex-col.overflow-hidden .overflow-y-auto"
                       );
-                      scroller?.scrollTo({ top: 0, behavior: 'smooth' });
+                      scroller?.scrollTo({ top: 0, behavior: "smooth" });
                     }}>
                     접기
                   </button>

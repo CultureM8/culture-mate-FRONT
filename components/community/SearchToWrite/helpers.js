@@ -1,23 +1,23 @@
 /* 별 이미지 선택*/
 export const getStarImage = (rating) => {
   const r = Number(rating) || 0;
-  if (r <= 1) return '/img/star_empty.svg';
-  if (r >= 2 && r <= 3) return '/img/star_half.svg';
-  if (r >= 4 && r <= 5) return '/img/star_full.svg';
-  return '/img/star_empty.svg';
+  if (r <= 1) return "/img/star_empty.svg";
+  if (r >= 2 && r <= 3) return "/img/star_half.svg";
+  if (r >= 4 && r <= 5) return "/img/star_full.svg";
+  return "/img/star_empty.svg";
 };
 /* 별점 숫자를 문자열로 변환*/
 export const fmtStar = (v) =>
-  typeof v === 'number' && Number.isFinite(v)
+  typeof v === "number" && Number.isFinite(v)
     ? v.toFixed(1)
-    : String(v ?? '0.0');
+    : String(v ?? "0.0");
 
 export const toCard = (ev = {}) => ({
   id: ev.id,
-  eventImage: ev.eventImage ?? ev.image ?? '/img/default_img.svg',
-  eventType: ev.eventType ?? ev.type ?? '이벤트',
-  eventName: ev.eventName ?? ev.name ?? '',
-  description: ev.description ?? '',
+  eventImage: ev.eventImage ?? ev.image ?? "/img/default_img.svg",
+  eventType: ev.eventType ?? ev.type ?? "이벤트",
+  eventName: ev.eventName ?? ev.name ?? "",
+  description: ev.description ?? "",
   recommendations: ev.recommendations ?? ev.recommend ?? ev.likes ?? 0,
   starScore: ev.starScore ?? ev.rating ?? 0,
   initialLiked: ev.initialLiked ?? ev.isLiked ?? false,
@@ -25,38 +25,37 @@ export const toCard = (ev = {}) => ({
 });
 
 /* 관련도 점수*/
-export const scoreOf = (ev, ql) => {
-  const L = (v) => (typeof v === 'string' ? v.toLowerCase() : '');
-  const name = L(ev.name ?? ev.eventName);
+export const scoreOf = (ev, q) => {
+  const L = (v) => (typeof v === "string" ? v.toLowerCase() : "");
+  const ql = L(q).trim();
+  if (!ql) return 0;
+
+  const title = L(ev.eventName ?? ev.name);
+  const type = L(ev.eventType ?? ev.type);
+  const desc = L(ev.description);
+
   let s = 0;
 
-  if (name === ql) s += 100;
+  /*제목 매치 점수 */
+  if (title === ql) s += 200; /* 완전 일치*/
+  if (title.startsWith(ql)) s += 100; /* 접두 일치*/
+  if (title.includes(ql)) s += 60; /* 포함*/
 
-  if (name?.startsWith(ql)) s += 50;
+  /*점수 가중치(제목 > 타입 > 설명)*/
+  const words = ql.split(/\s+/).filter(Boolean);
+  for (const w of words) {
+    const re = new RegExp(`\\b${escapeRegExp(w)}`, "g");
+    s += (title.match(re) || []).length * 20;
+    s += (type.match(re) || []).length * 5;
+    s +=
+      Math.min((desc.match(re) || []).length, 3) * 3; /*설명은 과도 보정 방지*/
+  }
 
-  const hay = `${name} ${L(ev.type ?? ev.eventType)} ${L(ev.description)}`;
-
-  if (hay.includes(ql)) s += 10;
+  /*아주 작은 전체 포함 보너스(미세 정렬용)*/
+  const hay = `${title} ${type} ${desc}`;
+  if (hay.includes(ql)) s += 5;
 
   return s;
 };
 
-/*로컬 mockData 검색*/
-export const searchLocal = (data = [], q = '', maxResults = 30) => {
-  const ql = String(q).toLowerCase().trim();
-
-  if (!ql) return [];
-  const L = (v) => (typeof v === 'string' ? v.toLowerCase() : '');
-
-  const filtered = data.filter((ev) => {
-    const hay = `${L(ev.name ?? ev.eventName)} ${L(
-      ev.type ?? ev.eventType
-    )} ${L(ev.description)}`;
-
-    return hay.includes(ql);
-  });
-
-  const sorted = filtered.sort((a, b) => scoreOf(b, ql) - scoreOf(a, ql));
-
-  return sorted.slice(0, maxResults).map(toCard);
-};
+const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
