@@ -21,31 +21,27 @@ export default function AdminSideBar() {
       isCategory: true,
       items: [
         { name: "전체 이벤트", path: "/admin/events/all" },
-        { name: "승인 대기 이벤트", path: "/admin/events/pending" },
-        { name: "이벤트 유형 관리", path: "/admin/events/type" }
+        { name: "승인 대기 이벤트", path: "/admin/events/pending" }
       ]
     },
     {
       category: "게시글",
       isCategory: true,
       items: [
-        { name: "전체 게시글", path: "/admin/contents/all" },
-        { name: "승인 대기 홍보", path: "/admin/contents/pending" }
+        { name: "전체 게시글", path: "/admin/contents/all" }
       ]
     },
     {
       category: "사용자",
       isCategory: true,
       items: [
-        { name: "전체 사용자", path: "/admin/users/all" },
-        { name: "제재 중인 사용자", path: "/admin/users/banned" }
+        { name: "전체 사용자", path: "/admin/users/all" }
       ]
     },
     {
       category: "신고 관리",
       isCategory: true,
       items: [
-        { name: "사용자 신고 목록", path: "/admin/alarms/users" },
         { name: "게시글 신고 목록", path: "/admin/alarms/contents" }
       ]
     },
@@ -53,16 +49,7 @@ export default function AdminSideBar() {
       category: "고객 소통",
       isCategory: true,
       items: [
-        { name: "1:1 문의사항", path: "/admin/help/contact" },
-        { name: "AI 챗봇 관리", path: "/admin/help/ai-chat" }
-      ]
-    },
-    {
-      category: "운영 관리",
-      isCategory: true,
-      items: [
-        { name: "관리자 계정 목록", path: "/admin/management/accounts" },
-        { name: "관리자 활동 로그", path: "/admin/management/logs" }
+        { name: "1:1 문의사항", path: "/admin/help/contact" }
       ]
     }
   ];
