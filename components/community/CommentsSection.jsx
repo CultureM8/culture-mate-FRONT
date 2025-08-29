@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import useLogin from '@/hooks/useLogin';
 
 /** 로컬스토리지 키 유틸 */
 const KEY = (postId) => `comments:${postId}`;
@@ -19,28 +20,26 @@ const save = (postId, list) => {
   localStorage.setItem(KEY(postId), JSON.stringify(list));
 };
 
-export default function CommentsSection({ postId, bodyRef }) {
-  /** 상태: 목록/정렬/접기 */
+export default function CommentsSection({ postId, bodyRef, onCountChange }) {
+  /**로그인 */
+  const { ready, isLogined, user } = useLogin();
+
   const [comments, setComments] = useState([]);
-  const [order, setOrder] = useState('oldest');
+  const [order, setOrder] = useState('oldest'); /* 'oldest' | 'newest'*/
   const [collapsed, setCollapsed] = useState(false);
 
-  /** 상태: 작성 */
-  const [author, setAuthor] = useState('');
   const [content, setContent] = useState('');
+  const [replies, setReplies] = useState({}); /* parentId => text*/
+  const [editing, setEditing] = useState({}); /*commentId => text*/
 
-  /** 상태: 대댓글 입력값 (parentId => text) */
-  const [replies, setReplies] = useState({});
-
-  /** 상태: 수정 모드 (commentId => text) */
-  const [editing, setEditing] = useState({});
-
-  /** 초기 로드 */
+  /* 초기 로드*/
   useEffect(() => {
-    setComments(load(postId));
-  }, [postId]);
+    const list = load(postId);
+    setComments(list);
+    onCountChange?.(Array.isArray(list) ? list.length : 0);
+  }, [postId, onCountChange]);
 
-  /** 정렬된 목록 */
+  /*정렬/루트/자식 매핑*/
   const sorted = useMemo(() => {
     const list = [...comments];
     list.sort((a, b) =>
@@ -51,8 +50,8 @@ export default function CommentsSection({ postId, bodyRef }) {
     return list;
   }, [comments, order]);
 
-  /** 루트/자식 매핑 */
   const roots = useMemo(() => sorted.filter((c) => !c.parentId), [sorted]);
+
   const childOf = useMemo(() => {
     const map = new Map();
     sorted.forEach((c) => {
@@ -63,19 +62,24 @@ export default function CommentsSection({ postId, bodyRef }) {
     return map;
   }, [sorted]);
 
-  /** 저장 헬퍼 */
+  /* 가드: 로그인 준비 전/비로그인 시 렌더 안 함*/
+  if (!ready || !isLogined) return null;
+
+  /*저장 헬퍼*/
   const persist = (next) => {
     setComments(next);
     save(postId, next);
+    onCountChange?.(next.length);
   };
 
-  /** 루트 댓글 등록 */
+  /* 댓글 등록*/
   const submitRoot = () => {
     if (!content.trim()) return;
     const entry = {
       id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       parentId: null,
-      author: author.trim() || '작성자명',
+      author: user?.login_id ?? '',
+      userId: user?.id ?? null,
       content: content.trim(),
       createdAt: new Date().toISOString(),
     };
@@ -83,14 +87,15 @@ export default function CommentsSection({ postId, bodyRef }) {
     setContent('');
   };
 
-  /** 대댓글 등록 */
+  /*대댓글 등록*/
   const submitReply = (parentId) => {
     const text = (replies[parentId] || '').trim();
     if (!text) return;
     const entry = {
       id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       parentId,
-      author: '대댓 작성자명',
+      author: user?.login_id ?? '',
+      userId: user?.id ?? null,
       content: text,
       createdAt: new Date().toISOString(),
     };
@@ -98,7 +103,7 @@ export default function CommentsSection({ postId, bodyRef }) {
     setReplies((s) => ({ ...s, [parentId]: '' }));
   };
 
-  /** 수정 모드 on/off + 저장 */
+  /* 수정 모드 on/off + 저장*/
   const startEdit = (c) => setEditing((s) => ({ ...s, [c.id]: c.content }));
   const cancelEdit = (id) =>
     setEditing((s) => {
@@ -118,13 +123,13 @@ export default function CommentsSection({ postId, bodyRef }) {
     cancelEdit(id);
   };
 
-  /** 삭제(자식까지) */
+  /* 삭제(자식까지)*/
   const remove = (id) => {
     const next = comments.filter((c) => c.id !== id && c.parentId !== id);
     persist(next);
   };
 
-  /** 단축키: 등록 */
+  /* 단축키*/
   const onKeyDownSubmit = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -138,14 +143,12 @@ export default function CommentsSection({ postId, bodyRef }) {
     }
   };
 
-  /** 날짜 포맷 */
+  /*날짜 포맷*/
   const fmt = (iso) => new Date(iso).toLocaleString();
 
   return (
     <section className="mt-8">
-      {/* ------------------------------------------------
-          상단 컨트롤 바: 정렬/본문보기/접기
-         ------------------------------------------------ */}
+      {/* 상단 컨트롤 바 */}
       <div className="flex items-center justify-between text-[13px] text-gray-700">
         <button
           onClick={() => setOrder(order === 'oldest' ? 'newest' : 'oldest')}
@@ -173,9 +176,7 @@ export default function CommentsSection({ postId, bodyRef }) {
         </div>
       </div>
 
-      {/* ------------------------------------------------
-          댓글 목록
-         ------------------------------------------------ */}
+      {/* 댓글 목록 */}
       {!collapsed && (
         <ul className="mt-3 space-y-2.5">
           {roots.length === 0 && (
@@ -184,19 +185,14 @@ export default function CommentsSection({ postId, bodyRef }) {
 
           {roots.map((c) => (
             <li key={c.id}>
-              {/* --------------------------------------------
-                  댓글 카드 (부모 + 그 아래 대댓글들까지 한 프레임)
-                 -------------------------------------------- */}
               <div className="rounded-md border border-gray-300 bg-white p-4">
-                {/* 댓글 1행: 작성자 + 내용 / 우측 액션 */}
+                {/* 댓글 1행 */}
                 <div className="flex items-start justify-between gap-4">
-                  {/* 좌: 작성자명 + 내용 한 행 */}
                   <div className="min-w-0 flex-1">
                     {editing[c.id] !== undefined ? (
                       <>
-                        {/* 수정모드: 작성자 표시 */}
                         <div className="mb-1 text-[12px] text-gray-500">
-                          {c.author || '작성자명'}
+                          {c.author || '작성자'}
                         </div>
                         <textarea
                           value={editing[c.id]}
@@ -210,10 +206,9 @@ export default function CommentsSection({ postId, bodyRef }) {
                         />
                       </>
                     ) : (
-                      /**댓글 표시되는 란 */
                       <div className="flex items-baseline gap-4 flex-wrap">
                         <span className="shrink-0 text-[14px] text-gray-500">
-                          {c.author || '작성자명'}
+                          {c.author || '작성자'}
                         </span>
                         <p className="break-words text-[14px] leading-relaxed text-gray-900">
                           {c.content}
@@ -222,7 +217,6 @@ export default function CommentsSection({ postId, bodyRef }) {
                     )}
                   </div>
 
-                  {/* 우: 날짜/수정/삭제 */}
                   <div className="flex shrink-0 items-center gap-3 text-[12px] text-gray-500">
                     <span className="whitespace-nowrap">
                       {fmt(c.createdAt)}
@@ -271,7 +265,7 @@ export default function CommentsSection({ postId, bodyRef }) {
                   </div>
                 </div>
 
-                {/* 댓글 하단: 답글 쓰기 토글 버튼 */}
+                {/* 답글 쓰기 토글 */}
                 <div className="mt-2">
                   <button
                     onClick={() =>
@@ -285,14 +279,14 @@ export default function CommentsSection({ postId, bodyRef }) {
                   </button>
                 </div>
 
-                {/* (토글) 대댓글 작성 영역: 클릭 시에만 렌더 */}
+                {/* 대댓글 작성 */}
                 {replies[c.id] !== undefined && (
                   <div className="mt-3 pl-5 border-l border-gray-200">
                     <div className="flex items-start gap-4">
                       <span className="mt-2 text-gray-400">↳</span>
                       <div className="flex-1">
                         <div className="mb-1 text-[12px] text-gray-500">
-                          대댓 작성자명
+                          대댓 작성자
                         </div>
                         <textarea
                           value={replies[c.id]}
@@ -323,7 +317,7 @@ export default function CommentsSection({ postId, bodyRef }) {
                   </div>
                 )}
 
-                {/* 대댓글 리스트(같은 프레임 안에 노출) */}
+                {/* 대댓글 리스트 */}
                 {(childOf.get(c.id) || []).length > 0 && (
                   <div className="mt-3 space-y-2 pl-5">
                     {(childOf.get(c.id) || []).map((r) => (
@@ -331,12 +325,11 @@ export default function CommentsSection({ postId, bodyRef }) {
                         key={r.id}
                         className="rounded-md border border-gray-200 bg-gray-50 p-3">
                         <div className="flex items-start justify-between gap-3">
-                          {/* 좌: 작성자 + 내용 한 행 */}
                           <div className="min-w-0 flex-1">
                             {editing[r.id] !== undefined ? (
                               <>
                                 <div className="mb-1 text-[12px] text-gray-500">
-                                  ↳ {r.author || '대댓 작성자명'}
+                                  ↳ {r.author || '대댓 작성자'}
                                 </div>
                                 <textarea
                                   value={editing[r.id]}
@@ -352,7 +345,7 @@ export default function CommentsSection({ postId, bodyRef }) {
                             ) : (
                               <div className="flex items-baseline gap-2 flex-wrap">
                                 <span className="shrink-0 text-[12px] text-gray-500">
-                                  ↳ {r.author || '대댓 작성자명'}
+                                  ↳ {r.author || '대댓 작성자'}
                                 </span>
                                 <p className="break-words text-[13px] leading-relaxed text-gray-900">
                                   {r.content}
@@ -361,7 +354,6 @@ export default function CommentsSection({ postId, bodyRef }) {
                             )}
                           </div>
 
-                          {/* 우: 날짜/수정/삭제 */}
                           <div className="flex shrink-0 items-center gap-3 text-[12px] text-gray-500">
                             <span className="whitespace-nowrap">
                               {fmt(r.createdAt)}
@@ -384,26 +376,18 @@ export default function CommentsSection({ postId, bodyRef }) {
                                 <button
                                   onClick={() => startEdit(r)}
                                   title="수정"
-                                  className=" px-1 py-1 hover:bg-gray-50">
-                                  <button
-                                    className=""
-                                    onClick={() =>
-                                      navigator.clipboard.writeText(
-                                        window.location.href
-                                      )
-                                    }>
-                                    <Image
-                                      src="/img/edit.svg"
-                                      alt=""
-                                      width={15}
-                                      height={15}
-                                    />
-                                  </button>
+                                  className="px-1 py-1 hover:bg-gray-50">
+                                  <Image
+                                    src="/img/edit.svg"
+                                    alt=""
+                                    width={15}
+                                    height={15}
+                                  />
                                 </button>
                                 <button
                                   onClick={() => remove(r.id)}
                                   title="삭제"
-                                  className=" px-1 py-1 hover:bg-gray-50">
+                                  className="px-1 py-1 hover:bg-gray-50">
                                   <Image
                                     src="/img/delete.svg"
                                     alt=""
@@ -425,25 +409,23 @@ export default function CommentsSection({ postId, bodyRef }) {
         </ul>
       )}
 
-      {/* ------------------------------------------------
-          하단: 새 댓글 작성 영역
-         ------------------------------------------------ */}
+      {/* 하단: 새 댓글 작성 */}
       <div className="mt-8 border-t border-gray-200 pt-6 mb-5">
         <div className="rounded-md border border-gray-300 bg-white p-4">
           <div className="flex gap-3 min-h-[100px]">
-            <input
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="작성자명"
-              className="w-44 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
-            />
+            {/* 작성자 라벨(인풋 제거) */}
+            <div className="w-44 px-3 py-2 text-sm text-gray-600">
+              <span className="text-gray-400 mr-1">작성자</span>
+              <span className="font-medium">{user?.log}</span>
+            </div>
+
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={onKeyDownSubmit}
               placeholder={`타인의 권리를 침해하거나 명예를 훼손하는 댓글은 운영원칙 및 관련법률에 제재를 받을 수 있습니다.
 Shift+Enter 키를 동시에 누르면 줄바꿈이 됩니다.`}
-              className=" flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
           </div>
           <div className="mt-3 flex justify-end">
