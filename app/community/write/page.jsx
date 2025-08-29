@@ -1,19 +1,20 @@
-'use client'; /*홍보게시판 글작성페이지 */
+"use client"; /*게시판 글작성페이지 */
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import CommunityWriteOption from '@/components/community/CommunityWriteOption';
-import ConfirmModal from '@/components/global/ConfirmModal';
-import PostEventMiniCard from '@/components/global/PostEventMiniCard';
-import { makePost } from '@/lib/schema';
-import { addPost } from '@/lib/storage';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import CommunityWriteOption from "@/components/community/CommunityWriteOption";
+import ConfirmModal from "@/components/global/ConfirmModal";
+import PostEventMiniCard from "@/components/global/PostEventMiniCard";
+import { makePost } from "@/lib/schema";
+import { addPost } from "@/lib/storage";
+import useLogin from "@/hooks/useLogin";
 
-export default function communityWrite() {
+export default function CommunityWrite() {
   const router = useRouter();
+  const { ready, isLogined, user } = useLogin(); /*login_id 사용*/
 
-  const [mode, setMode] = useState('plain');
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   /* 모달 */
@@ -25,9 +26,20 @@ export default function communityWrite() {
     setIsGuideOpen(true);
   }, []);
 
+  /* 비로그인 진입 방지: 버튼 가드만으로 충분하면 이 블록은 생략 가능*/
+  useEffect(() => {
+    if (!ready) return;
+    if (!isLogined) {
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      router.replace(`/login?next=${next}`);
+    }
+  }, [ready, isLogined, router]);
+
   const trySubmit = () => {
-    if (!title.trim()) return alert('제목을 입력해주세요.');
-    if (!content.trim()) return alert('내용을 입력해주세요.');
+    if (!title.trim()) return alert("제목을 입력해주세요.");
+    if (!content.trim()) return alert("내용을 입력해주세요.");
     setOpenSubmit(true);
   };
 
@@ -42,9 +54,7 @@ export default function communityWrite() {
 
       {/* 옵션 박스 (이벤트/컨텐츠/글쓰기 방식) */}
       <CommunityWriteOption
-        mode={mode}
-        onModeChange={setMode}
-        onPickEvent={setSelectedEvent} // 이벤트 선택 콜백 연결
+        onPickEvent={setSelectedEvent} /*이벤트 선택 콜백 연결*/
       />
 
       {/* 선택된 이벤트 카드 (선택 전엔 숨김) */}
@@ -62,6 +72,7 @@ export default function communityWrite() {
           className="w-full h-[60px] border border-gray-300 rounded px-4 text-base outline-none focus:border-gray-400 focus:ring-2 focus:ring-blue-500"
         />
       </div>
+
       {/* 본문 */}
       <div className="w-[1200px] mt-4">
         <textarea
@@ -70,18 +81,6 @@ export default function communityWrite() {
           onChange={(e) => setContent(e.target.value)}
           className="w-full min-h-[500px] p-4 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
-
-      {/* 가이드 박스 */}
-      <div className="w-full max-w-[1200px] mt-3  text-xs text-gray-500 leading-5 bg-gray-50 border border-gray-200 rounded-md p-3">
-        문품권, 식권, 바우처, 암표 및 홍보권, 저작권 침해 게시물은 민, 형사상의
-        책임을 질 수 있습니다.
-        <br />
-        <br />
-        [저작권 안내] 이용자가 불법복제물을 거래·유통하거나 이에 대한 광고 및
-        불법복제물의 삭제 또는 전송 중단 조치를 할 수 있으며, 공유를 받은
-        이용자에게서 사용 정지를 할 수 있습니다.(관련 법령: 저작권법 제133조 및
-        제136조)
       </div>
 
       {/* 버튼 */}
@@ -107,7 +106,7 @@ export default function communityWrite() {
         cancelText="아니오"
         onConfirm={() => {
           setOpenCancel(false);
-          router.push('/community');
+          router.push("/community");
         }}
         onClose={() => setOpenCancel(false)}
         variant="danger"
@@ -121,18 +120,28 @@ export default function communityWrite() {
         confirmText="네"
         cancelText="아니오"
         onConfirm={() => {
-          if (!title.trim()) return alert('제목을 입력해주세요.');
-          if (!content.trim()) return alert('내용을 입력해주세요.');
+          if (!title.trim()) return alert("제목을 입력해주세요.");
+          if (!content.trim()) return alert("내용을 입력해주세요.");
 
-          const post = makePost({
-            board: 'community',
+          const base = makePost({
+            board: "community",
             title,
             content,
-            mode,
+            mode: "plain",
             eventId: selectedEvent?.id ?? null,
-
             eventSnapshot: selectedEvent ?? null,
           });
+
+          /*작성자에 id표시*/
+          const post = {
+            ...base,
+            author_login_id: user?.login_id,
+            author: {
+              id: user?.login_id,
+              login_id: user?.login_id,
+              name: user?.login_id,
+            },
+          };
 
           addPost(post);
           setOpenSubmit(false);
