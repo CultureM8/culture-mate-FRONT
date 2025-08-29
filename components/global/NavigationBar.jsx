@@ -3,10 +3,13 @@
 /*
  * TODO: 로그인 시스템 구현 후 수정 필요사항
  *
+ *
  * 1. 현재는 테스트 버전으로 /mypage, /admin 경로에서만 '로그인 후' 상태 시뮬레이션
  * 2. 실제 로그인 시스템 구현 후 localStorage에 accessToken 저장되면 정상 동작
  * 3. 사용자가 '/mypage' 직접 입력으로 접근 시 토큰이 없으면
+ * 3. 사용자가 '/mypage' 직접 입력으로 접근 시 토큰이 없으면
  *    alert('로그인이 필요합니다.') 표시 후 로그인 페이지로 리다이렉트 필요
+ * 4. /mypage 하위 경로들(/mypage/history 등)도 로그인 상태로 인식하도록
  * 4. /mypage 하위 경로들(/mypage/history 등)도 로그인 상태로 인식하도록
  *    pathname.startsWith() 방식으로 조건 확장 필요
  */
@@ -27,8 +30,11 @@ import MiniProfile from "./MiniProfile";
 export default function NavigationBar() {
   const { ready, isLogined, user, logout, loading } = useLogin();
 
+  const { ready, isLogined, user, logout, loading } = useLogin();
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
 
   const pathname = usePathname();
   const router = useRouter();
@@ -59,7 +65,15 @@ useEffect(() => {
     setIsLoggedIn(!!token || isInProtectedRoute);
     setIsAdmin(userRole === 'admin' || pathname === ROUTES.ADMIN);
   }, [pathname]);*/
+  }, [pathname]);*/
 
+  /*프로필 아이콘 클릭 핸들러*/
+  const handleProfileClick = () => setIsDropdownOpen((v) => !v);
+
+  /*로그아웃*/
+  const handleLogout = async () => {
+    await logout();
+    setIsDropdownOpen(false);
   /*프로필 아이콘 클릭 핸들러*/
   const handleProfileClick = () => setIsDropdownOpen((v) => !v);
 
@@ -72,6 +86,7 @@ useEffect(() => {
   const flexStyle =
     "flex items-center justify-between md:gap-[clamp(8px,3vw,48px)] sm:gap-3";
 
+  /**로그인 상태에 따른 메뉴 구성*/
   /**로그인 상태에 따른 메뉴 구성*/
   const getNavMenu = () => {
     const baseMenu = [
@@ -109,9 +124,14 @@ useEffect(() => {
   return (
     <nav className="border-b border-b-[#EEF0F2] bg-white w-full px-[clamp(0px,6vw,120px)]">
       {/* 데스크톱 */}
+    <nav className="border-b border-b-[#EEF0F2] bg-white w-full px-[clamp(0px,6vw,120px)]">
+      {/* 데스크톱 */}
       <div className="hidden md:flex items-center justify-between h-25">
         {/* 좌측: 로고 + 검색 */}
+        {/* 좌측: 로고 + 검색 */}
         <div className={`${flexStyle} shrink-0`}>
+          {/* 로고: 전체 페이지 새로고침 → a 태그 유지 */}
+          <a href={ROUTES.HOME} aria-label="홈으로 이동">
           {/* 로고: 전체 페이지 새로고침 → a 태그 유지 */}
           <a href={ROUTES.HOME} aria-label="홈으로 이동">
             <Image
@@ -123,7 +143,10 @@ useEffect(() => {
           </a>
 
           {/* SearchBar 래퍼(스타일 오버라이드) */}
+
+          {/* SearchBar 래퍼(스타일 오버라이드) */}
           <div className="[&_form]:border-[#C6C8CA] [&_input]:placeholder-[#C6C8CA] [&_input]:outline-none [&_input]:focus:outline-none">
+            <SearchBar />
             <SearchBar />
           </div>
         </div>
@@ -204,9 +227,12 @@ useEffect(() => {
       </div>
 
       {/* 모바일 */}
+      {/* 모바일 */}
       <div className="md:hidden py-3">
         {/* 상단: 로고 + 로그인/프로필 */}
+        {/* 상단: 로고 + 로그인/프로필 */}
         <div className="flex items-center justify-between mb-3">
+          <a href={ROUTES.HOME} aria-label="홈으로 이동">
           <a href={ROUTES.HOME} aria-label="홈으로 이동">
             <Image
               src={IMAGES.LOGO}
@@ -219,7 +245,16 @@ useEffect(() => {
           {!ready ? (
             <div className="w-6 h-6 bg-gray-100 rounded-full" />
           ) : isLogined ? (
+
+          {!ready ? (
+            <div className="w-6 h-6 bg-gray-100 rounded-full" />
+          ) : isLogined ? (
             <div className="relative">
+              <button
+                onClick={handleProfileClick}
+                className="hover:cursor-pointer"
+                aria-label="프로필 메뉴 열기">
+                <Image
               <button
                 onClick={handleProfileClick}
                 className="hover:cursor-pointer"
@@ -232,6 +267,7 @@ useEffect(() => {
                 />
               </button>
 
+
               {isDropdownOpen && (
                 <div className="absolute top-8 right-0 z-50">
                   <MiniProfile />
@@ -239,6 +275,10 @@ useEffect(() => {
               )}
             </div>
           ) : (
+            <Link
+              href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
+              aria-label="로그인 페이지로 이동">
+              <Image
             <Link
               href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
               aria-label="로그인 페이지로 이동">
@@ -253,7 +293,9 @@ useEffect(() => {
         </div>
 
         {/* 하단: 검색 */}
+        {/* 하단: 검색 */}
         <div className="[&_form]:border-[#C6C8CA] [&_input]:placeholder-[#C6C8CA] [&_input]:outline-none [&_input]:focus:outline-none [&_form]:w-full">
+          <SearchBar />
           <SearchBar />
         </div>
       </div>

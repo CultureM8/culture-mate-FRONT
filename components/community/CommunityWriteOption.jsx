@@ -3,7 +3,11 @@
 import SearchToWrite from "./SearchToWrite";
 import AddContent from "./AddContent";
 import Link from "next/link";
+import SearchToWrite from "./SearchToWrite";
+import AddContent from "./AddContent";
+import Link from "next/link";
 
+export default function CommunityWriteOption({ onPickEvent = () => {} }) {
 export default function CommunityWriteOption({ onPickEvent = () => {} }) {
   return (
     <div className="w-full max-w-[1200px] border border-gray-300 rounded-lg bg-white px-6 py-7 space-y-6">
@@ -13,6 +17,8 @@ export default function CommunityWriteOption({ onPickEvent = () => {} }) {
           이벤트 선택/추가
         </span>
         <div className="flex-1 ml-[20px]">
+          {/* SearchToWrite 컴포넌트 - 이제 내부에서 eventData 사용 */}
+          <SearchToWrite onSelect={onPickEvent} />
           {/* SearchToWrite 컴포넌트 - 이제 내부에서 eventData 사용 */}
           <SearchToWrite onSelect={onPickEvent} />
         </div>
