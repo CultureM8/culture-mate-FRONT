@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import Calendar from "@/components/global/Calendar";
+import AdminUsersAllModal from "@/components/admin/AdminUsersAllModal";
 
 export default function AdminUsersAll() {
   // 필터 상태 관리
@@ -23,12 +24,19 @@ export default function AdminUsersAll() {
   // 검색 상태 관리
   const [searchQuery, setSearchQuery] = useState("");
   
+  // 정렬 상태 관리
+  const [sortType, setSortType] = useState("가입일 최신순");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  // 더미 사용자 데이터
-  const allUserData = [
+  // 모달 상태 관리 추가
+  const [showModal, setShowModal] = useState(false);
+
+  // 더미 사용자 데이터를 상태로 변경 (모달에서 데이터 수정이 가능하도록)
+  const [allUserData, setAllUserData] = useState([
     { 
       id: "U001", 
       loginType: "네이버", 
@@ -126,7 +134,7 @@ export default function AdminUsersAll() {
       postCount: 56,
       commentCount: 145,
       companionCount: 31,
-      status: "제재 중"
+      status: "영구 제재"
     },
     { 
       id: "U012", 
@@ -164,7 +172,60 @@ export default function AdminUsersAll() {
       companionCount: 0,
       status: "휴면"
     },
-  ];
+    { 
+      id: "U016", 
+      loginType: "네이버", 
+      joinDate: "2024-06-15",
+      postCount: 0,
+      commentCount: 0,
+      companionCount: 0,
+      status: "영구 제재"
+    },
+  ]);
+
+  // 모달에서 관리 적용 시 호출되는 함수
+  const handleModalApply = (managementData) => {
+    const { selectedUsers, selectedOptions, targetStatus } = managementData;
+    
+    // 사용자 데이터 업데이트
+    setAllUserData(prevData => {
+      return prevData.map(user => {
+        if (selectedUsers.includes(user.id)) {
+          let updatedUser = { ...user };
+          
+          // 상태 변경 옵션 처리
+          if (selectedOptions.some(id => 
+            ["to_active", "to_dormant", "to_suspended"].includes(id)
+          )) {
+            updatedUser.status = targetStatus;
+          }
+          
+          // 영구 정지 처리 (상태를 "영구 제재"로 변경)
+          if (selectedOptions.includes("permanent_ban")) {
+            updatedUser.status = "영구 제재";
+          }
+          
+          // 비밀번호 초기화 처리 (실제로는 API 호출)
+          if (selectedOptions.includes("reset_password")) {
+            console.log(`${user.id}의 비밀번호를 초기화했습니다.`);
+          }
+          
+          return updatedUser;
+        }
+        return user;
+      }).filter(user => {
+        // 영구 제재된 사용자는 목록에서 제거하지 않음 (관리 목적)
+        return true;
+      });
+    });
+    
+    // 선택된 사용자 목록 초기화
+    setSelectedUsers([]);
+    setSelectAll(false);
+    
+    // 성공 메시지 표시
+    alert(`${selectedUsers.length}명의 사용자에 대한 관리 작업이 완료되었습니다.`);
+  };
 
   // 필터링된 사용자 데이터
   const filteredUserData = allUserData.filter(user => {
@@ -187,12 +248,42 @@ export default function AdminUsersAll() {
     
     return matchesSearch && matchesLoginType && matchesStatus && matchesDateRange;
   }).sort((a, b) => {
-    // 가입일 기준으로 정렬 (최신순)
-    return new Date(b.joinDate) - new Date(a.joinDate);
+    // 정렬 타입에 따른 정렬
+    switch (sortType) {
+      case "가입일 최신순":
+        return new Date(b.joinDate) - new Date(a.joinDate);
+      case "가입일 오래된순":
+        return new Date(a.joinDate) - new Date(b.joinDate);
+      case "게시물 수 많은순":
+        return b.postCount - a.postCount;
+      case "게시물 수 적은순":
+        return a.postCount - b.postCount;
+      case "댓글 수 많은순":
+        return b.commentCount - a.commentCount;
+      case "댓글 수 적은순":
+        return a.commentCount - b.commentCount;
+      case "동행 횟수 많은순":
+        return b.companionCount - a.companionCount;
+      case "동행 횟수 적은순":
+        return a.companionCount - b.companionCount;
+      case "사용자 ID 오름차순":
+        return a.id.localeCompare(b.id);
+      case "사용자 ID 내림차순":
+        return b.id.localeCompare(a.id);
+      default:
+        return new Date(b.joinDate) - new Date(a.joinDate);
+    }
   });
 
   // 로그인 방식 옵션
   const loginTypes = ["전체", "네이버", "구글", "카카오"];
+
+  // 정렬 변경 핸들러
+  const handleSortChange = (newSortType) => {
+    setSortType(newSortType);
+    setShowSortDropdown(false);
+    resetToFirstPage();
+  };
 
   // 전체 선택/해제
   const handleSelectAll = () => {
@@ -302,7 +393,7 @@ export default function AdminUsersAll() {
             계정 상태
           </div>
           <div className="flex gap-4 items-center">
-            {["전체", "제재 중", "휴면", "활동 중"].map((status, index) => (
+            {["전체", "제재 중", "휴면", "활동 중", "영구 제재"].map((status, index) => (
               <button 
                 key={index}
                 onClick={() => handleStatusFilterChange(status)}
@@ -403,15 +494,48 @@ export default function AdminUsersAll() {
           </div>
 
           {/* 정렬 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[16px] font-medium text-black">정렬</span>
-            <Image
-              src={ICONS.DOWN_ARROW}
-              alt="down-arrow"
-              width={24}
-              height={10}
-              className="cursor-pointer"
-            />
+          <div className="relative">
+            <div 
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              <span className="text-[16px] font-medium text-black">정렬</span>
+              <Image
+                src={ICONS.DOWN_ARROW}
+                alt="sort-arrow"
+                width={24}
+                height={10}
+                className="cursor-pointer"
+              />
+            </div>
+            
+            {/* 정렬 드롭다운 */}
+            {showSortDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
+                {[
+                  "가입일 최신순",
+                  "가입일 오래된순", 
+                  "게시물 수 많은순",
+                  "게시물 수 적은순",
+                  "댓글 수 많은순",
+                  "댓글 수 적은순",
+                  "동행 횟수 많은순",
+                  "동행 횟수 적은순",
+                  "사용자 ID 오름차순",
+                  "사용자 ID 내림차순"
+                ].map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSortChange(option)}
+                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
+                      sortType === option ? "text-black bg-gray-100 font-bold" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -460,8 +584,10 @@ export default function AdminUsersAll() {
               <div 
                 key={user.id}
                 className={`border-b border-gray-200 py-2 px-4 flex items-center justify-between text-sm ${
-                  user.status === "제재 중" ? "bg-[#FFC37F]" : 
-                  user.status === "휴면" ? "bg-[#EEF0F2]" : "bg-white"
+                  user.status === "제재 중" ? "bg-[#FFC37F]/80" : 
+                  user.status === "휴면" ? "bg-[#EEF0F2]/80" : 
+                  user.status === "영구 제재" ? "bg-[#FF6B6B]/80" :
+                  "bg-white"
                 }`}
               >
                 <div className="flex items-center gap-4 flex-1">
@@ -549,12 +675,30 @@ export default function AdminUsersAll() {
         </div>
       </div>
 
-      {/* 선택 항목 관리 버튼 */}
+      {/* 선택 항목 관리 버튼 - 모달 연동 */}
       <div className="flex justify-end">
-        <button className="bg-[#6DADFF] text-white px-4 py-2 rounded-[8px] text-[16px] font-medium">
+        <button 
+          onClick={() => {
+            if (selectedUsers.length === 0) {
+              alert("관리할 사용자를 선택해주세요.");
+              return;
+            }
+            setShowModal(true);
+          }}
+          className="bg-[#6DADFF] text-white px-4 py-2 rounded-[8px] text-[16px] font-medium"
+        >
           선택 항목 관리
         </button>
       </div>
+
+      {/* 모달 컴포넌트 */}
+      <AdminUsersAllModal 
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        selectedUsers={selectedUsers}
+        userData={allUserData}
+        onApply={handleModalApply}
+      />
     </div>
   );
 }

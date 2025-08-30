@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link"; // Link 컴포넌트 import 추가
 import { ICONS } from "@/constants/path";
 import Calendar from "@/components/global/Calendar";
 import { DUMMY_EVENTS } from "@/lib/eventData";
@@ -23,6 +24,10 @@ export default function AdminEventsAll() {
   
   // 검색 상태 관리
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // 정렬 상태 관리
+  const [sortType, setSortType] = useState("이벤트 기간 최신순");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,8 +96,19 @@ export default function AdminEventsAll() {
     
     return matchesSearch && matchesType && matchesStatus && matchesDateRange;
   }).sort((a, b) => {
-    // 시작날짜 기준으로 정렬 (최신순)
-    return new Date(b.startDate) - new Date(a.startDate);
+    // 정렬 타입에 따른 정렬
+    switch (sortType) {
+      case "이벤트 기간 최신순":
+        return new Date(b.startDate) - new Date(a.startDate);
+      case "이벤트 기간 오래된순":
+        return new Date(a.startDate) - new Date(b.startDate);
+      case "이벤트 번호 오름차순":
+        return a.id.localeCompare(b.id);
+      case "이벤트 번호 내림차순":
+        return b.id.localeCompare(a.id);
+      default:
+        return new Date(b.startDate) - new Date(a.startDate);
+    }
   });
 
   // 이벤트 타입 옵션 - EventSelector와 동일하게 맞춤
@@ -136,18 +152,33 @@ export default function AdminEventsAll() {
     }
   };
 
-  // 페이지네이션 계산 - 총 3페이지로 고정
-  const totalPages = 3;
+  // 페이지네이션 계산 - 동적으로 총 페이지 수 계산
+  const totalPages = Math.ceil(filteredEventData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentEventData = currentPage === 1 
-    ? filteredEventData.slice(startIndex, startIndex + itemsPerPage)
-    : []; // 2, 3페이지는 빈 데이터
+  const currentEventData = filteredEventData.slice(startIndex, startIndex + itemsPerPage);
 
   // 페이지 변경 함수
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
+  };
+
+  // 페이지 그룹 계산 (1-5, 6-10, 11-15, ...)
+  const pagesPerGroup = 5;
+  const currentGroup = Math.ceil(currentPage / pagesPerGroup);
+  const startPage = (currentGroup - 1) * pagesPerGroup + 1;
+  const endPage = Math.min(startPage + pagesPerGroup - 1, totalPages);
+  const pageNumbers = Array.from(
+    { length: endPage - startPage + 1 }, 
+    (_, i) => startPage + i
+  );
+
+  // 정렬 변경 핸들러
+  const handleSortChange = (newSortType) => {
+    setSortType(newSortType);
+    setShowSortDropdown(false);
+    resetToFirstPage();
   };
 
   // 필터 변경 시 첫 페이지로 리셋
@@ -170,9 +201,6 @@ export default function AdminEventsAll() {
     setSearchQuery(e.target.value);
     resetToFirstPage();
   };
-
-  // 페이지네이션 - 항상 3페이지 표시
-  const pageNumbers = [1, 2, 3];
 
   return (
     <div className="py-6 min-h-[200px] flex flex-col gap-6">
@@ -302,7 +330,7 @@ export default function AdminEventsAll() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder="검색"
                 className="flex-1 text-[16px] font-medium text-black placeholder-[#bfbfbf] bg-transparent border-none outline-none"
               />
@@ -317,19 +345,37 @@ export default function AdminEventsAll() {
           </div>
 
           {/* 정렬 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[16px] font-medium text-black">정렬</span>
-            <div className="w-[17px] h-2 cursor-pointer">
-              <svg width="19" height="10" viewBox="0 0 19 10" fill="none">
-                <path 
-                  d="M1 1L9.5 9L18 1" 
-                  stroke="#454545" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
+          <div className="relative">
+            <div 
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              <span className="text-[16px] font-medium text-black">정렬</span>
+              <Image
+                src={ICONS.DOWN_ARROW}
+                alt="sort-arrow"
+                width={24}
+                height={10}
+                className="cursor-pointer"
+              />
             </div>
+            
+            {/* 정렬 드롭다운 */}
+            {showSortDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
+                {["이벤트 기간 최신순", "이벤트 기간 오래된순", "이벤트 번호 오름차순", "이벤트 번호 내림차순"].map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSortChange(option)}
+                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
+                      sortType === option ? "text-black bg-gray-100 font-bold" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -367,45 +413,44 @@ export default function AdminEventsAll() {
           </div>
 
           {/* 테이블 바디 */}
-          {currentEventData.length > 0 ? (
-            currentEventData.map((event, index) => (
-              <div 
-                key={event.id}
-                className="bg-white border-b border-gray-200 py-2 px-4 flex items-center justify-between text-sm"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedEvents.includes(event.id)}
-                    onChange={() => handleEventSelect(event.id)}
-                    className="w-4 h-4 rounded-[2px] border border-[#828282] bg-white"
-                  />
-                  <div className="text-[14px] font-medium text-black w-24 overflow-hidden text-nowrap text-center">
-                    {event.id}
-                  </div>
-                  <div className="text-[14px] font-medium text-black w-28 overflow-hidden text-nowrap text-center">
-                    {event.type}
-                  </div>
-                  <div className="text-[14px] font-medium text-black w-80 overflow-hidden text-nowrap text-center">
-                    {event.name}
-                  </div>
+          {currentEventData.map((event, index) => (
+            <div 
+              key={event.id}
+              className="bg-white border-b border-gray-200 py-2 px-4 flex items-center justify-between text-sm"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedEvents.includes(event.id)}
+                  onChange={() => handleEventSelect(event.id)}
+                  className="w-4 h-4 rounded-[2px] border border-[#828282] bg-white"
+                />
+                <div className="text-[14px] font-medium text-black w-24 overflow-hidden text-nowrap text-center">
+                  {event.id}
                 </div>
-                <div className="flex items-center gap-4 text-[14px] font-medium text-black">
-                  <div className="w-48 overflow-hidden text-nowrap text-center">
-                    {event.startDate} ~ {event.endDate}
-                  </div>
-                  <div className="w-20 text-center">
-                    {event.status}
-                  </div>
+                <div className="text-[14px] font-medium text-black w-28 overflow-hidden text-nowrap text-center">
+                  {event.type}
+                </div>
+                {/* 이벤트명을 Link로 감싸기 - 수정된 부분 */}
+                <div className="w-80 overflow-hidden text-nowrap text-center">
+                  <Link 
+                    href={`/events/${event.id}`}
+                    className="text-[14px] font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                  >
+                    {event.name}
+                  </Link>
                 </div>
               </div>
-            ))
-          ) : (
-            // 2, 3페이지는 빈 상태 표시
-            <div className="col-span-full text-center py-8 text-gray-500">
-              <div>이 페이지에는 아직 데이터가 없습니다.</div>
+              <div className="flex items-center gap-4 text-[14px] font-medium text-black">
+                <div className="w-48 overflow-hidden text-nowrap text-center">
+                  {event.startDate} ~ {event.endDate}
+                </div>
+                <div className="w-20 text-center">
+                  {event.status}
+                </div>
+              </div>
             </div>
-          )}
+          ))}
 
           {/* 페이지네이션 - 테이블 내부로 이동 */}
           {totalPages > 1 && (

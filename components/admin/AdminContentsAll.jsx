@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import Calendar from "@/components/global/Calendar";
+import AdminContentsAllModal from "@/components/admin/AdminContentsAllModal";
 
 export default function AdminContentsAll() {
   // 필터 상태 관리
@@ -17,6 +18,9 @@ export default function AdminContentsAll() {
   const [selectedPosts, setSelectedPosts] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   
+  // 모달 상태 관리
+  const [showModal, setShowModal] = useState(false);
+  
   // 달력 표시 상태 관리
   const [showCreatedStartCalendar, setShowCreatedStartCalendar] = useState(false);
   const [showCreatedEndCalendar, setShowCreatedEndCalendar] = useState(false);
@@ -26,12 +30,16 @@ export default function AdminContentsAll() {
   // 검색 상태 관리
   const [searchQuery, setSearchQuery] = useState("");
   
+  // 정렬 상태 관리
+  const [sortType, setSortType] = useState("번호 오름차순");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
   // 더미 게시글 데이터
-  const allPostData = [
+  const [allPostData, setAllPostData] = useState([
     { 
       id: "P001", 
       type: "동행 모집", 
@@ -41,18 +49,20 @@ export default function AdminContentsAll() {
       likes: 23,
       bookmarks: 8,
       createdAt: "2025-08-30 14:30:00",
-      modifiedAt: "2025-08-30 14:30:00"
+      modifiedAt: "2025-08-30 14:30:00",
+      status: "public"
     },
     { 
       id: "P002", 
-      type: "이벤트 리뷰", 
+      type: "자유게시판", 
       title: "겨울왕국 3 특별상영회 후기", 
       author: "영화마니아",
       comments: 8,
       likes: 45,
       bookmarks: 12,
       createdAt: "2025-08-29 20:15:00",
-      modifiedAt: "2025-08-29 21:30:00"
+      modifiedAt: "2025-08-29 21:30:00",
+      status: "public"
     },
     { 
       id: "P003", 
@@ -63,7 +73,8 @@ export default function AdminContentsAll() {
       likes: 18,
       bookmarks: 5,
       createdAt: "2025-08-29 16:45:00",
-      modifiedAt: "2025-08-29 16:45:00"
+      modifiedAt: "2025-08-29 16:45:00",
+      status: "public"
     },
     { 
       id: "P004", 
@@ -74,18 +85,20 @@ export default function AdminContentsAll() {
       likes: 12,
       bookmarks: 15,
       createdAt: "2025-08-28 11:20:00",
-      modifiedAt: "2025-08-28 11:20:00"
+      modifiedAt: "2025-08-28 11:20:00",
+      status: "public"
     },
     { 
       id: "P005", 
-      type: "이벤트 리뷰", 
+      type: "자유게시판", 
       title: "모네의 정원 특별전 관람 후기", 
       author: "전시회마니아",
       comments: 12,
       likes: 67,
       bookmarks: 28,
       createdAt: "2025-08-27 19:10:00",
-      modifiedAt: "2025-08-27 19:10:00"
+      modifiedAt: "2025-08-27 19:10:00",
+      status: "public"
     },
     { 
       id: "P006", 
@@ -96,7 +109,8 @@ export default function AdminContentsAll() {
       likes: 89,
       bookmarks: 42,
       createdAt: "2025-08-26 15:30:00",
-      modifiedAt: "2025-08-27 09:15:00"
+      modifiedAt: "2025-08-27 09:15:00",
+      status: "public"
     },
     { 
       id: "P007", 
@@ -107,18 +121,20 @@ export default function AdminContentsAll() {
       likes: 31,
       bookmarks: 18,
       createdAt: "2025-08-25 13:45:00",
-      modifiedAt: "2025-08-25 13:45:00"
+      modifiedAt: "2025-08-25 13:45:00",
+      status: "public"
     },
     { 
       id: "P008", 
-      type: "이벤트 리뷰", 
+      type: "자유게시판", 
       title: "로미오와 줄리엣 연극 후기 - 강력추천", 
       author: "연극팬",
       comments: 18,
       likes: 52,
       bookmarks: 21,
       createdAt: "2025-08-24 21:00:00",
-      modifiedAt: "2025-08-24 21:00:00"
+      modifiedAt: "2025-08-24 21:00:00",
+      status: "public"
     },
     { 
       id: "P009", 
@@ -129,7 +145,8 @@ export default function AdminContentsAll() {
       likes: 73,
       bookmarks: 35,
       createdAt: "2025-08-23 10:30:00",
-      modifiedAt: "2025-08-24 14:20:00"
+      modifiedAt: "2025-08-24 14:20:00",
+      status: "public"
     },
     { 
       id: "P010", 
@@ -140,18 +157,20 @@ export default function AdminContentsAll() {
       likes: 16,
       bookmarks: 9,
       createdAt: "2025-08-22 17:15:00",
-      modifiedAt: "2025-08-22 17:15:00"
+      modifiedAt: "2025-08-22 17:15:00",
+      status: "public"
     },
     { 
       id: "P011", 
-      type: "이벤트 리뷰", 
+      type: "자유게시판", 
       title: "백조의 호수 발레공연 감상후기", 
       author: "발레러버",
       comments: 11,
       likes: 38,
       bookmarks: 14,
       createdAt: "2025-08-21 20:45:00",
-      modifiedAt: "2025-08-21 20:45:00"
+      modifiedAt: "2025-08-21 20:45:00",
+      status: "public"
     },
     { 
       id: "P012", 
@@ -162,7 +181,8 @@ export default function AdminContentsAll() {
       likes: 156,
       bookmarks: 67,
       createdAt: "2025-08-20 14:00:00",
-      modifiedAt: "2025-08-21 08:30:00"
+      modifiedAt: "2025-08-21 08:30:00",
+      status: "public"
     },
     { 
       id: "P013", 
@@ -173,18 +193,20 @@ export default function AdminContentsAll() {
       likes: 25,
       bookmarks: 11,
       createdAt: "2025-08-19 12:20:00",
-      modifiedAt: "2025-08-19 12:20:00"
+      modifiedAt: "2025-08-19 12:20:00",
+      status: "public"
     },
     { 
       id: "P014", 
-      type: "이벤트 리뷰", 
+      type: "자유게시판", 
       title: "디지털 아트 체험전 방문 후기", 
       author: "테크아티스트",
       comments: 13,
       likes: 44,
       bookmarks: 19,
       createdAt: "2025-08-18 16:50:00",
-      modifiedAt: "2025-08-18 16:50:00"
+      modifiedAt: "2025-08-18 16:50:00",
+      status: "public"
     },
     { 
       id: "P015", 
@@ -195,9 +217,10 @@ export default function AdminContentsAll() {
       likes: 81,
       bookmarks: 33,
       createdAt: "2025-08-17 09:40:00",
-      modifiedAt: "2025-08-17 15:25:00"
+      modifiedAt: "2025-08-17 15:25:00",
+      status: "public"
     },
-  ];
+  ]);
 
   // 필터링된 게시글 데이터
   const filteredPostData = allPostData.filter(post => {
@@ -229,12 +252,44 @@ export default function AdminContentsAll() {
     
     return matchesSearch && matchesType && matchesCreatedDateRange && matchesModifiedDateRange;
   }).sort((a, b) => {
-    // 최초 작성일시 기준으로 정렬 (최신순)
-    return new Date(b.createdAt) - new Date(a.createdAt);
+    // 정렬 타입에 따른 정렬 - 안전한 정렬을 위한 null 체크 추가
+    if (!a || !b) return 0;
+    
+    switch (sortType) {
+      case "번호 오름차순":
+        return (a.id || "").localeCompare(b.id || "");
+      case "번호 내림차순":
+        return (b.id || "").localeCompare(a.id || "");
+      case "제목 오름차순":
+        return (a.title || "").localeCompare(b.title || "");
+      case "제목 내림차순":
+        return (b.title || "").localeCompare(a.title || "");
+      case "작성자 오름차순":
+        return (a.author || "").localeCompare(b.author || "");
+      case "작성자 내림차순":
+        return (b.author || "").localeCompare(a.author || "");
+      case "최초 작성일 오름차순":
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      case "최초 작성일 내림차순":
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      case "최종 수정일 오름차순":
+        return new Date(a.modifiedAt || 0) - new Date(b.modifiedAt || 0);
+      case "최종 수정일 내림차순":
+        return new Date(b.modifiedAt || 0) - new Date(a.modifiedAt || 0);
+      default:
+        return (a.id || "").localeCompare(b.id || "");
+    }
   });
 
   // 게시글 타입 옵션
-  const postTypes = ["전체", "동행 모집", "이벤트 리뷰", "자유게시판"];
+  const postTypes = ["전체", "동행 모집", "자유게시판"];
+
+  // 정렬 변경 핸들러
+  const handleSortChange = (newSortType) => {
+    setSortType(newSortType);
+    setShowSortDropdown(false);
+    resetToFirstPage();
+  };
 
   // 전체 선택/해제
   const handleSelectAll = () => {
@@ -253,6 +308,53 @@ export default function AdminContentsAll() {
     } else {
       setSelectedPosts([...selectedPosts, postId]);
     }
+  };
+
+  // 모달 관리 적용 처리
+  const handleModalApply = (managementData) => {
+    const { selectedPosts: postIds, selectedOptions, targetCategory } = managementData;
+    
+    setAllPostData(prevData => {
+      return prevData.map(post => {
+        if (postIds.includes(post.id)) {
+          let updatedPost = { ...post };
+          
+          // 게시글 상태 변경
+          if (selectedOptions.includes("hide")) {
+            updatedPost.status = "hidden";
+          } else if (selectedOptions.includes("show")) {
+            updatedPost.status = "public";
+          }
+          
+          // 카테고리 이동
+          if (selectedOptions.includes("move_category") && targetCategory) {
+            updatedPost.type = targetCategory;
+          }
+          
+          // 상호작용 데이터 초기화
+          if (selectedOptions.includes("reset_interactions")) {
+            updatedPost.comments = 0;
+            updatedPost.likes = 0;
+            updatedPost.bookmarks = 0;
+          }
+          
+          return updatedPost;
+        }
+        return post;
+      }).filter(post => {
+        // 삭제 옵션이 선택된 경우 해당 게시글들 제거
+        if (selectedOptions.includes("delete") && postIds.includes(post.id)) {
+          return false;
+        }
+        return true;
+      });
+    });
+    
+    // 선택 상태 초기화
+    setSelectedPosts([]);
+    setSelectAll(false);
+    
+    console.log("관리 항목 적용:", managementData);
   };
 
   // 달력에서 날짜 선택 시 처리
@@ -524,15 +626,48 @@ export default function AdminContentsAll() {
           </div>
 
           {/* 정렬 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[16px] font-medium text-black">정렬</span>
-            <Image
-              src={ICONS.DOWN_ARROW}
-              alt="down-arrow"
-              width={24}
-              height={10}
-              className="cursor-pointer"
-            />
+          <div className="relative">
+            <div 
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              <span className="text-[16px] font-medium text-black">정렬</span>
+              <Image
+                src={ICONS.DOWN_ARROW}
+                alt="sort-arrow"
+                width={24}
+                height={10}
+                className="cursor-pointer"
+              />
+            </div>
+            
+            {/* 정렬 드롭다운 */}
+            {showSortDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
+                {[
+                  "번호 오름차순",
+                  "번호 내림차순", 
+                  "제목 오름차순",
+                  "제목 내림차순",
+                  "작성자 오름차순",
+                  "작성자 내림차순",
+                  "최초 작성일 오름차순",
+                  "최초 작성일 내림차순",
+                  "최종 수정일 오름차순",
+                  "최종 수정일 내림차순"
+                ].map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSortChange(option)}
+                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
+                      sortType === option ? "text-black bg-gray-100 font-bold" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -582,7 +717,7 @@ export default function AdminContentsAll() {
             currentPostData.map((post, index) => (
               <div 
                 key={post.id}
-                className="bg-white border-b border-gray-200 py-2 px-4 h-8 flex items-center gap-2 text-sm"
+                className="bg-white border-b border-gray-200 py-3 px-4 h-10 flex items-center gap-2 text-sm"
               >
                 <input
                   type="checkbox"
@@ -598,6 +733,9 @@ export default function AdminContentsAll() {
                 </div>
                 <div className="text-[14px] font-medium text-black flex-1 overflow-hidden text-ellipsis text-nowrap text-center px-1 min-w-0">
                   {post.title}
+                  {post.status === "hidden" && (
+                    <span className="ml-2 text-xs text-red-500">[숨김]</span>
+                  )}
                 </div>
                 <div className="text-[14px] font-medium text-black w-20 overflow-hidden text-nowrap text-center flex-shrink-0">
                   {post.author}
@@ -679,10 +817,22 @@ export default function AdminContentsAll() {
 
       {/* 하단 관리 버튼 */}
       <div className="flex justify-end">
-        <button className="bg-[#6DADFF] text-white px-4 py-2 rounded-[8px] text-[16px] font-medium">
+        <button 
+          onClick={() => setShowModal(true)}
+          className="bg-[#6DADFF] text-white px-4 py-2 rounded-[8px] text-[16px] font-medium hover:bg-[#5A9EFF] transition-colors"
+        >
           선택 항목 관리
         </button>
       </div>
+
+      {/* 관리 모달 */}
+      <AdminContentsAllModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        selectedPosts={selectedPosts}
+        postData={filteredPostData}
+        onApply={handleModalApply}
+      />
     </div>
   );
 }
