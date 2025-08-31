@@ -110,7 +110,7 @@ export default function CommunityListTablePage() {
       {/* <div className="border w-full h-[370px]"> */}
       {/* 배경 위에 올라갈 메인 이미지 */}
       {/* </div> */}
-      <div className="w-full max-w-[1200px] mt-6 mb-2 flex items-center justify-end gap-3">
+      <div className="w-full mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar />
 
         <span className="flex items-center gap-2">

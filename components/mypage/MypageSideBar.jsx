@@ -4,45 +4,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ROUTES } from "@/constants/path";
 
-export default function AdminSideBar() {
+export default function MypageSideBar() {
   const pathname = usePathname();
 
   const menuItems = [
     {
-      category: "통계/대시보드",
+      category: "개인정보",
       items: [
-        { name: "대시보드", path: ROUTES.ADMIN }
+        { name: "프로필 관리", path: ROUTES.MYPAGE }
       ]
     },
     {
-      category: "이벤트",
+      category: "활동 관리",
       items: [
-        { name: "전체 이벤트", path: `${ROUTES.ADMIN}/events/all` },
-        { name: "승인 대기 이벤트", path: `${ROUTES.ADMIN}/events/pending` }
+        { name: "관심 목록", path: ROUTES.INTEREST },
+        { name: "동행 관리", path: ROUTES.FRIENDLIST },
+        { name: "활동 내역", path: ROUTES.HISTORY }
       ]
     },
     {
       category: "게시글",
       items: [
-        { name: "전체 게시글", path: `${ROUTES.ADMIN}/contents/all` }
+        { name: "내 게시글", path: ROUTES.POST_MANAGE }
       ]
     },
     {
-      category: "사용자",
+      category: "설정",
       items: [
-        { name: "전체 사용자", path: `${ROUTES.ADMIN}/users/all` }
-      ]
-    },
-    {
-      category: "신고 관리",
-      items: [
-        { name: "게시글 신고 목록", path: `${ROUTES.ADMIN}/alarms/contents` }
-      ]
-    },
-    {
-      category: "고객 소통",
-      items: [
-        { name: "1:1 문의사항", path: `${ROUTES.ADMIN}/help/contact` }
+        { name: "계정 설정", path: ROUTES.SETTINGS }
       ]
     }
   ];

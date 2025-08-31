@@ -1,4 +1,5 @@
 import PostManageTab from "@/components/mypage/PostManageTab";
+import PageTitle from "@/components/global/PageTitle";
 import { useMemo } from "react";
 
 export default function PostManage() {
@@ -72,7 +73,7 @@ export default function PostManage() {
   );
   return (
     <>
-      <h1 className="text-4xl font-bold py-[10px] h-16">게시물 관리</h1>
+      <PageTitle>내 게시글</PageTitle>
       <div className="mt-4 space-y-1">
         <PostManageTab posts={posts} />
       </div>

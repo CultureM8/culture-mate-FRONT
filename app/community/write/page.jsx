@@ -46,7 +46,7 @@ export default function CommunityWrite() {
   return (
     <div className="flex flex-col items-center">
       {/* 페이지 타이틀 */}
-      <div className="w-full max-w-[1200px] h-[108px] flex items-center">
+      <div className="w-full max-w-full h-[108px] flex items-center">
         <h1 className="font-inter font-semibold text-[36px] leading-[44px] tracking-[-0.005em] text-[#26282A]">
           자유 게시판
         </h1>
@@ -58,7 +58,7 @@ export default function CommunityWrite() {
       />
 
       {/* 선택된 이벤트 카드 (선택 전엔 숨김) */}
-      <div className="mt-6 w-full max-w-[1200px]">
+      <div className="mt-6 w-full max-w-full">
         {selectedEvent && <PostEventMiniCard {...selectedEvent} />}
       </div>
 
@@ -84,7 +84,7 @@ export default function CommunityWrite() {
       </div>
 
       {/* 버튼 */}
-      <div className="w-full max-w-[1200px] flex justify-end gap-3 mt-6 mb-10">
+      <div className="w-full max-w-full flex justify-end gap-3 mt-6 mb-10">
         <button
           onClick={() => setOpenCancel(true)}
           className="px-5 py-2 border rounded bg-gray-400 text-white hover:bg-gray-200">

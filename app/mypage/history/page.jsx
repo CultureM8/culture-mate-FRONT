@@ -1,4 +1,5 @@
 import HistoryTab from "@/components/mypage/HistoryTab";
+import PageTitle from "@/components/global/PageTitle";
 import { useMemo } from "react";
 
 export default function History() {
@@ -223,11 +224,45 @@ export default function History() {
     ],
     []
   );
+
+  const withData = useMemo(
+    () => [
+      {
+        id: 1,
+        title: "동행 기록-1",
+        description: "함께한 동행 활동 설명",
+        date: "2025-08-20",
+        participants: 4,
+        location: "강남구",
+        status: "완료",
+      },
+      {
+        id: 2,
+        title: "동행 기록-2", 
+        description: "문화 체험 동행 활동",
+        date: "2025-08-15",
+        participants: 6,
+        location: "홍대입구",
+        status: "완료",
+      },
+      {
+        id: 3,
+        title: "동행 기록-3",
+        description: "전시회 관람 동행",
+        date: "2025-08-10", 
+        participants: 3,
+        location: "종로구",
+        status: "완료",
+      },
+    ],
+    []
+  );
+
   return (
     <>
-      <h1 className="text-4xl font-bold py-[10px] h-16">히스토리</h1>
+      <PageTitle>활동 내역</PageTitle>
       <div className="mt-4 space-y-1">
-        <HistoryTab eventData={eventData} />
+        <HistoryTab eventData={eventData} withData={withData} />
       </div>
     </>
   );

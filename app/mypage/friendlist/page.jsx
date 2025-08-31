@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FriendListItem from "@/components/mypage/FriendListItem";
 import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
+import PageTitle from "@/components/global/PageTitle";
 
 export default function FriendListPage() {
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -105,29 +106,24 @@ export default function FriendListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* 페이지 헤더 */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#26282a] font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif]">
-            내 동행관리
-          </h1>
-        </div>
-
-        {/* 탭 메뉴 */}
-        <div className="mb-6">
-          <div className="flex border-b border-gray-200">
-            <button className="px-6 py-3 text-[#26282a] font-medium border-b-2 border-[#26282a] font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif]">
-              내 소속 동행
-            </button>
-            <button className="px-6 py-3 text-[#76787a] font-medium font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif] hover:text-[#26282a] transition-colors">
-              동행자 프로필
-            </button>
-            <button className="px-6 py-3 text-[#76787a] font-medium font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif] hover:text-[#26282a] transition-colors">
-              동행관리
-            </button>
+    <>
+      <PageTitle>내 동행관리</PageTitle>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* 탭 메뉴 */}
+          <div className="mb-6">
+            <div className="flex border-b border-gray-200">
+              <button className="px-6 py-3 text-[#26282a] font-medium border-b-2 border-[#26282a] font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif]">
+                내 소속 동행
+              </button>
+              <button className="px-6 py-3 text-[#76787a] font-medium font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif] hover:text-[#26282a] transition-colors">
+                동행자 프로필
+              </button>
+              <button className="px-6 py-3 text-[#76787a] font-medium font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif] hover:text-[#26282a] transition-colors">
+                동행관리
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* 메인 컨텐츠 영역 */}
         <div className="flex gap-0 h-[calc(100vh-200px)]">
@@ -174,6 +170,7 @@ export default function FriendListPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

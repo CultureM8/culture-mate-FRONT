@@ -285,7 +285,7 @@ export default function CompleteServiceIntro({ backgroundMedia }) {
   // 공통 타이틀 컴포넌트
   const SectionTitle = ({ children, delay = 200 }) => (
     <div className="w-full py-6 sm:py-8 md:py-10">
-      <div className="max-w-[1200px] mx-auto px-4">
+      <div className="max-w-full mx-auto px-4">
         <h2 className={`
           text-2xl sm:text-3xl md:text-[36px] font-semibold leading-[1.22] tracking-[-0.18px]
           text-[#26282a]
@@ -346,7 +346,7 @@ export default function CompleteServiceIntro({ backgroundMedia }) {
           flex items-end justify-center
           py-8 sm:py-12 md:py-[100px]
         ">
-          <div className="w-full max-w-[1200px] px-4 sm:px-8 md:px-[100px]">
+          <div className="w-full max-w-full px-4 sm:px-8 md:px-[100px]">
             <div className={`
               text-white font-medium leading-relaxed text-left
               transition-all duration-1000 delay-300
@@ -379,7 +379,7 @@ export default function CompleteServiceIntro({ backgroundMedia }) {
 
       {/* 3. 기능 소개 섹션 */}
       <div className="w-full py-4 sm:py-6 md:py-[30px]">
-        <div className="max-w-[1200px] mx-auto px-4">
+        <div className="max-w-full mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-x-4">
             <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-x-4 mb-4 sm:mb-8">
               <FeatureItem feature={features[0]} index={0} />
@@ -402,7 +402,7 @@ export default function CompleteServiceIntro({ backgroundMedia }) {
 
       {/* 5. 차이점 소개 섹션 */}
       <div className="w-full py-4 sm:py-6 md:py-[30px]">
-        <div className="max-w-[1200px] mx-auto px-4">
+        <div className="max-w-full mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-x-4">
             <div className="col-span-1 sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-x-4 mb-4 sm:mb-8">
               <DifferenceItem difference={differences[0]} index={0} />
@@ -425,7 +425,7 @@ export default function CompleteServiceIntro({ backgroundMedia }) {
 
       {/* 7. 사용자 후기 섹션 */}
       <div className="w-screen bg-gray-100 py-8 sm:py-12 md:py-[84px] ml-[calc(50%-50vw)] overflow-hidden">
-        <div className="max-w-[1200px] mx-auto px-4">
+        <div className="max-w-full mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-x-[45px] sm:gap-y-[30px] md:gap-x-[90px] md:gap-y-[60px] place-items-center">
             {reviews.map((review, index) => (
               <ReviewCard key={review.id} review={review} index={index} />

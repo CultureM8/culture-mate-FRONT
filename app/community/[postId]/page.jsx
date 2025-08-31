@@ -90,7 +90,7 @@ export default function CommunityDonePage() {
 
   if (!post) {
     return (
-      <div className="w-full max-w-[1200px] mx-auto px-6 py-10">
+      <div className="w-full max-w-full mx-auto px-6 py-10">
         <h1 className="text-2xl font-semibold mb-4">글을 찾을 수 없습니다</h1>
         <div className="flex gap-2">
           <button
@@ -116,13 +116,13 @@ export default function CommunityDonePage() {
   /*------------------------------------------------------------------------*/
   return (
     <>
-      <div className="mx-6 my-4 max-w-[1200px] h-[108px] flex items-center">
+      <div className="mx-6 my-4 max-w-full h-[108px] flex items-center">
         <h1 className="font-inter font-semibold text-[36px] leading-[44px] tracking-[-0.005em] text-[#26282A]">
           자유 게시판
         </h1>
       </div>
 
-      <div className="w-full max-w-[1200px]  mx-auto   ">
+      <div className="w-full max-w-full  mx-auto   ">
         <header>
           <h1 className="text-2xl font-semibold text-gray-900 break-words px-6 my-4">
             {post.title}

@@ -8,10 +8,11 @@ import Gallery from "@/components/global/Gallery";
 import EventGallery from "@/components/events/main/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import TogetherGallery from "@/components/together/TogetherGallery";
+import DefaultLayout from '@/components/layouts/DefaultLayout';
 
 export default function MainLanding() {
   return (
-    <>
+    <DefaultLayout>
       {/* 1. MainBanner - 상단 검색 배너 (전체 가로폭) */}
       <MainBanner />
       
@@ -68,7 +69,7 @@ export default function MainLanding() {
         {/* 13. RecommendedCardsGroup - 3개의 추천글 카드 */}
         <RecommendedCardsGroup />
       </div>
-    </>
+    </DefaultLayout>
   );
 }
 
@@ -182,7 +183,7 @@ function MainBanner() {
 function MainSubcategoryBar({ title, subtitle, isSimple = false, linkTo = ROUTES.TOGETHER }) {
   return (
     <div className="w-full flex justify-center py-2.5">
-      <div className="w-[1200px]">
+      <div className="w-full">
         {isSimple ? (
           /* 제목과 더보기를 한 줄에 가운데 정렬 */
           <div className="flex items-center justify-between">
@@ -283,7 +284,7 @@ function TogetherCardGrid() {
 
   return (
     <div className="w-full flex justify-center py-2.5">
-      <div className="w-[1200px]">
+      <div className="w-full">
         <div className="grid grid-cols-4 gap-6 place-items-center">
           {togetherData.map((item, index) => (
             <div key={index} className="w-[290px] h-auto flex justify-center">
@@ -459,7 +460,7 @@ function ReviewCardsSection({ reviews = [] }) {
   return (
     <section className="bg-gray-100 w-[100vw] py-5 relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
       <div className="w-full flex justify-center">
-        <div className="w-[1200px]">
+        <div className="w-full">
           <div className="grid grid-cols-4 gap-6">
             {reviewData.map((review) => (
               <ReviewCard
@@ -517,7 +518,7 @@ function InterestEvent() {
   
   return (
     <div className="w-full flex justify-center py-2.5">
-      <div className="w-[1200px]">
+      <div className="w-full">
         <GalleryLayout Component={EventGallery} items={eventData} />
       </div>
     </div>
@@ -619,7 +620,7 @@ function RecommendedCardsGroup() {
   
   return (
     <div className="w-full flex justify-center py-2.5">
-      <div className="w-[1200px]">
+      <div className="w-full">
         <div className="flex flex-row justify-between">
           {cardsData.map((card, index) => (
             <RecommendedCard
