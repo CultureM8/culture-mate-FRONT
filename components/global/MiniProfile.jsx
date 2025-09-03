@@ -1,39 +1,37 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ROUTES, ICONS } from '@/constants/path';
-import useLogin from '@/hooks/useLogin'; /**로그아웃추가 */
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ROUTES, ICONS } from "@/constants/path";
+import useLogin from "@/hooks/useLogin"; /**로그아웃추가 */
 
 export default function MiniProfile() {
   const { logout, loading } = useLogin(); /**로그아웃추가 */
   const [userProfile, setUserProfile] = useState({
-    nickname: '사용자 별명',
+    nickname: "사용자 별명",
     profileImage: null, // ProfileBG에서 설정한 이미지
   });
 
   // ProfileBG와 연동된 프로필 정보 로드
   useEffect(() => {
-    const savedProfile = localStorage.getItem('userProfile');
+    const savedProfile = localStorage.getItem("userProfile");
     if (savedProfile) {
       const profile = JSON.parse(savedProfile);
       setUserProfile({
-        nickname: profile.nickname || '사용자 별명',
+        nickname: profile.nickname || "사용자 별명",
         profileImage: profile.profileImage || null,
       });
     }
   }, []);
 
   const menuItems = [
-
     { label: "프로필", path: ROUTES.MYPAGE },
-    { label: "내 동행관리", path: ROUTES.FRIENDLIST },
+    { label: "내 동행관리", path: ROUTES.TOGETHER_MANAGE },
     { label: "관심목록", path: ROUTES.INTEREST },
     { label: "히스토리", path: ROUTES.HISTORY },
     { label: "게시물 관리", path: ROUTES.POST_MANAGE },
     { label: "환경설정", path: ROUTES.SETTINGS },
-    
   ];
 
   /*기존코드
