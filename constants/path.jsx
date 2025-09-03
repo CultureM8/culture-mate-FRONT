@@ -5,7 +5,7 @@ export const ROUTES = {
   COMMUNITY: "/community",
   HELP: "/help",
   MYPAGE: "/mypage",
-  FRIENDLIST: "/mypage/friendlist",
+  TOGETHER_MANAGE: "/mypage/together-manage",
   HISTORY: "/mypage/history",
   INTEREST: "/mypage/interest",
   POST_MANAGE: "/mypage/post-manage",
