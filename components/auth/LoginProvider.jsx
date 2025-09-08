@@ -1,128 +1,190 @@
 "use client";
-/** 사이트 전체에서 사용할 수 있는 인증 상태 관리 시스템 */
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { timeLeftMs } from "@/lib/loginStorage";
-import { fakeLogin, fakeLogout, currentSession } from "@/lib/fakeLogin";
+import { createContext, useEffect, useMemo, useRef, useState } from "react";
+import { login as apiLogin, logout as apiLogout } from "@/lib/authApi";
 
-/** 전역 인증 상태를 공유할 Context 생성 */
 export const LoginContext = createContext(null);
 
-/** 사이트 전체를 감싸는 Provider 컴포넌트 */
-export default function LoginProvider({ children }) {
-  const [ready, setReady] = useState(false); // 로그인 상태 파악(flicker 방지)
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // 로그인/로그아웃 로딩 표시
-  const timerRef = useRef(null);
+// v2 세션 키 (v1 호환 로드 지원)
+const KEY = "auth_session_v2";
+const V1_KEY = "auth_session_v1";
 
-  /** 마운트시 세션 복원 (정규화된 currentSession 사용) */
+const load = () => {
+  if (typeof window === "undefined") return null;
+  try {
+    const v2 = localStorage.getItem(KEY);
+    if (v2) return JSON.parse(v2);
+
+    // v1 → v2 마이그레이션 (최초 1회)
+    const v1 = localStorage.getItem(V1_KEY);
+    if (v1) {
+      const s = JSON.parse(v1);
+      const migrated = { user: s?.user ?? null, expiresAt: null };
+      localStorage.setItem(KEY, JSON.stringify(migrated));
+      localStorage.removeItem(V1_KEY);
+      return migrated;
+    }
+  } catch {}
+  return null;
+};
+
+const save = (s) => {
+  if (typeof window !== "undefined")
+    localStorage.setItem(KEY, JSON.stringify(s));
+};
+
+const clear = () => {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(V1_KEY);
+  }
+};
+
+export default function LoginProvider({ children }) {
+  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const bcRef = useRef(null);
+
+  // 초기 복원 + 만료 체크 + 개발용 계정 전환
   useEffect(() => {
-    const s = currentSession(); /* display_name 보장*/
-    setUser(s?.user ?? null);
+    // 개발용 계정 전환 (쿼리스트링 체크)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const devUser = urlParams.get("user");
+
+      if (devUser === "user1") {
+        console.log("🔄 개발용 계정 전환: User1");
+        const u1 = {
+          id: 952,
+          login_id: "user1",
+          nickname: "user1",
+          display_name: "user1",
+          role: "MEMBER",
+        };
+        setUser(u1);
+        save({ user: u1, expiresAt: null });
+        setLoading(false);
+        setReady(true);
+        return;
+      }
+
+      if (devUser === "user2") {
+        console.log("🔄 개발용 계정 전환: User2");
+        const u2 = {
+          id: 953,
+          login_id: "user2",
+          nickname: "user2",
+          display_name: "user2",
+          role: "MEMBER",
+        };
+        setUser(u2);
+        save({ user: u2, expiresAt: null });
+        setLoading(false);
+        setReady(true);
+        return;
+      }
+    }
+
+    // 기존 로직: 세션 복원 + 만료 체크
+    const s = load();
+    const now = Date.now();
+    const exp = s?.expiresAt ?? null;
+    if (exp && now > exp) {
+      clear();
+      setUser(null);
+    } else {
+      setUser(s?.user ?? null);
+    }
     setLoading(false);
     setReady(true);
-  }, []);
 
-  /** 만료 자동 감지(1초마다) */
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      if (timeLeftMs() <= 0) {
-        if (user) setUser(null);
-      }
-    }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [user]); /* user 변경 시 타이머 재설정*/
-
-  /** 탭 간 동기화(로그인/로그아웃 반영) */
-  useEffect(() => {
+    // BroadcastChannel(멀티탭 동기화) + storage 이벤트
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      bcRef.current = new BroadcastChannel("auth");
+      bcRef.current.onmessage = (ev) => {
+        if (ev?.data === "logout") {
+          setUser(null);
+        } else if (ev?.data?.type === "login" && ev?.data?.user) {
+          setUser(ev.data.user);
+        }
+      };
+    }
     const onStorage = (e) => {
-      if (e.key !== "login") return; /* loginStorage가 쓰는 키*/
-      const s = currentSession();
-      setUser(s?.user ?? null);
+      if (e.key !== KEY) return;
+      const s2 = load();
+      setUser(s2?.user ?? null);
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      if (bcRef.current) bcRef.current.close();
+    };
   }, []);
 
-  /** 로그인 */
-  const doLogin = async ({
-    login_id = "",
-    password = "",
-    remember = false,
-  } = {}) => {
+  const doLogin = async ({ login_id, password, remember = false }) => {
     setLoading(true);
     try {
-      const s = fakeLogin({
-        login_id,
-        password,
-        remember,
-      }); /* fakeLogin이 display_name 세팅*/
-      setUser(s.user);
-      return s;
+      const profile = await apiLogin({ loginId: login_id, password });
+      const u = {
+        id: profile.id,
+        login_id: profile.login_id,
+        nickname: profile.nickname ?? null,
+        display_name: profile.display_name,
+        role: profile.role ?? null,
+      };
+      const now = Date.now();
+      const ttlMs = remember ? 1000 * 60 * 60 * 24 * 7 : 1000 * 60 * 60 * 24; // 7일/1일
+
+      setUser(u);
+      save({ user: u, expiresAt: now + ttlMs });
+
+      // 기존 코드 호환(관리자 메뉴 등)
+      try {
+        localStorage.setItem("userRole", (u.role ?? "").toString());
+      } catch {}
+
+      // 멀티탭 동기화
+      if (bcRef.current) bcRef.current.postMessage({ type: "login", user: u });
+
+      return u;
     } finally {
       setLoading(false);
     }
   };
 
-  /** 로그아웃 */
   const logout = async () => {
     setLoading(true);
     try {
-      fakeLogout();
+      await apiLogout();
       setUser(null);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+      clear();
+      if (bcRef.current) bcRef.current.postMessage("logout");
     } finally {
       setLoading(false);
     }
   };
 
-  /** 세션 재동기화(수동 새로고침) */
   const refresh = () => {
-    const s = currentSession();
+    const s = load();
     setUser(s?.user ?? null);
     return s;
   };
 
-  /* 파생값(프로젝트 전역에서 이 값들만 쓰면 규칙 일관성 유지) */
-  const uid =
-    user?.id ??
-    user?.user_id ??
-    null; /* 내부 고유 ID(권한/소유권 비교에 사용)*/
-  const loginId = user?.login_id ?? null; /* 로그인 계정명*/
+  const uid = user?.id ?? null;
+  const loginId = user?.login_id ?? null;
   const displayName =
-    user?.display_name ??
-    user?.nickname ??
-    user?.name ??
-    loginId ??
-    uid ??
-    "사용자"; /* 화면표시용 이름(별명 > 실명 > login_id > uid)*/
+    user?.display_name ?? user?.nickname ?? loginId ?? uid ?? "사용자";
 
   const value = useMemo(
     () => ({
-      /*상태*/
       ready,
       loading,
       user,
       isLogined: !!user,
-
-      /* 파생 프로필*/
       uid,
       loginId,
       displayName,
-
-      /* 액션*/
       doLogin,
       logout,
       refresh,

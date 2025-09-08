@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -10,133 +10,131 @@ import TogetherList from "@/components/together/TogetherList";
 import EventSelector from "@/components/global/EventSelector";
 import SearchBar from "@/components/global/SearchBar";
 import TogetherFilterModal from "@/components/together/TogetherFilterModal";
-import { getAllTogetherPosts, getTogetherPostsByType } from "@/lib/togetherData";
-
+import useLogin from "@/hooks/useLogin";
+import useTogetherItems from "@/hooks/useTogetherItems";
 
 export default function TogetherPage() {
-  // 페이지 제목과 소개 문구 설정
-  const [title, intro] = ["동행 모집", "혼자도 좋지만, 함께라면 더 특별한 공연과 축제의 시간"];
+  const [title, intro] = [
+    "동행 모집",
+    "혼자도 좋지만, 함께라면 더 특별한 공연과 축제의 시간",
+  ];
 
-  // router 선언 - 추가
   const router = useRouter();
-  
-  // 뷰 모드를 관리하는 상태 (Gallery: 갤러리형 기본값, List: 리스트형)
-  const [viewType, setViewType] = useState("Gallery");
-  
-  // 선택된 이벤트 타입을 관리하는 상태
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { ready, isLogined } = useLogin();
+
+  // URL 파라미터 ↔ 상태 동기화 (q, sort, view)
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [sortOption, setSortOption] = useState(
+    searchParams.get("sort") ?? "createdAt_desc"
+  );
+  const [viewType, setViewType] = useState(
+    searchParams.get("view") === "List" ? "List" : "Gallery"
+  );
+
   const [selectedEventType, setSelectedEventType] = useState("전체");
-  
-  // 필터 모달 열림/닫힘 상태
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // 동행 모집 게시글 데이터 상태 (togetherData.js에서 가져옴)
-  const [togetherData, setTogetherData] = useState([]);
+  // hook: 서버/스토리지에서 가져온 원본 목록
+  const { items, loading } = useTogetherItems(selectedEventType, sortOption);
 
-  // 선택된 이벤트 타입에 따라 데이터 가져오기
+  // URL 업데이트
   useEffect(() => {
-    const fetchTogetherPosts = async () => {
-      try {
-        if (selectedEventType === "전체") {
-          const posts = await getAllTogetherPosts();
-          setTogetherData(posts);
-        } else {
-          const posts = await getTogetherPostsByType(selectedEventType);
-          setTogetherData(posts);
-        }
-      } catch (error) {
-        console.error("동행 데이터를 가져오는데 실패했습니다:", error);
-      }
-    };
+    const params = new URLSearchParams(searchParams.toString());
+    // q
+    if (query?.trim()) params.set("q", query.trim());
+    else params.delete("q");
+    // sort
+    if (sortOption && sortOption !== "createdAt_desc")
+      params.set("sort", sortOption);
+    else params.delete("sort");
+    // view
+    if (viewType !== "Gallery") params.set("view", viewType);
+    else params.delete("view");
 
-    fetchTogetherPosts();
-  }, [selectedEventType]);
+    const qs = params.toString();
+    const nextUrl = qs ? `${pathname}?${qs}` : pathname;
+    // 스크롤 유지
+    router.replace(nextUrl, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, sortOption, viewType]);
 
-  // 필터 버튼 클릭 핸들러
-  const handleFilterClick = () => {
-    setIsFilterOpen(true);
-  };
+  // 검색어로 클라이언트 필터링 (hook이 정렬/타입 필터는 수행한다고 가정)
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items || [];
+    const safe = (v) => (v == null ? "" : String(v));
+    return (items || []).filter((it) => {
+      // 안전한 멀티 필드 매칭: title / content / 작성자명 / 이벤트명 / 설명 등
+      const hay = [
+        safe(it.title),
+        safe(it.content),
+        safe(it.authorName),
+        safe(it.authorNickname),
+        safe(it.nickname),
+        safe(it.loginId),
+        safe(it.eventName),
+        safe(it.name),
+        safe(it.description),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [items, query]);
 
-  // 정렬 버튼 클릭 핸들러  
-  const handleSortClick = () => {
-    alert("정렬 기능이 클릭됨");
-    // 추후 정렬 드롭다운 등 기능 추가
-  };
-
-  // 글쓰기 버튼 클릭 핸들러
-  const handleWriteClick = () => {
-    router.push("/together/write");
-  };
-
-  // 필터 모달 닫기
-  const closeFilterModal = () => {
-    setIsFilterOpen(false);
+  const handleWrite = () => {
+    if (!ready) return;
+    if (isLogined) return router.push("/together/write");
+    // 로그인 가드: 로그인 후 글쓰기 페이지로 복귀
+    router.push(`/login?next=${encodeURIComponent("/together/write")}`);
   };
 
   return (
     <>
-      {/* 페이지 제목 */}
       <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
-      
-      {/* 페이지 소개 문구 */}
       <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
 
-      {/* 안내 메시지 배경 이미지 : 현재는 따로 필요없음 */}
-      {/* <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[100px] z-0">
-        <Image
-          src={"/img/default-img.svg"}
-          alt="이미지"
-          fill
-          className="object-cover opacity-30"
-        />
-      </div> */}
-      
-      {/* 안내 메시지 박스 */}
       <div className="border w-full h-[200px] flex items-center justify-center relative z-10">
         <div className="border w-full h-full flex items-center justify-center relative z-10 bg-white">
-          <img 
+          <img
             src="/together-main-img/togetherBanner.png"
-            alt="동행 모집 배너" 
+            alt="동행 모집 배너"
             className="w-full h-full object-cover object-center"
           />
         </div>
       </div>
 
-      {/* 이벤트 타입 선택 버튼들 (가운데 정렬) */}
-      <EventSelector 
-        selected={selectedEventType} 
-        setSelected={setSelectedEventType} 
+      <EventSelector
+        selected={selectedEventType}
+        setSelected={setSelectedEventType}
       />
 
-      {/* 검색, 필터, 정렬, 뷰 타입 전환 컨트롤 */}
       <div className="px-2.5 h-16 flex items-center justify-between">
-        {/* 왼쪽: 뷰 모드 전환 버튼과 제목 */}
+        {/* 좌측: 뷰 토글 */}
         <div className="flex items-center gap-2">
-          {/* 섹션 제목 - 선택된 이벤트 타입 표시 */}
           <h2 className="text-xl font-semibold">{selectedEventType}</h2>
-          {/* 그리드/리스트 뷰 전환 버튼 */}
           <div className="flex items-center gap-1">
-            {/* 갤러리 뷰 버튼 */}
             <button
               onClick={() => setViewType("Gallery")}
-              className="p-2 transition-colors"
-              title="갤러리 보기"
-            >
-              <Image 
+              className="p-2"
+              title="갤러리 보기">
+              <Image
                 src={ICONS.MENU}
                 alt="갤러리 보기"
                 width={20}
                 height={20}
-                className={viewType === "Gallery" ? "opacity-100" : "opacity-40"}
+                className={
+                  viewType === "Gallery" ? "opacity-100" : "opacity-40"
+                }
               />
             </button>
-
-            {/* 리스트 뷰 버튼 */}
             <button
               onClick={() => setViewType("List")}
-              className="p-2 transition-colors"
-              title="리스트 보기"
-            >
-              <Image 
+              className="p-2"
+              title="리스트 보기">
+              <Image
                 src={ICONS.LIST}
                 alt="리스트 보기"
                 width={20}
@@ -146,73 +144,72 @@ export default function TogetherPage() {
             </button>
           </div>
         </div>
-        
-        {/* 오른쪽: 검색창, 필터, 정렬, 글쓰기 */}
+
+        {/* 우측: 검색/필터/정렬/글쓰기 */}
         <div className="flex items-center gap-2">
-          {/* 검색창 컴포넌트 */}
-          <SearchBar />
-          
-          {/* 필터 버튼 */}
-          <button 
-            className="flex items-center gap-3 hover:cursor-pointer"
-            onClick={handleFilterClick}
-          >
+          {/* ✅ SearchBar는 value/onChange/onSearch를 지원 (없어도 동작하지만, 지원하면 더 좋음) */}
+          <SearchBar
+            value={query}
+            onChange={setQuery}
+            onSearch={(q) => setQuery(q)}
+          />
+
+          <button
+            className="flex items-center gap-3"
+            onClick={() => setIsFilterOpen(true)}>
             필터
-            <Image 
-              src={ICONS.FILTER}
-              alt="필터"
-              width={24}
-              height={24}
-            />
-          </button>
-          
-          {/* 정렬 버튼 */}
-          <button 
-            className="flex items-center gap-2 hover:cursor-pointer"
-            onClick={handleSortClick}
-          >
-            정렬
-            <Image 
-              src={ICONS.DOWN_ARROW}
-              alt="정렬"
-              width={24}
-              height={24}
-            />
+            <Image src={ICONS.FILTER} alt="필터" width={24} height={24} />
           </button>
 
-          {/* 글쓰기 버튼 */}
-          <button 
-            className="flex items-center gap-2 hover:cursor-pointer"
-            onClick={handleWriteClick}
-          >
-            글쓰기
-            <Image 
-              src={ICONS.ADD_WRITE}
-              alt="글쓰기"
-              width={24}
-              height={24}
-            />
-          </button>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            className="h-10 px-2 bg-white">
+            {/* 작성일 기준 */}
+            <option value="createdAt_desc">최근 작성순</option>
+            <option value="createdAt_asc">작성 오래된순</option>
+            {/* 이벤트 날짜 기준 */}
+            <option value="event_desc">최근 이벤트순</option>
+            <option value="event_asc">오래된 이벤트순</option>
+            {/* 기타 */}
+            <option value="views_desc">조회수많은순</option>
+          </select>
+
+          {ready && isLogined ? (
+            <button className="flex items-center gap-2" onClick={handleWrite}>
+              글쓰기
+              <Image
+                src={ICONS.ADD_WRITE}
+                alt="글쓰기"
+                width={24}
+                height={24}
+              />
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {/* 뷰 모드에 따른 조건부 렌더링 */}
-      {viewType === "Gallery" ? (
-        // 갤러리 뷰: 기존 GalleryLayout과 TogetherGallery 컴포넌트 활용
-        <GalleryLayout Component={TogetherGallery} items={togetherData} />
+      {/* 검색 결과 수 */}
+      <div className="px-2.5 text-sm text-gray-500">
+        {loading ? "불러오는 중…" : `총 ${filtered.length}건`}
+      </div>
+
+      {/* 본문 */}
+      {loading ? (
+        <div className="p-6 text-gray-500">불러오는 중…</div>
+      ) : viewType === "Gallery" ? (
+        <GalleryLayout Component={TogetherGallery} items={filtered} />
       ) : (
-        // 리스트 뷰: TogetherList 컴포넌트들을 세로로 나열
         <div className="space-y-0">
-          {togetherData.map((item, idx) => (
-            <TogetherList key={idx} {...item} />
+          {filtered.map((it) => (
+            <TogetherList key={String(it.togetherId ?? it.id)} {...it} />
           ))}
         </div>
       )}
 
-      {/* 동행 필터 모달 - 이벤트 필터 모달 참고함 */}
-      <TogetherFilterModal 
-        isOpen={isFilterOpen} 
-        onClose={closeFilterModal} 
+      <TogetherFilterModal
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
       />
     </>
   );

@@ -1,19 +1,18 @@
-import Gallery from '../global/Gallery';
-import StarScore from '@/lib/StarScore';
+import Gallery from "../components/global/Gallery";
+import StarScore from "@/lib/StarScore";
 
 export default function EventReviewGallery({
   imgSrc,
   alt = "",
   // eventType = "이벤트유형",
   // eventName = "이벤트명",
-  title = '이벤트 후기 제목',
-  context = '이벤트 후기 내용',
+  title = "이벤트 후기 제목",
+  context = "이벤트 후기 내용",
   score = 0,
   // commentCount,
   // likeCount,
   // createdDate = "0000-00-00",
 }) {
-
   return (
     <Gallery title={title} src={imgSrc} alt={alt}>
       {/* 이벤트유형, 이벤트명 */}
@@ -28,7 +27,6 @@ export default function EventReviewGallery({
       </div>
       {/* 별점과 점수 표시 */}
       <StarScore score={score} />
-
     </Gallery>
   );
 }

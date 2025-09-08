@@ -1,35 +1,35 @@
-"use client"; /*게시판 글작성페이지 */
+"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
-import { makePost } from "@/lib/schema";
-import { addPost } from "@/lib/storage";
 import useLogin from "@/hooks/useLogin";
+// import { makePost, normalizeEventSnapshot } from "@/lib/schema";
+// import { makePostV1 as makePost, normalizeEventSnapshot } from "@/lib/schema";
+// import { addPost } from "@/lib/storage";
+
+import { normalizeEventSnapshot } from "@/lib/schema";
+import { createPost } from "@/lib/communityApi";
 
 export default function CommunityWrite() {
   const router = useRouter();
-  const { ready, isLogined, user } = useLogin(); /*login_id 사용*/
+  const { ready, isLogined, user } = useLogin();
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  /* 모달 */
   const [openCancel, setOpenCancel] = useState(false);
   const [openSubmit, setOpenSubmit] = useState(false);
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const firstGuard = useRef(false);
 
-  useEffect(() => {
-    setIsGuideOpen(true);
-  }, []);
-
-  /* 비로그인 진입 방지: 버튼 가드만으로 충분하면 이 블록은 생략 가능*/
   useEffect(() => {
     if (!ready) return;
-    if (!isLogined) {
+    if (!isLogined && !firstGuard.current) {
+      firstGuard.current = true;
       const next = encodeURIComponent(
         window.location.pathname + window.location.search
       );
@@ -40,70 +40,81 @@ export default function CommunityWrite() {
   const trySubmit = () => {
     if (!title.trim()) return alert("제목을 입력해주세요.");
     if (!content.trim()) return alert("내용을 입력해주세요.");
+    if (!isLogined) {
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
+      router.replace(`/login?next=${next}`);
+      return;
+    }
     setOpenSubmit(true);
   };
 
   return (
-    <div className="flex flex-col items-center">
-      {/* 페이지 타이틀 */}
-      <div className="w-full max-w-[1200px] h-[108px] flex items-center">
-        <h1 className="font-inter font-semibold text-[36px] leading-[44px] tracking-[-0.005em] text-[#26282A]">
-          자유 게시판
-        </h1>
+    <div className="w-full min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto px-8 py-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-black">자유 게시판</h1>
+        </div>
+
+        <div className="mb-4">
+          <CommunityWriteOption onPickEvent={setSelectedEvent} />
+        </div>
+
+        {selectedEvent && (
+          <div className="mb-6 relative">
+            <h3 className="text-lg font-medium text-gray-700 mb-2">
+              선택된 이벤트
+            </h3>
+            <button
+              onClick={() => setSelectedEvent(null)}
+              className="absolute top-12 right-2 w-6 h-6 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white text-sm z-10 transition-all">
+              ×
+            </button>
+            <PostEventMiniCard {...selectedEvent} />
+          </div>
+        )}
+
+        <div className="w-full mb-4">
+          <input
+            type="text"
+            placeholder="제목을 입력해주세요"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full h-12 px-4 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div className="w-full">
+          <textarea
+            placeholder="내용을 입력해주세요"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full min-h-[500px] p-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex justify-end gap-4 mb-8 mt-2">
+          <button
+            onClick={() => setOpenCancel(true)}
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+            취소
+          </button>
+          <button
+            onClick={trySubmit}
+            disabled={!ready || !isLogined || submitting}
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-60">
+            {submitting ? "등록 중..." : "등록"}
+          </button>
+        </div>
       </div>
 
-      {/* 옵션 박스 (이벤트/컨텐츠/글쓰기 방식) */}
-      <CommunityWriteOption
-        onPickEvent={setSelectedEvent} /*이벤트 선택 콜백 연결*/
-      />
-
-      {/* 선택된 이벤트 카드 (선택 전엔 숨김) */}
-      <div className="mt-6 w-full max-w-[1200px]">
-        {selectedEvent && <PostEventMiniCard {...selectedEvent} />}
-      </div>
-
-      {/* 제목 */}
-      <div className="w-[1200px] mt-4">
-        <input
-          type="text"
-          placeholder="제목을 입력하세요"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full h-[60px] border border-gray-300 rounded px-4 text-base outline-none focus:border-gray-400 focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* 본문 */}
-      <div className="w-[1200px] mt-4">
-        <textarea
-          placeholder="내용을 입력해 주세요."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="w-full min-h-[500px] p-4 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* 버튼 */}
-      <div className="w-full max-w-[1200px] flex justify-end gap-3 mt-6 mb-10">
-        <button
-          onClick={() => setOpenCancel(true)}
-          className="px-5 py-2 border rounded bg-gray-400 text-white hover:bg-gray-200">
-          취소
-        </button>
-        <button
-          onClick={trySubmit}
-          className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
-          등록
-        </button>
-      </div>
-
-      {/* 취소 모달 */}
       <ConfirmModal
         open={openCancel}
         title="취소하겠습니까?"
         description="작성 중인 내용은 저장되지 않습니다."
-        confirmText="네"
-        cancelText="아니오"
+        confirmText="취소"
+        cancelText="계속작성"
         onConfirm={() => {
           setOpenCancel(false);
           router.push("/community");
@@ -112,40 +123,65 @@ export default function CommunityWrite() {
         variant="danger"
       />
 
-      {/* 등록 모달 */}
       <ConfirmModal
         open={openSubmit}
         title="글을 등록하시겠습니까?"
-        description="등록 후 페이지를 이동합니다."
-        confirmText="네"
+        description="등록 후 커뮤니티 목록으로 이동합니다."
+        confirmText="등록"
         cancelText="아니오"
-        onConfirm={() => {
-          if (!title.trim()) return alert("제목을 입력해주세요.");
-          if (!content.trim()) return alert("내용을 입력해주세요.");
+        //프론트용
+        // onConfirm={async () => {
+        //   if (!title.trim() || !content.trim() || !isLogined) return;
+        //   setSubmitting(true);
+        //   try {
+        //     const ev = normalizeEventSnapshot(selectedEvent);
+        //     const post = makePost({
+        //       board: "community",
+        //       title,
+        //       content,
+        //       eventId: ev?.eventId ?? 0,
+        //       eventType: ev?.eventType ?? "ETC",
+        //       eventSnapshot: ev ?? null,
+        //       user,
+        //     });
+        //     addPost(post);
+        //     setOpenSubmit(false);
+        //     router.push(`/community/${post.id}`);
+        //   } finally {
+        //     setSubmitting(false);
+        //   }
+        // }}
 
-          const base = makePost({
-            board: "community",
-            title,
-            content,
-            mode: "plain",
-            eventId: selectedEvent?.id ?? null,
-            eventSnapshot: selectedEvent ?? null,
-          });
+        //백엔드용
+        onConfirm={async () => {
+          if (!title.trim() || !content.trim() || !isLogined) return;
+          setSubmitting(true);
+          try {
+            const ev = normalizeEventSnapshot(selectedEvent);
 
-          /*작성자에 id표시*/
-          const post = {
-            ...base,
-            author_login_id: user?.login_id,
-            author: {
-              id: user?.login_id,
-              login_id: user?.login_id,
-              name: user?.login_id,
-            },
-          };
+            // BoardRequestDto에 맞춘 payload
+            const authorId = user?.id ?? user?.user_id;
+            if (!authorId) {
+              alert("로그인 정보를 찾을 수 없습니다.");
+              return;
+            }
 
-          addPost(post);
-          setOpenSubmit(false);
-          router.push(`/community/${post.id}`);
+            const payload = {
+              title: title.trim(),
+              content,
+              authorId,
+              eventType: ev?.eventType ?? null, // 백엔드 EventType과 이름이 같을 때만 전달
+              eventId: ev?.eventId ?? null,
+            };
+
+            const created = await createPost(payload); // POST /api/v1/board
+            setOpenSubmit(false);
+            // 목록으로 이동하면서 글 작성 성공 메시지 표시
+            alert("글이 성공적으로 등록되었습니다.");
+            router.push(`/community/${created.id}`);
+          } finally {
+            setSubmitting(false);
+          }
         }}
         onClose={() => setOpenSubmit(false)}
       />

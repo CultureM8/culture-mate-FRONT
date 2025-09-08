@@ -81,7 +81,7 @@ export default function LoginPage() {
     if (isLogined) {
       router.replace(getAfterLoginTarget());
     }
-  }, [ready, isLogined]);
+  }, [ready, isLogined, router, searchParams]);
 
   /**로그인 폼 제출*/
   const onSubmit = async (e) => {
@@ -106,7 +106,9 @@ export default function LoginPage() {
       });
       router.replace(getAfterLoginTarget());
     } catch (err) {
-      setError(err?.message || "로그인에 실패했습니다.");
+      setError(
+        err?.response?.data?.message ?? err?.message ?? "로그인에 실패했습니다."
+      );
     }
   };
 

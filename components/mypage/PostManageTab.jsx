@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import MyPostGrid from "./MyPostGrid";
-import HistoryWith from "./HistoryWith";
+import HistoryWith from "./history/HistoryWith";
 
 export default function MyPostManageTab({ posts }) {
   const [activeTab, setActiveTab] = useState("MyPostTab");
@@ -14,8 +14,7 @@ export default function MyPostManageTab({ posts }) {
             activeTab === "MyPostTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
-          }`}
-        >
+          }`}>
           내 게시물
         </button>
         <button
@@ -24,14 +23,13 @@ export default function MyPostManageTab({ posts }) {
             activeTab === "HistoryWith"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
-          }`}
-        >
-          이벤트 리뷰
+          }`}>
+          {/* 이벤트 리뷰 */}
         </button>
       </div>
       <div className="mt-8">
         {activeTab === "MyPostTab" && <MyPostGrid posts={posts} />}
-        {activeTab === "HistoryWith" && <HistoryWith posts={posts} />}
+        {/* {activeTab === "HistoryWith" && <HistoryWith posts={posts} />} */}
       </div>
     </div>
   );

@@ -14,28 +14,27 @@ export default function EventReviewList({
   score = 0,
   createdDate = "00.00.00",
 }) {
-
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
 
-  const extendReviewTab = () => { setReviewTabExtend(!reviewTabExtend) };
-  
+  const extendReviewTab = () => {
+    setReviewTabExtend(!reviewTabExtend);
+  };
+
   return (
-    <div 
+    <div
       className="
         flex justify-between bg-white w-full min-w-[300px] relative 
         border border-gray-200 rounded-2xl p-4
         hover:cursor-pointer
         mb-2"
-      onClick={extendReviewTab}
-    >
-
+      onClick={extendReviewTab}>
       <div className="flex flex-col h-full min-w-0 gap-4">
         <div className="flex gap-4">
-          <Image 
+          <Image
             src={
-              userProfileImg && userProfileImg.trim() !== "" ? 
-              userProfileImg : 
-              IMAGES.GALLERY_DEFAULT_IMG
+              userProfileImg && userProfileImg.trim() !== ""
+                ? userProfileImg
+                : IMAGES.GALLERY_DEFAULT_IMG
             }
             alt={userProfileImgAlt}
             width={80}
@@ -47,25 +46,23 @@ export default function EventReviewList({
             <div className="flex gap-2">
               {/* 별점 */}
               <StarScore score={score} />
-              <span className="text-gray-300">
-                {createdDate}
-              </span>
+              <span className="text-gray-300">{createdDate}</span>
             </div>
           </div>
         </div>
         {/* 후기 내용 */}
-        <div 
+        <div
           className={`
             text-gray-700 mt-2 leading-relaxed px-2
-            ${!reviewTabExtend && "overflow-hidden whitespace-nowrap text-ellipsis"}
-          `}
-        >
+            ${
+              !reviewTabExtend &&
+              "overflow-hidden whitespace-nowrap text-ellipsis"
+            }
+          `}>
           {content}
         </div>
       </div>
-      <div className="flex items-center gap-6 mb-1 flex-shrink-0">
-      </div>
-
+      <div className="flex items-center gap-6 mb-1 flex-shrink-0"></div>
     </div>
   );
 }

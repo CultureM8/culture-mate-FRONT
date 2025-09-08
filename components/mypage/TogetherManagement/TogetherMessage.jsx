@@ -1,64 +1,252 @@
 "use client";
-import { useState, useEffect, useContext, useMemo } from "react";
-import RequestChat from "@/components/mypage/TogetherManagement/RequestChat";
+import { useState, useEffect, useContext, useMemo, useRef } from "react";
+
+import TogetherRequestChat from "@/components/mypage/TogetherManagement/TogetherRequestChat";
+import ChatRequestCard from "@/components/mypage/TogetherManagement/ChatRequestCard";
+import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
+import { LoginContext } from "@/components/auth/LoginProvider";
+
 import {
   getChatRequestsForUser,
-  updateChatRequestStatus,
+  getChatRequestsFromUser,
   getUnreadChatRequestsCount,
+  updateChatRequestStatus,
 } from "@/lib/chatRequestUtils";
-import ChatRequestCard from "@/components/mypage/TogetherManagement/ChatRequestCard";
-import { LoginContext } from "@/components/auth/LoginProvider";
-import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
+
+import { listChatRooms, createChatRoom, joinRoom } from "@/lib/chatApi";
 
 export default function TogetherMessage() {
   const [chatRequests, setChatRequests] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("received");
-  const [filterStatus, setFilterStatus] = useState("all");
+
+  const [activeTab, setActiveTab] = useState("received"); // "received" | "sent"
+  const [filterStatus, setFilterStatus] = useState("all"); // "all" | "pending" | "accepted" | "rejected"
+
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [selectedFriend, setSelectedFriend] = useState(null);
   const [isSlideVisible, setIsSlideVisible] = useState(false);
+
+  const [selectedFriend, setSelectedFriend] = useState(null);
   const [isFriendProfileVisible, setIsFriendProfileVisible] = useState(false);
 
+  const [activeRoomId, setActiveRoomId] = useState(null);
+  // ✅ roomId 간단 캐시 (postId/togetherId 기준)
+  const roomCacheRef = useRef({});
+
   const { user } = useContext(LoginContext);
-  const currentUserId = user?.id || user?.user_id || user?.login_id;
+  const currentUserIdRaw = user?.id || user?.user_id || user?.login_id || null;
+  const currentUserId =
+    currentUserIdRaw != null ? String(currentUserIdRaw) : null;
 
-  /* 목록/카운트 로드*/
+  // 필터된 목록
+  const filteredRequests = useMemo(() => {
+    const base =
+      filterStatus === "all"
+        ? chatRequests
+        : chatRequests.filter((r) => r.status === filterStatus);
+    return base;
+  }, [chatRequests, filterStatus]);
+
+  // 외부 이벤트로 채팅 열기
   useEffect(() => {
-    if (!currentUserId) return;
+    const onOpen = (e) => {
+      const ridNum = Number(e?.detail?.roomId);
+      if (!Number.isFinite(ridNum)) return;
+      setActiveRoomId(ridNum); // ✅ 숫자 보정
+      setIsSlideVisible(true);
+    };
+    window.addEventListener("open-group-chat", onOpen);
+    return () => window.removeEventListener("open-group-chat", onOpen);
+  }, []);
 
-    const loadAll = () => {
-      let requests = [];
-      if (activeTab === "received") {
-        requests = getChatRequestsForUser(currentUserId);
-      } else {
-        requests = []; /*보낸 신청 구현 시 대체*/
-      }
-      /*최신순 정렬*/
-      requests.sort((a, b) => {
+  // 목록/카운트 로더
+  const loadAll = useMemo(() => {
+    return () => {
+      if (!currentUserId) return;
+
+      const list =
+        activeTab === "received"
+          ? getChatRequestsForUser(currentUserId)
+          : getChatRequestsFromUser(currentUserId);
+
+      list.sort((a, b) => {
         const av = new Date(a.createdAt || 0).getTime();
         const bv = new Date(b.createdAt || 0).getTime();
         return bv - av;
       });
-      setChatRequests(requests);
 
-      const count = getUnreadChatRequestsCount(currentUserId);
-      setUnreadCount(count);
+      setChatRequests(list);
+      setUnreadCount(getUnreadChatRequestsCount(currentUserId));
     };
-
-    loadAll();
-    const interval = setInterval(loadAll, 5000);
-    return () => clearInterval(interval);
   }, [activeTab, currentUserId]);
 
-  /* 탭 바뀔 때 슬라이드/선택 리셋*/
+  useEffect(() => {
+    if (!currentUserId) return;
+    loadAll();
+
+    const interval = setInterval(loadAll, 5000);
+    const onSync = () => loadAll();
+    const onStorage = (e) => {
+      if (e.key === "chatRequests") loadAll();
+    };
+
+    window.addEventListener("chat-request:sync", onSync);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("chat-request:sync", onSync);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [loadAll, currentUserId]);
+
+  // BroadcastChannel로 탭 간 동기화
+  useEffect(() => {
+    if (!currentUserId) return;
+    const bc = new BroadcastChannel("chat-requests");
+    const onMsg = () => loadAll();
+    bc.addEventListener("message", onMsg);
+    return () => {
+      try {
+        bc.removeEventListener("message", onMsg);
+      } catch {}
+      try {
+        bc.close();
+      } catch {}
+    };
+  }, [currentUserId, loadAll]);
+
+  // 탭 전환 시 패널 리셋
   useEffect(() => {
     setIsSlideVisible(false);
     setIsFriendProfileVisible(false);
     setSelectedRequest(null);
     setSelectedFriend(null);
+    setActiveRoomId(null);
   }, [activeTab]);
 
+  // ------- 유틸 -------
+  const nameContainsKey = (roomName, key) =>
+    typeof roomName === "string" &&
+    key != null &&
+    String(roomName).includes(String(key));
+
+  const getTargetKeyFromRequest = (req) =>
+    req?.postId ?? req?.togetherId ?? req?.eventId ?? req?.together_id ?? null;
+
+  const getOtherMemberId = (req) => {
+    const me = currentUserId != null ? String(currentUserId) : null;
+    const candidates = [
+      req?.fromUserId,
+      req?.toUserId,
+      req?.from,
+      req?.to,
+      req?.hostId,
+      req?.guestId,
+    ].filter((v) => v != null);
+
+    for (const c of candidates) {
+      const s = String(c);
+      if (me && s === me) continue;
+      const n = Number(s);
+      if (Number.isFinite(n)) return n;
+    }
+    return null;
+  };
+
+  // 방 보장 + 멤버 조인까지 (필요 최소)
+  const ensureRoom = async (req) => {
+    const targetKey = String(getTargetKeyFromRequest(req) ?? "");
+    // ✅ 캐시 우선
+    if (targetKey && roomCacheRef.current[targetKey]) {
+      return roomCacheRef.current[targetKey];
+    }
+
+    // ✅ 요청에 roomId 이미 있으면 즉시 반환
+    if (req?.roomId) {
+      if (targetKey) roomCacheRef.current[targetKey] = req.roomId;
+      // 참가 등록은 파이어-앤-포겟
+      try {
+        const meNum = Number(currentUserId);
+        if (Number.isFinite(meNum)) joinRoom(req.roomId, meNum);
+      } catch {}
+      try {
+        const otherNum = getOtherMemberId(req);
+        if (Number.isFinite(otherNum)) joinRoom(req.roomId, otherNum);
+      } catch {}
+      return req.roomId;
+    }
+
+    let rid = null;
+
+    try {
+      const roomsRaw = await listChatRooms();
+      const rooms = Array.isArray(roomsRaw)
+        ? roomsRaw
+        : roomsRaw?.data ||
+          roomsRaw?.items ||
+          roomsRaw?.list ||
+          roomsRaw?.rooms ||
+          [];
+      // 1) roomName에 post/together/event 키가 포함된 방 찾기 (우선 postId)
+      const postKey = targetKey;
+      const me = String(req?.toUserId ?? "");
+      const him = String(req?.fromUserId ?? "");
+      const byName =
+        rooms.find(
+          (r) =>
+            typeof r?.roomName === "string" &&
+            r.roomName.includes(postKey) &&
+            r.roomName.includes(me) &&
+            r.roomName.includes(him)
+        ) ||
+        rooms.find(
+          (r) => typeof r?.roomName === "string" && r.roomName.includes(postKey)
+        ) ||
+        rooms.find(
+          (r) =>
+            typeof r?.roomName === "string" &&
+            r.roomName.includes(me) &&
+            r.roomName.includes(him)
+        );
+      rid = byName?.id ?? byName?.roomId ?? null;
+
+      // 2) 없으면 생성 (서버가 보유 중인 네이밍과 맞춥니다)
+      if (!rid) {
+        const name = postKey ? `채팅방 - ${postKey}` : `채팅방 - ${Date.now()}`;
+        const created = await createChatRoom(name);
+        rid = created?.id ?? created?.roomId ?? null;
+      }
+    } catch (e) {
+      console.warn("방 목록/생성 실패:", e);
+    }
+
+    // 3) 멤버 조인 (파이어-앤-포겟, UI 블로킹 금지)
+    if (rid) {
+      // 캐시 저장
+      if (targetKey) roomCacheRef.current[targetKey] = rid;
+      // 참가는 기다리지 않음
+      (async () => {
+        try {
+          const meNum = Number(currentUserId);
+          if (Number.isFinite(meNum)) await joinRoom(rid, meNum);
+        } catch (e) {
+          console.warn("나 조인 실패(무시):", e);
+        }
+      })();
+      (async () => {
+        try {
+          const otherNum = getOtherMemberId(req);
+          if (Number.isFinite(otherNum)) await joinRoom(rid, otherNum);
+        } catch (e) {
+          console.warn("상대 조인 실패(무시):", e);
+        }
+      })();
+    }
+
+    return rid;
+  };
+
+  // ------- 액션 -------
   const handleAcceptRequest = async (requestId) => {
     try {
       await updateChatRequestStatus(requestId, "accepted");
@@ -69,22 +257,104 @@ export default function TogetherMessage() {
         setChatRequests(list);
         setUnreadCount(getUnreadChatRequestsCount(currentUserId));
       }
+
+      const req =
+        selectedRequest?.requestId === requestId
+          ? selectedRequest
+          : chatRequests.find((r) => r.requestId === requestId);
+
+      let rid = null;
+
+      if (req?.roomId != null) {
+        rid = req.roomId;
+      } else {
+        const rooms = await listChatRooms();
+        const rows = Array.isArray(rooms) ? rooms : [];
+        const post = req?.postId ? String(req.postId) : "";
+        const me = String(req?.toUserId ?? "");
+        const him = String(req?.fromUserId ?? "");
+        const nameHit =
+          rows.find(
+            (r) =>
+              String(r.roomName || "").includes(post) &&
+              String(r.roomName || "").includes(me) &&
+              String(r.roomName || "").includes(him)
+          ) ||
+          rows.find((r) => String(r.roomName || "").includes(post)) ||
+          rows.find(
+            (r) =>
+              String(r.roomName || "").includes(me) &&
+              String(r.roomName || "").includes(him)
+          );
+        rid = nameHit?.id ?? nameHit?.roomId ?? null;
+
+        if (!rid) {
+          // 없으면 생성
+          const name = post ? `채팅방 - ${post}` : `채팅방 - ${Date.now()}`;
+          const created = await createChatRoom(name);
+          rid = created?.id ?? created?.roomId ?? null;
+        }
+      }
+
+      if (!rid) {
+        alert("채팅방을 찾지 못했습니다. 다시 시도해주세요.");
+        return null;
+      }
+
+      // 두 명 모두 참가
+      const meIdNum = Number(currentUserId);
+      if (Number.isFinite(meIdNum)) {
+        try {
+          await joinRoom(Number(rid), meIdNum);
+        } catch (e) {
+          console.warn("내 방참가 실패(무시 가능):", e);
+        }
+      }
+
+      const peerIdRaw =
+        req && (req.fromUserId ?? req.toUserId) != null
+          ? req.status === "accepted" && activeTab === "received"
+            ? req.fromUserId
+            : req.toUserId
+          : activeTab === "received"
+          ? req?.fromUserId
+          : req?.toUserId;
+
+      const peerIdNum = Number(peerIdRaw);
+      if (Number.isFinite(peerIdNum)) {
+        try {
+          await joinRoom(Number(rid), peerIdNum);
+        } catch (e) {
+          console.warn("상대 방참가 실패(무시 가능):", e);
+        }
+      }
+
+      // ✅ 숫자로 세팅
+      setActiveRoomId(Number(rid));
+      setIsSlideVisible(true);
+
+      // 브로드캐스트 (선택)
+      try {
+        window.dispatchEvent(
+          new CustomEvent("open-group-chat", {
+            detail: { roomId: Number(rid) },
+          })
+        );
+      } catch {}
+
       alert("동행 신청을 수락했습니다!");
+      return Number(rid);
     } catch (e) {
       console.error(e);
       alert("신청 처리에 실패했습니다.");
+      return null;
     }
   };
 
   const handleRejectRequest = async (requestId) => {
     try {
       await updateChatRequestStatus(requestId, "rejected");
-      if (currentUserId) {
-        const list = getChatRequestsForUser(currentUserId);
-        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setChatRequests(list);
-        setUnreadCount(getUnreadChatRequestsCount(currentUserId));
-      }
+      loadAll();
       alert("동행 신청을 거절했습니다.");
     } catch (e) {
       console.error(e);
@@ -93,20 +363,37 @@ export default function TogetherMessage() {
   };
 
   const handleOpenChat = (request) => {
+    // ✅ 패널을 '즉시' 열고
     setSelectedRequest(request);
     setSelectedFriend(null);
     setIsFriendProfileVisible(false);
     setIsSlideVisible(true);
+    setActiveRoomId(null); // roomId 없어도 패널은 렌더 (자식이 '연결중'만 표시)
+
+    // ✅ 방 찾기/생성은 백그라운드로 (UI 블로킹 X)
+    (async () => {
+      try {
+        const roomId = request?.roomId ?? (await ensureRoom(request));
+        if (roomId) setActiveRoomId(roomId);
+      } catch (e) {
+        console.warn("[채팅방 매칭 실패]", {
+          from: String(request?.from ?? request?.fromUserId ?? ""),
+          to: String(request?.to ?? request?.toUserId ?? ""),
+          postId: request?.postId,
+          togetherId_raw: request?.togetherId,
+          eventId: request?.eventId,
+        });
+        // 패널은 열린 상태 유지, 토스트만 띄우거나 무시
+      }
+    })();
   };
-  const handleOpenChatRoom = (request) => handleOpenChat(request);
+
+  const handleOpenChatRoom = handleOpenChat;
 
   const handleSlideClose = () => {
     setIsSlideVisible(false);
     setIsFriendProfileVisible(false);
-    setTimeout(() => {
-      setSelectedRequest(null);
-      setSelectedFriend(null);
-    }, 300);
+    setSelectedFriend(null);
   };
 
   const handleFriendClick = (friend) => {
@@ -119,11 +406,13 @@ export default function TogetherMessage() {
     setSelectedFriend(null);
   };
 
-  const filteredRequests = useMemo(() => {
-    return chatRequests.filter((request) =>
-      filterStatus === "all" ? true : request.status === filterStatus
+  if (!currentUserId) {
+    return (
+      <div className="p-8 text-center text-sm text-gray-500">
+        로그인 정보를 확인 중입니다…
+      </div>
     );
-  }, [chatRequests, filterStatus]);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -137,7 +426,7 @@ export default function TogetherMessage() {
             <option value="received">
               받은 신청{unreadCount > 0 ? ` (${unreadCount})` : ""}
             </option>
-            {/* <option value="sent">보낸 신청</option> */}
+            <option value="sent">보낸 신청</option>
           </select>
         </span>
 
@@ -183,6 +472,7 @@ export default function TogetherMessage() {
                         ? "bg-blue-50 border-l-4 border-l-blue-500"
                         : "hover:bg-gray-50"
                     }`}>
+                    {/* 카드 or 간단 미리보기 컴포넌트 */}
                     <ChatRequestCard
                       request={request}
                       onAccept={handleAcceptRequest}
@@ -195,7 +485,7 @@ export default function TogetherMessage() {
               </div>
             ) : (
               <div className="bg-white rounded-lg p-12 text-center">
-                <div className="text-[#76787a] font-['Inter:Regular','Noto_Sans_KR:Regular',sans-serif]">
+                <div className="text-[#76787a]">
                   {activeTab === "received" ? (
                     <>
                       <p className="text-lg mb-2">받은 채팅 신청이 없습니다</p>
@@ -217,17 +507,17 @@ export default function TogetherMessage() {
           </div>
         </div>
 
-        {/* 슬라이드 (채팅 / 프로필) */}
+        {/* 오른쪽 슬라이드 (채팅/프로필) */}
         <div
           className={`transition-all duration-300 ease-in-out overflow-hidden ${
             isSlideVisible ? "w-1/2" : "w-0"
           }`}>
           <div className="w-full h-full bg-white rounded-lg shadow-sm ml-2 flex flex-col">
             {isFriendProfileVisible ? (
-              <div className="relative w-full h-full">
+              <div className="relative w/full h/full">
                 <div className="absolute top-4 left-4 z-10">
                   <button
-                    onClick={handleBackToChat}
+                    onClick={handleFriendClick}
                     className="p-2 bg-white hover:bg-gray-100 rounded-full shadow-md transition-colors duration-200">
                     <svg
                       className="w-5 h-5 text-gray-600"
@@ -243,7 +533,6 @@ export default function TogetherMessage() {
                     </svg>
                   </button>
                 </div>
-
                 <FriendProfileSlide
                   friend={selectedFriend}
                   isVisible={isFriendProfileVisible}
@@ -253,16 +542,23 @@ export default function TogetherMessage() {
             ) : (
               selectedRequest && (
                 <div className="flex-1 flex flex-col min-h-0">
-                  <RequestChat
+                  <TogetherRequestChat
                     chatRequestData={selectedRequest}
-                    isOpen={isSlideVisible}
+                    roomId={activeRoomId}
                     onClose={handleSlideClose}
-                    onFriendClick={handleFriendClick}
+                    onFriendClick={setSelectedFriend}
                     onAccept={handleAcceptRequest}
                     onReject={handleRejectRequest}
+                    isFromSentBox={activeTab === "sent"}
                   />
                 </div>
               )
+            )}
+            {/* roomId 준비 전 안내 (선택) */}
+            {selectedRequest && !activeRoomId && !isFriendProfileVisible && (
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+                채팅방을 준비하는 중입니다…
+              </div>
             )}
           </div>
         </div>

@@ -96,12 +96,12 @@ export default function SearchToWrite({ onSelect = () => {} }) {
       <form
         onSubmit={handleSubmit}
         className="flex items-center h-8 w-[clamp(50px,30vw,300px)]
-          border border-gray-300 rounded-full p-3 gap-2">
+          border border-gray-300 rounded-full p-3 gap-2 ">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full bg-transparent focus:outline-none focus:placeholder:opacity-0"
+          className="w-full bg-transparent focus:outline-none focus:placeholder:opacity-0 text-sm "
           placeholder="검색어를 입력해주세요"
         />
         <button type="submit" className="hover:cursor-pointer">

@@ -1,8 +1,8 @@
 /*검색창*/
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { ICONS } from '@/constants/path';
+import Image from "next/image";
+import { ICONS } from "@/constants/path";
 
 export default function SearchInput({
   value /**현재 입력값 */,
@@ -13,7 +13,7 @@ export default function SearchInput({
   return (
     <form
       onSubmit={onSubmit}
-      className="flex items-center h-8 w-[clamp(50px,30vw,300px)] border border-gray-300 rounded-full px-3 py-1 gap-2 bg-white">
+      className="flex items-center h-8 w-[clamp(50px,30vw,300px)] border border-gray-300 rounded-full px-3 py-1 gap-2 bg-white ">
       <input
         type="text"
         value={value}
