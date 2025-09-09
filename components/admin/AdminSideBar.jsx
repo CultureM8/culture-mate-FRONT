@@ -7,56 +7,48 @@ import { ROUTES } from "@/constants/path";
 export default function AdminSideBar() {
   const pathname = usePathname();
 
-  // 메뉴 데이터 구조
   const menuItems = [
     {
       category: "통계/대시보드",
-      isCategory: true,
       items: [
-        { name: "대시보드", path: "/admin" }
+        { name: "대시보드", path: ROUTES.ADMIN }
       ]
     },
     {
       category: "이벤트",
-      isCategory: true,
       items: [
-        { name: "전체 이벤트", path: "/admin/events/all" },
-        { name: "승인 대기 이벤트", path: "/admin/events/pending" }
+        { name: "전체 이벤트", path: `${ROUTES.ADMIN}/events/all` },
+        { name: "승인 대기 이벤트", path: `${ROUTES.ADMIN}/events/pending` }
       ]
     },
     {
       category: "게시글",
-      isCategory: true,
       items: [
-        { name: "전체 게시글", path: "/admin/contents/all" }
+        { name: "전체 게시글", path: `${ROUTES.ADMIN}/contents/all` }
       ]
     },
     {
       category: "사용자",
-      isCategory: true,
       items: [
-        { name: "전체 사용자", path: "/admin/users/all" }
+        { name: "전체 사용자", path: `${ROUTES.ADMIN}/users/all` }
       ]
     },
     {
       category: "신고 관리",
-      isCategory: true,
       items: [
-        { name: "게시글 신고 목록", path: "/admin/alarms/contents" }
+        { name: "게시글 신고 목록", path: `${ROUTES.ADMIN}/alarms/contents` }
       ]
     },
     {
       category: "고객 소통",
-      isCategory: true,
       items: [
-        { name: "1:1 문의사항", path: "/admin/help/contact" }
+        { name: "1:1 문의사항", path: `${ROUTES.ADMIN}/help/contact` }
       ]
     }
   ];
 
   return (
     <div className="
-      bg-white
       flex 
       flex-col 
       w-full

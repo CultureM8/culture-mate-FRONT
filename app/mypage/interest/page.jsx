@@ -1,4 +1,5 @@
 import InterestTab from "@/components/mypage/InterestTab";
+import PageTitle from "@/components/global/PageTitle";
 import { useMemo } from "react";
 
 export default function Interest() {
@@ -225,7 +226,7 @@ export default function Interest() {
   );
   return (
     <>
-      <h1 className="text-4xl font-bold py-[10px] h-16">관심 목록</h1>
+      <PageTitle>관심 목록</PageTitle>
       <div className="mt-4 space-y-1">
         <InterestTab eventData={eventData} />
       </div>

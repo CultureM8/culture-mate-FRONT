@@ -257,7 +257,7 @@ export default function CommunityListTablePage() {
 
       <SlidingBanner />
 
-      <div className="w-full max-w-[1200px] mt-16 mb-2 flex items-center justify-end gap-3">
+      <div className="w-full mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar
           value={query}
           onChange={setQuery}
