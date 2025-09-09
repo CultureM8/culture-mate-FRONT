@@ -16,7 +16,7 @@ export default function MypageSideBar() {
       category: "활동 관리",
       items: [
         { name: "관심 목록", path: ROUTES.INTEREST },
-        { name: "동행 관리", path: ROUTES.FRIENDLIST },
+        { name: "동행 관리", path: ROUTES.TOGETHER_MANAGE },
         { name: "활동 내역", path: ROUTES.HISTORY },
       ],
     },

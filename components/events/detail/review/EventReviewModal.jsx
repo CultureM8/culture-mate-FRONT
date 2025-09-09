@@ -5,6 +5,7 @@ import Modal from "../../../global/Modal";
 import StarRating from "@/lib/StarRating";
 import { createEventReview } from "@/lib/eventApi";
 import { LoginContext } from "@/components/auth/LoginProvider";
+import { displayNameFromTriplet } from "@/lib/displayName";
 
 export default function EventReviewModal({
   isOpen,
@@ -45,35 +46,19 @@ export default function EventReviewModal({
     setIsSubmitting(true);
 
     try {
+      // 백엔드 ReviewDto.Request에 맞는 구조
       const reviewData = {
         eventId: parseInt(eventId),
-        memberId: user.id,
         rating: rating,
         content: content.trim(),
+        // memberId는 백엔드에서 인증된 사용자 정보로 자동 설정됨
       };
 
       const savedReview = await createEventReview(reviewData);
 
-      const frontendReview = {
-        id: savedReview.id,
-        eventId: eventId,
-        userNickname:
-          user.nickname || user.display_name || user.login_id || "사용자",
-        userProfileImg: user.profileImage || "",
-        userProfileImgAlt: user.nickname || "프로필",
-        content: content.trim(),
-        score: rating,
-        createdDate: new Date()
-          .toLocaleDateString("ko-KR", {
-            year: "2-digit",
-            month: "2-digit",
-            day: "2-digit",
-          })
-          .replace(/\. /g, ".")
-          .replace(/\.$/, ""),
-      };
-
-      onReviewAdded?.(frontendReview);
+      // API 스키마에 맞는 형태로 반환
+      // 상위 컴포넌트에서 사용자 정보는 별도로 처리
+      onReviewAdded?.(savedReview);
 
       alert("후기가 성공적으로 등록되었습니다!");
       setContent("");
@@ -89,6 +74,16 @@ export default function EventReviewModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // 사용자 표시명
+  const getUserDisplayName = () => {
+    if (!user) return "사용자";
+    return displayNameFromTriplet(
+      user.nickname,
+      user.login_id,
+      user.id || user.user_id
+    );
   };
 
   if (!isLogined) {
@@ -119,7 +114,7 @@ export default function EventReviewModal({
         </h1>
 
         <div className="mb-4 text-sm text-gray-600">
-          작성자: {user.display_name || user.login_id}
+          작성자: {getUserDisplayName()}
         </div>
 
         <div className="mb-4 flex gap-2 items-center">

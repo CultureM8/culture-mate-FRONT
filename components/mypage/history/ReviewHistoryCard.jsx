@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import StarScore from "@/lib/StarScore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const TYPE_LABELS = {
   MUSICAL: "뮤지컬",
@@ -14,10 +14,19 @@ const TYPE_LABELS = {
   지역행사: "지역행사",
 };
 
+// 상대경로를 절대경로로 바꿔주는 유틸 (빈 값이면 null)
+const toAbs = (v) => {
+  if (!v || typeof v !== "string") return null;
+  const s = v.trim();
+  if (!s) return null;
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  return `http://localhost:8080${s.startsWith("/") ? "" : "/"}${s}`;
+};
+
 export default function ReviewHistoryCard({
   review,
   variant = "row",
-  // 편집 모드 관련 props 추가
+  // 편집 모드 관련 props
   editMode = false,
   selected = false,
   onToggleSelect = null,
@@ -45,27 +54,37 @@ export default function ReviewHistoryCard({
     reviewerNickname,
   } = review || {};
 
-  const eventImage =
-    event?.image ||
-    review?.eventImage ||
-    review?.eventImg ||
-    review?.imgSrc ||
-    "/img/default_img.svg";
+  // 1) 이벤트명/타입을 먼저 계산 (alt에서 참조하므로 가장 먼저)
   const eventName = event?.name ?? review?.eventName ?? "이벤트";
   const rawType = event?.type ?? review?.eventType ?? "이벤트";
   const eventType = TYPE_LABELS[rawType] ?? rawType;
 
-  // 작성자 정보 처리
+  // 2) 이벤트 이미지 원본 경로 수집 → 절대경로화 → 초기값 세팅
+  const rawEventImg =
+    event?.image ||
+    event?.thumbnailImagePath ||
+    review?.eventImage ||
+    review?.eventImg ||
+    review?.imgSrc ||
+    ""; // 빈 문자열이면 기본이미지로 대체됨
+
+  const initialEventSrc = toAbs(rawEventImg) || "/img/default_img.svg";
+  const [eventImgSrc, setEventImgSrc] = useState(initialEventSrc);
+
+  // 원본 경로가 바뀌면 다시 세팅
+  useEffect(() => {
+    setEventImgSrc(toAbs(rawEventImg) || "/img/default_img.svg");
+  }, [rawEventImg]);
+
+  // 작성자 표시명/프로필
   let authorDisplayName = "사용자";
   let authorProfileImage = "";
 
-  // memberId가 있고 member 정보가 있는 경우
   if (member) {
     authorDisplayName =
       member.nickname || member.name || member.loginId || `사용자${memberId}`;
     authorProfileImage = member.profileImage || member.avatar || "";
   } else {
-    // 기존 로직
     authorDisplayName =
       userNickname ||
       authorNickname ||
@@ -92,11 +111,12 @@ export default function ReviewHistoryCard({
       "";
   }
 
-  // 백엔드 스키마에 맞춰 rating 우선 사용
+  // 백엔드 스키마에 맞춰 rating 우선
   const finalScore = rating || score || 0;
 
+  // 날짜 포맷
   const formatDate = (v1, v2) => {
-    if (v2) return v2; // "YY.MM.DD"가 이미 있으면 그대로
+    if (v2) return v2; // "YY.MM.DD" 형식이 이미 있으면 그대로
     if (!v1) return "";
     const d = typeof v1 === "string" ? new Date(v1) : v1;
     if (Number.isNaN(d?.getTime?.())) return "";
@@ -106,9 +126,7 @@ export default function ReviewHistoryCard({
     return `${yy}.${mm}.${dd}`;
   };
 
-  const extendReviewTab = () => {
-    setReviewTabExtend(!reviewTabExtend);
-  };
+  const extendReviewTab = () => setReviewTabExtend(!reviewTabExtend);
 
   // 카드 클릭 핸들러
   const handleCardClick = (e) => {
@@ -120,14 +138,14 @@ export default function ReviewHistoryCard({
     }
   };
 
-  // === 가로형 레이아웃 ===
+  // === 가로형 레이아웃 (UI 그대로) ===
   return (
     <div
       className={`w-full bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow duration-150 relative hover:cursor-pointer mb-2 ${
         editMode ? "cursor-pointer" : ""
       } ${selected ? "bg-blue-50 border-blue-300" : ""}`}
       onClick={handleCardClick}>
-      {/* 편집 모드에서 체크박스 표시 */}
+      {/* 편집 모드에서 체크표시 */}
       {editMode && (
         <div className="absolute top-2 right-2 z-30">
           <div
@@ -146,10 +164,10 @@ export default function ReviewHistoryCard({
       )}
 
       <div className="flex items-start gap-4">
-        {/* 좌: 프로필 */}
+        {/* 좌: 프로필 (기본이미지는 기존대로 잘 뜨므로 유지) */}
         <Image
           src={
-            authorProfileImage?.trim()
+            authorProfileImage && authorProfileImage.trim()
               ? authorProfileImage
               : "/img/default_img.svg"
           }
@@ -175,12 +193,15 @@ export default function ReviewHistoryCard({
 
           {/* 이벤트 미니카드: 썸네일/타입/이름 + 별점 */}
           <div className="mt-3 flex items-center gap-4 bg-gray-50 rounded-lg p-3">
+            {/* next/image 유지 + 최적화 우회(403 회피), 실패 시 기본이미지 폴백 */}
             <Image
-              src={eventImage}
+              src={eventImgSrc}
               alt={`${eventName} 썸네일`}
               width={64}
               height={64}
               className="w-18 h-18 rounded-md object-cover flex-shrink-0"
+              unoptimized
+              onError={() => setEventImgSrc("/img/default_img.svg")}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">

@@ -6,21 +6,17 @@ import useLogin from "@/hooks/useLogin";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
-// import { getPost, updatePost } from "@/lib/storage";
 import { normalizeEventSnapshot } from "@/lib/schema";
 import { fetchPost, updatePostApi } from "@/lib/communityApi";
 
-/** 소유자 판별용 키 */
-const userKey = (u) => String(u?.id ?? u?.user_id ?? u?.login_id ?? "");
-
 export default function CommunityEditPage() {
-  const { postId } = useParams();
+  const params = useParams();
+  const postId = params.postId ?? params.boardId;
   const router = useRouter();
   const { ready, isLogined, user } = useLogin();
 
   const [post, setPost] = useState(null);
 
-  // 글쓰기 페이지와 동일한 상태들
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -30,144 +26,97 @@ export default function CommunityEditPage() {
   const [saving, setSaving] = useState(false);
   const firstGuard = useRef(false);
 
-  // 1) 게시글 로드
+  // 게시글 로드 (GET /api/v1/board/{boardId})
   useEffect(() => {
-    const p = getPost("community", postId);
-    setPost(p || null);
-    if (p) {
-      setTitle(p.title || "");
-      setContent(p.content || "");
-      // 기존에 저장된 이벤트 스냅샷이 있으면 그대로 표시
-      setSelectedEvent(p.eventSnapshot ?? null);
-    }
+    if (!postId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const data = await fetchPost(postId);
+        if (!alive) return;
+        setPost(data || null);
+        if (data) {
+          setTitle(data.title || "");
+          setContent(data.content || "");
+          // 이벤트 스펙이 응답에 어떻게 오는지 명확치 않으므로, 선택 시에만 보냄
+          setSelectedEvent(null);
+        }
+      } catch (e) {
+        console.error("edit: fetchPost failed", e);
+        setPost(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [postId]);
 
-  // 2) 로그인/권한 가드 (write 페이지와 동일한 흐름 + 소유자 확인)
+  //  로그인 가드
+
   useEffect(() => {
     if (!ready) return;
-    if (!post) return;
-
     if (!isLogined && !firstGuard.current) {
       firstGuard.current = true;
-      const next = encodeURIComponent(
-        window.location.pathname + window.location.search
-      );
+      const next = encodeURIComponent(location.pathname + location.search);
       router.replace(`/login?next=${next}`);
-      return;
     }
-
-    // 소유자만 수정 가능(_ownerKey 저장해둔 값 기준)
-    const owner =
-      post._ownerKey || String(post.authorId || post.authorLoginId || "");
-    if (userKey(user) !== String(owner)) {
-      alert("이 글을 수정할 권한이 없습니다.");
-      router.replace(`/community/${postId}`);
-    }
+    // 아래 deps는 실제로 안 쓰더라도, 개발 중 배열 길이 변화로 인한 에러 방지용으로 유지
   }, [ready, isLogined, user, post, postId, router]);
 
-  if (!post) {
-    return (
-      <div className="w-full max-w-[900px] mx-auto px-6 py-10">
-        <h1 className="text-2xl font-semibold mb-4">글을 찾을 수 없습니다</h1>
-        <button
-          className="px-4 py-2 border rounded"
-          onClick={() => router.push("/mypage/post-manage")}>
-          목록으로
-        </button>
-      </div>
-    );
-  }
-
-  // 글쓰기 페이지와 동일한 검증/모달 트리거
   const trySubmit = () => {
     if (!title.trim()) return alert("제목을 입력해주세요.");
     if (!content.trim()) return alert("내용을 입력해주세요.");
     if (!isLogined) {
-      const next = encodeURIComponent(
-        window.location.pathname + window.location.search
-      );
+      const next = encodeURIComponent(location.pathname + location.search);
       router.replace(`/login?next=${next}`);
       return;
     }
     setOpenSubmit(true);
   };
 
-  // 저장 실행 프론트
-  // const handleSave = async () => {
-  //   if (!title.trim() || !content.trim()) return;
-
-  //   setSaving(true);
-  //   try {
-  //     const ev =
-  //       normalizeEventSnapshot(selectedEvent) ?? post.eventSnapshot ?? null;
-  //     const patch = {
-  //       title: title.trim(),
-  //       content,
-  //       eventId: ev?.eventId ?? post.eventId ?? 0,
-  //       eventType: ev?.eventType ?? post.eventType ?? "ETC",
-  //       eventSnapshot: ev,
-  //     };
-  //     const ok = updatePost("community", postId, patch);
-  //     if (!ok) {
-  //       alert("수정에 실패했습니다.");
-  //       return;
-  //     }
-  //     setOpenSubmit(false);
-  //     router.replace(`/community/${postId}`);
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // };
-
-  //저장 백엔드
+  // 저장 (PUT /api/v1/board/{boardId}) – Request: title, content, authorId, eventType?, eventId?
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) return;
 
     setSaving(true);
     try {
-      const ev =
-        normalizeEventSnapshot(selectedEvent) ?? post.eventSnapshot ?? null;
-
-      // ✅ BoardRequestDto에 맞춘 payload
-      const authorId = user?.id ?? user?.user_id ?? post?.authorId;
+      // BoardDto.Request 스펙에 맞게 전송
+      const authorId = user?.id ?? user?.user_id ?? post?.author?.id;
       if (!authorId) {
         alert("작성자 정보를 확인할 수 없습니다.");
         return;
       }
-
-      const patch = {
+      const updated = await updatePostApi(postId, {
         title: title.trim(),
         content,
         authorId,
-        eventType: ev?.eventType ?? post?.eventType ?? null,
-        eventId: ev?.eventId ?? post?.eventId ?? null,
-      };
-
-      const updated = await updatePostApi(postId, patch); // PUT /api/v1/board/{id}
+        // 선택 값(백엔드가 쓰지 않으면 null로 보내도 무해)
+        eventType: null,
+        eventId: null,
+      });
       setOpenSubmit(false);
-      router.replace(`/community/${updated.id ?? postId}`);
+      router.replace(`/community/${updated?.id ?? postId}`);
+    } catch (e) {
+      console.error("updatePostApi failed", e);
+      alert(`수정에 실패했습니다.\n${e?.message ?? ""}`);
     } finally {
       setSaving(false);
     }
   };
 
-  // UI (글쓰기 페이지 구성 그대로)
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-8 py-6">
-        {/* 페이지 타이틀 */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-black">
             자유 게시판 게시글 수정
           </h1>
         </div>
 
-        {/* 옵션 박스 (이벤트/컨텐츠) */}
         <div className="mb-4">
           <CommunityWriteOption onPickEvent={setSelectedEvent} />
         </div>
 
-        {/* 선택된 이벤트 카드 (선택했을 때만 표시) */}
         {selectedEvent && (
           <div className="mb-6 relative">
             <h3 className="text-lg font-medium text-gray-700 mb-2">
@@ -182,7 +131,6 @@ export default function CommunityEditPage() {
           </div>
         )}
 
-        {/* 제목 */}
         <div className="w-full mb-4">
           <input
             type="text"
@@ -193,7 +141,6 @@ export default function CommunityEditPage() {
           />
         </div>
 
-        {/* 본문 */}
         <div className="w-full">
           <textarea
             placeholder="내용을 입력해주세요"
@@ -203,7 +150,6 @@ export default function CommunityEditPage() {
           />
         </div>
 
-        {/* 버튼 */}
         <div className="flex justify-end gap-4 mb-8 mt-2">
           <button
             onClick={() => setOpenCancel(true)}
@@ -219,7 +165,6 @@ export default function CommunityEditPage() {
         </div>
       </div>
 
-      {/* 취소 모달 (글쓰기 페이지와 동일 UX) */}
       <ConfirmModal
         open={openCancel}
         title="수정을 취소하겠습니까?"
@@ -228,13 +173,12 @@ export default function CommunityEditPage() {
         cancelText="계속수정"
         onConfirm={() => {
           setOpenCancel(false);
-          router.push(`/community/${postId}`);
+          router.push(`/mypage/post-manage`);
         }}
         onClose={() => setOpenCancel(false)}
         variant="danger"
       />
 
-      {/* 저장 모달 (글쓰기 페이지와 동일 UX) */}
       <ConfirmModal
         open={openSubmit}
         title="수정 내용을 저장할까요?"

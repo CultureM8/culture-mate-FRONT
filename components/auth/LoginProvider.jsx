@@ -36,6 +36,10 @@ const clear = () => {
   if (typeof window !== "undefined") {
     localStorage.removeItem(KEY);
     localStorage.removeItem(V1_KEY);
+    //  저장된 액세스 토큰도 제거
+    try {
+      localStorage.removeItem("accessToken");
+    } catch {}
   }
 };
 

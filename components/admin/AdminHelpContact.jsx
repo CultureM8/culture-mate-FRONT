@@ -16,6 +16,10 @@ export default function AdminHelpContact() {
   // 검색 상태 관리
   const [searchQuery, setSearchQuery] = useState("");
   
+  // 정렬 상태 관리
+  const [sortType, setSortType] = useState("문의 일시 최신순");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
   // 페이지네이션 상태 관리
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
@@ -170,8 +174,23 @@ export default function AdminHelpContact() {
     
     return matchesSearch && matchesStatus && matchesType;
   }).sort((a, b) => {
-    // 최신순 정렬
-    return new Date(b.datetime) - new Date(a.datetime);
+    // 정렬 타입에 따른 정렬
+    switch (sortType) {
+      case "문의 일시 최신순":
+        return new Date(b.datetime) - new Date(a.datetime);
+      case "문의 일시 오래된순":
+        return new Date(a.datetime) - new Date(b.datetime);
+      case "문의 번호 오름차순":
+        return a.inquiryNumber.localeCompare(b.inquiryNumber);
+      case "문의 번호 내림차순":
+        return b.inquiryNumber.localeCompare(a.inquiryNumber);
+      case "사용자 ID 오름차순":
+        return a.userId.localeCompare(b.userId);
+      case "사용자 ID 내림차순":
+        return b.userId.localeCompare(a.userId);
+      default:
+        return new Date(b.datetime) - new Date(a.datetime);
+    }
   });
 
   // 전체 선택/해제
@@ -205,6 +224,13 @@ export default function AdminHelpContact() {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
+  };
+
+  // 정렬 변경 핸들러
+  const handleSortChange = (newSortType) => {
+    setSortType(newSortType);
+    setShowSortDropdown(false);
+    resetToFirstPage();
   };
 
   // 필터 변경 시 첫 페이지로 리셋
@@ -304,15 +330,37 @@ export default function AdminHelpContact() {
           </div>
 
           {/* 정렬 */}
-          <div className="flex items-center gap-4">
-            <span className="text-[16px] font-medium text-black">정렬</span>
-            <Image
-              src={ICONS.DOWN_ARROW}
-              alt="down-arrow"
-              width={24}
-              height={10}
-              className="cursor-pointer"
-            />
+          <div className="relative">
+            <div 
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              <span className="text-[16px] font-medium text-black">정렬</span>
+              <Image
+                src={ICONS.DOWN_ARROW}
+                alt="sort-arrow"
+                width={24}
+                height={10}
+                className="cursor-pointer"
+              />
+            </div>
+            
+            {/* 정렬 드롭다운 */}
+            {showSortDropdown && (
+              <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
+                {["문의 일시 최신순", "문의 일시 오래된순", "문의 번호 오름차순", "문의 번호 내림차순", "사용자 ID 오름차순", "사용자 ID 내림차순"].map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSortChange(option)}
+                    className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
+                      sortType === option ? "text-black bg-gray-100 font-bold" : ""
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

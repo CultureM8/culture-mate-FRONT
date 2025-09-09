@@ -1,3 +1,4 @@
+// /components/CommentsSection.jsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -6,73 +7,81 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
 import { ROUTES } from "@/constants/path";
+import { api, unwrap } from "@/lib/apiBase";
+import { displayNameFromTriplet } from "@/lib/displayName";
 
-// ✅ 백엔드 댓글 API
-import {
-  listParentComments,
-  listReplies,
-  addComment,
-  updateComment,
-  deleteComment,
-} from "@/lib/communityApi";
+/** -------- 표시/권한 유틸 -------- */
 
-/** 표시명 규칙(로그인 사용자용) */
-const getDisplayName = (u) => {
+/** 로그인 사용자 라벨(작성 폼 표기용): 닉네임 > login_id > #id */
+const labelFromUser = (u) => {
   if (!u) return "사용자";
-  const dn = u.display_name && String(u.display_name).trim();
-  const nn = u.nickname && String(u.nickname).trim();
-  const rn = u.name && String(u.name).trim();
+  const nick = u.nickname && String(u.nickname).trim();
   const lid = u.login_id && String(u.login_id).trim();
-  const uid = u.id || u.user_id;
-  return dn || nn || rn || lid || uid || "사용자";
+  const id = u.id ?? u.user_id;
+  return nick || lid || (id != null ? `#${id}` : "사용자");
 };
 
-/** 로그인 사용자 키(권한 판별용) */
-const getUserKey = (u) => {
-  const uid = u?.id ?? u?.user_id ?? "";
-  const lid = u?.login_id ?? "";
-  return String(uid || lid || "");
+/** 수정/삭제 권한: 로그인 사용자 id == 댓글 authorId */
+const isOwner = (user, comment) => {
+  const uid = user?.id ?? user?.user_id;
+  const aid = comment?.authorId;
+  return uid != null && aid != null && String(uid) === String(aid);
 };
 
-/** 댓글 소유자 키(레거시 호환) */
-const getOwnerKeyFromComment = (c) =>
-  String(c?.ownerKey ?? c?.userId ?? c?.authorLoginId ?? "");
+/** 날짜 포맷(백엔드: yyyy-MM-dd 형태여도 안전 처리) */
+const fmt = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+};
 
-/** 서버 응답(CommentResponseDto) → 컴포넌트 내 표준 형태로 변환 */
-function adaptParent(c) {
-  return {
-    id: c.id,
-    parentId: null,
-    author: `#${c.authorId}`, // 서버에 표시명이 없으므로 authorId를 표시
-    authorLoginId: "", // 서버 미제공
-    userId: c.authorId,
-    ownerKey: String(c.authorId),
-    content: c.content,
-    createdAt: c.createdAt, // LocalDate 문자열 ("YYYY-MM-DD")
-    editedAt: c.updatedAt ?? null, // LocalDate 또는 null
-    likeCount: c.likeCount ?? 0,
-    replyCount: c.replyCount ?? 0,
-  };
-}
-function adaptReply(parentId, c) {
-  return {
-    id: c.id,
-    parentId,
-    author: `#${c.authorId}`,
-    authorLoginId: "",
-    userId: c.authorId,
-    ownerKey: String(c.authorId),
-    content: c.content,
-    createdAt: c.createdAt,
-    editedAt: c.updatedAt ?? null,
-    likeCount: c.likeCount ?? 0,
-    replyCount: 0,
-  };
-}
+/** -------- API 클라이언트 -------- */
 
-export default function CommentsSection({ postId, bodyRef, onCountChange }) {
+// 목록
+const fetchRootComments = (boardId) =>
+  unwrap(api.get(`/v1/board/${boardId}/comments`));
+
+// parent의 대댓글 목록
+const fetchReplies = (boardId, parentId) =>
+  unwrap(api.get(`/v1/board/${boardId}/comments/${parentId}/replies`));
+
+// 생성(루트/대댓글 공통)
+const createComment = (boardId, { authorId, comment, parentId = null }) =>
+  unwrap(
+    api.post(`/v1/board/${boardId}/comments`, {
+      authorId,
+      comment,
+      parentId,
+    })
+  );
+
+// 수정
+const updateComment = (boardId, commentId, { comment }) =>
+  unwrap(
+    api.put(`/v1/board/${boardId}/comments/${commentId}`, {
+      comment,
+    })
+  );
+
+// 삭제
+const deleteComment = (boardId, commentId) =>
+  unwrap(api.delete(`/v1/board/${boardId}/comments/${commentId}`));
+
+// 회원 상세 정보 (닉네임)
+const fetchMemberDetail = (memberId) =>
+  unwrap(api.get(`/v1/member-detail/${memberId}`));
+
+// 회원 기본 정보 (로그인 ID)
+const fetchMemberInfo = (memberId) => unwrap(api.get(`/v1/member/${memberId}`));
+
+/** -------- 컴포넌트 -------- */
+
+export default function CommentsSection({
+  postId: boardId,
+  bodyRef,
+  onCountChange,
+}) {
   const { ready, isLogined, user } = useLogin();
-  const currentKey = getUserKey(user);
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,48 +89,120 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
     const q = searchParams?.toString();
     return q ? `${pathname}?${q}` : pathname;
   }, [pathname, searchParams]);
+
   const loginUrl =
     (ROUTES?.LOGIN || "/login") + `?next=${encodeURIComponent(fullPath)}`;
 
-  const [comments, setComments] = useState([]);
+  // 목록 상태
+  const [comments, setComments] = useState([]); // 루트 댓글들
+  const [repliesMap, setRepliesMap] = useState(new Map()); // parentId -> replies[]
+  const [loadingMap, setLoadingMap] = useState(new Map()); // parentId -> boolean
+
+  // 작성자 정보 캐시
+  const [authorCache, setAuthorCache] = useState(new Map()); // authorId -> {nickname, loginId}
+
+  // UI 상태
   const [order, setOrder] = useState("oldest"); /* 'oldest' | 'newest'*/
   const [collapsed, setCollapsed] = useState(false);
+  const [content, setContent] = useState(""); // 루트 입력창
+  const [repliesInput, setRepliesInput] = useState({}); /* parentId => text*/
+  const [editing, setEditing] = useState({}); /*commentId => text*/
 
-  const [content, setContent] = useState("");
-  const [replies, setReplies] = useState({}); /* parentId => text*/
-  const [editing, setEditing] = useState({}); /* commentId => text*/
+  /** 작성자 정보 가져오기 (캐시 사용) */
+  const fetchAuthorInfo = async (authorId) => {
+    if (!authorId || authorCache.has(authorId)) {
+      return authorCache.get(authorId) || null;
+    }
 
-  /** 서버에서 부모/대댓글 모두 불러와 합치는 함수 */
-  const refresh = async () => {
     try {
-      const parents = await listParentComments(postId); // CommentResponseDto[]
-      const parentRows = (parents || []).map(adaptParent);
+      // 닉네임과 로그인 ID를 병렬로 가져오기
+      const [memberDetailResult, memberInfoResult] = await Promise.allSettled([
+        fetchMemberDetail(authorId),
+        fetchMemberInfo(authorId),
+      ]);
 
-      // 부모 각각의 대댓글 불러오기
-      const allReplies = await Promise.all(
-        parentRows.map(async (p) => {
-          const items = await listReplies(postId, p.id);
-          return (items || []).map((r) => adaptReply(p.id, r));
-        })
-      ).then((arr) => arr.flat());
+      const nickname =
+        memberDetailResult.status === "fulfilled"
+          ? memberDetailResult.value?.nickname?.trim() || null
+          : null;
 
-      const merged = [...parentRows, ...allReplies];
-      setComments(merged);
-      onCountChange?.(parentRows.length);
+      const loginId =
+        memberInfoResult.status === "fulfilled"
+          ? memberInfoResult.value?.loginId?.trim() || null
+          : null;
+
+      const info = { nickname, loginId };
+      setAuthorCache((cache) => new Map(cache).set(authorId, info));
+      return info;
     } catch (e) {
-      console.error(e);
-      setComments([]);
-      onCountChange?.(0);
+      console.error(`Failed to fetch author info for ${authorId}:`, e);
+      // 실패한 경우 기본값으로 캐시
+      const fallback = { nickname: null, loginId: null };
+      setAuthorCache((cache) => new Map(cache).set(authorId, fallback));
+      return fallback;
     }
   };
 
-  /* 초기 로드 */
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postId]);
+  /** 댓글 작성자 표시 라벨 */
+  const getAuthorLabel = (comment) => {
+    if (!comment?.authorId) return "#unknown";
+    const authorInfo = authorCache.get(comment.authorId);
+    if (!authorInfo) return `#${comment.authorId}`;
 
-  /* 정렬 */
+    return displayNameFromTriplet(
+      authorInfo.nickname,
+      authorInfo.loginId,
+      comment.authorId
+    );
+  };
+
+  /** 댓글 목록에서 작성자 정보 미리 로드 */
+  const preloadAuthorInfo = async (commentsList) => {
+    const authorIds = new Set();
+
+    // 모든 댓글에서 authorId 수집
+    const collectAuthorIds = (comments) => {
+      comments.forEach((comment) => {
+        if (comment.authorId && !authorCache.has(comment.authorId)) {
+          authorIds.add(comment.authorId);
+        }
+      });
+    };
+
+    collectAuthorIds(commentsList);
+
+    // 대댓글에서도 수집
+    repliesMap.forEach((replies) => {
+      collectAuthorIds(replies);
+    });
+
+    // 병렬로 작성자 정보 로드
+    const promises = Array.from(authorIds).map((authorId) =>
+      fetchAuthorInfo(authorId)
+    );
+
+    await Promise.allSettled(promises);
+  };
+
+  /** 초기 로드 */
+  useEffect(() => {
+    if (!boardId) return;
+    (async () => {
+      try {
+        const list = await fetchRootComments(boardId);
+        const comments = Array.isArray(list) ? list : [];
+        setComments(comments);
+        onCountChange?.(comments.length);
+
+        // 작성자 정보 미리 로드
+        await preloadAuthorInfo(comments);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, [boardId, onCountChange]);
+
+  /** 정렬된 목록 */
   const sorted = useMemo(() => {
     const list = [...comments];
     list.sort((a, b) =>
@@ -132,66 +213,94 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
     return list;
   }, [comments, order]);
 
-  const roots = useMemo(() => sorted.filter((c) => !c.parentId), [sorted]);
-
-  const childOf = useMemo(() => {
-    const map = new Map();
-    sorted.forEach((c) => {
-      if (!c.parentId) return;
-      if (!map.has(c.parentId)) map.set(c.parentId, []);
-      map.get(c.parentId).push(c);
-    });
-    return map;
-  }, [sorted]);
-
-  /* 댓글 등록 */
-  const submitRoot = async () => {
-    if (!content.trim()) return;
-    if (!isLogined) return;
-
-    const authorId = user?.id ?? user?.user_id;
-    if (!authorId) return;
-
+  /** 대댓글 불러오기(캐시) */
+  const ensureReplies = async (parentId) => {
+    if (!boardId || parentId == null) return;
+    if (repliesMap.has(parentId)) return; // 이미 있음
+    setLoadingMap((m) => new Map(m).set(parentId, true));
     try {
-      await addComment(postId, {
-        authorId,
-        parentId: null,
-        comment: content.trim(),
+      const list = await fetchReplies(boardId, parentId);
+      const replies = Array.isArray(list) ? list : [];
+      setRepliesMap((m) => {
+        const next = new Map(m);
+        next.set(parentId, replies);
+        return next;
       });
-      setContent("");
-      await refresh();
+
+      // 대댓글 작성자 정보 미리 로드
+      await preloadAuthorInfo(replies);
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoadingMap((m) => new Map(m).set(parentId, false));
     }
   };
 
-  /* 대댓글 등록 */
-  const submitReply = async (parentId) => {
-    const text = (replies[parentId] || "").trim();
-    if (!text) return;
-    if (!isLogined) return;
-
+  /** 루트 댓글 등록 */
+  const submitRoot = async () => {
+    const text = content.trim();
+    if (!text || !isLogined) return;
     const authorId = user?.id ?? user?.user_id;
-    if (!authorId) return;
-
+    if (authorId == null) {
+      alert("로그인 정보가 없어 댓글을 작성할 수 없습니다.");
+      return;
+    }
     try {
-      await addComment(postId, { authorId, parentId, comment: text });
-      setReplies((s) => ({ ...s, [parentId]: "" }));
-      await refresh();
+      await createComment(boardId, { authorId, comment: text, parentId: null });
+      // 새 목록 갱신
+      const list = await fetchRootComments(boardId);
+      const comments = Array.isArray(list) ? list : [];
+      setComments(comments);
+      onCountChange?.(comments.length);
+      setContent("");
+
+      // 새 댓글의 작성자 정보 로드
+      await preloadAuthorInfo(comments);
     } catch (e) {
       console.error(e);
+      alert("댓글 작성 중 오류가 발생했습니다.");
     }
   };
 
-  /* 수정 모드 on/off + 저장(권한 체크 포함) */
+  /** 대댓글 등록 */
+  const submitReply = async (parentId) => {
+    const text = (repliesInput[parentId] || "").trim();
+    if (!text || !isLogined) return;
+    const authorId = user?.id ?? user?.user_id;
+    if (authorId == null) {
+      alert("로그인 정보가 없어 대댓글을 작성할 수 없습니다.");
+      return;
+    }
+    try {
+      await createComment(boardId, { authorId, comment: text, parentId });
+      // 부모의 대댓글 다시 조회(캐시 갱신)
+      const list = await fetchReplies(boardId, parentId);
+      const replies = Array.isArray(list) ? list : [];
+      setRepliesMap((m) => {
+        const next = new Map(m);
+        next.set(parentId, replies);
+        return next;
+      });
+      setRepliesInput((s) => ({ ...s, [parentId]: "" }));
+
+      // 새 대댓글의 작성자 정보 로드
+      await preloadAuthorInfo(replies);
+    } catch (e) {
+      console.error(e);
+      alert("대댓글 작성 중 오류가 발생했습니다.");
+    }
+  };
+
+  /** 수정 모드 on */
   const startEdit = (c) => {
-    const ownerKey = getOwnerKeyFromComment(c);
-    if (!currentKey || currentKey !== ownerKey) {
-      return alert("이 댓글을 수정할 권한이 없습니다.");
+    if (!isOwner(user, c)) {
+      alert("이 댓글을 수정할 권한이 없습니다.");
+      return;
     }
-    setEditing((s) => ({ ...s, [c.id]: c.content }));
+    setEditing((s) => ({ ...s, [c.id]: c.content || "" }));
   };
 
+  /** 수정 취소 */
   const cancelEdit = (id) =>
     setEditing((s) => {
       const x = { ...s };
@@ -199,49 +308,75 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
       return x;
     });
 
-  const saveEdit = async (id) => {
+  /** 저장 */
+  const saveEdit = async (c, isReply = false, parentId = null) => {
+    const id = c.id;
     const text = (editing[id] || "").trim();
     if (!text) return cancelEdit(id);
-
-    const target = comments.find((c) => c.id === id);
-    const ownerKey = getOwnerKeyFromComment(target);
-    if (!currentKey || currentKey !== ownerKey) {
+    if (!isOwner(user, c)) {
       cancelEdit(id);
-      return alert("이 댓글을 수정할 권한이 없습니다.");
+      alert("이 댓글을 수정할 권한이 없습니다.");
+      return;
     }
-
-    const authorId = user?.id ?? user?.user_id;
-    if (!authorId) return cancelEdit(id);
-
     try {
-      await updateComment(postId, id, { authorId, comment: text });
+      await updateComment(boardId, id, { comment: text });
+      if (isReply && parentId != null) {
+        const list = await fetchReplies(boardId, parentId);
+        const replies = Array.isArray(list) ? list : [];
+        setRepliesMap((m) => {
+          const next = new Map(m);
+          next.set(parentId, replies);
+          return next;
+        });
+        await preloadAuthorInfo(replies);
+      } else {
+        const list = await fetchRootComments(boardId);
+        const comments = Array.isArray(list) ? list : [];
+        setComments(comments);
+        onCountChange?.(comments.length);
+        await preloadAuthorInfo(comments);
+      }
       cancelEdit(id);
-      await refresh();
     } catch (e) {
       console.error(e);
+      alert("댓글 수정 중 오류가 발생했습니다.");
     }
   };
 
-  /* 삭제(자식까지, 권한 체크 포함) */
-  const remove = async (id) => {
-    const target = comments.find((c) => c.id === id);
-    const ownerKey = getOwnerKeyFromComment(target);
-    if (!currentKey || currentKey !== ownerKey) {
-      return alert("이 댓글을 삭제할 권한이 없습니다.");
+  /** 삭제(자식 포함 여부는 백엔드 정책 따름) */
+  const remove = async (c, isReply = false, parentId = null) => {
+    if (!isOwner(user, c)) {
+      alert("이 댓글을 삭제할 권한이 없습니다.");
+      return;
     }
-
-    const requesterId = user?.id ?? user?.user_id;
-    if (!requesterId) return;
-
+    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) {
+      return;
+    }
     try {
-      await deleteComment(postId, id, requesterId);
-      await refresh();
+      await deleteComment(boardId, c.id);
+      if (isReply && parentId != null) {
+        const list = await fetchReplies(boardId, parentId);
+        const replies = Array.isArray(list) ? list : [];
+        setRepliesMap((m) => {
+          const next = new Map(m);
+          next.set(parentId, replies);
+          return next;
+        });
+        await preloadAuthorInfo(replies);
+      } else {
+        const list = await fetchRootComments(boardId);
+        const comments = Array.isArray(list) ? list : [];
+        setComments(comments);
+        onCountChange?.(comments.length);
+        await preloadAuthorInfo(comments);
+      }
     } catch (e) {
       console.error(e);
+      alert("댓글 삭제 중 오류가 발생했습니다.");
     }
   };
 
-  /* 단축키 */
+  /** 단축키 */
   const onKeyDownSubmit = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -253,14 +388,6 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
       e.preventDefault();
       if (isLogined) submitReply(parentId);
     }
-  };
-
-  /* 날짜 포맷 (LocalDate 문자열/ISO 모두 허용) */
-  const fmt = (v) => {
-    if (!v) return "";
-    const s = typeof v === "string" ? v : String(v);
-    const d = new Date(s);
-    return isNaN(+d) ? s : d.toLocaleString();
   };
 
   return (
@@ -296,13 +423,12 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
       {/* 댓글 목록 */}
       {!collapsed && (
         <ul className="mt-3 space-y-2.5">
-          {roots.length === 0 && (
+          {sorted.length === 0 && (
             <li className="text-sm text-gray-500">첫 댓글을 남겨보세요.</li>
           )}
 
-          {roots.map((c) => {
-            const ownerKey = getOwnerKeyFromComment(c);
-            const canEdit = !!currentKey && currentKey === ownerKey;
+          {sorted.map((c) => {
+            const canEdit = isOwner(user, c);
 
             return (
               <li key={c.id}>
@@ -313,7 +439,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                       {editing[c.id] !== undefined ? (
                         <>
                           <div className="mb-1 text-[12px] text-gray-500">
-                            {c.author}
+                            {getAuthorLabel(c)}
                           </div>
                           <textarea
                             value={editing[c.id]}
@@ -329,15 +455,10 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                       ) : (
                         <div className="flex items-baseline gap-4 flex-wrap">
                           <span className="shrink-0 text-[14px] text-gray-500">
-                            {c.author}
+                            {getAuthorLabel(c)}
                           </span>
                           <p className="break-words text-[14px] leading-relaxed text-gray-900">
                             {c.content}
-                            {c.editedAt && (
-                              <span className="ml-2 text-[11px] text-gray-400">
-                                (수정됨)
-                              </span>
-                            )}
                           </p>
                         </div>
                       )}
@@ -351,7 +472,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                       {editing[c.id] !== undefined ? (
                         <>
                           <button
-                            onClick={() => saveEdit(c.id)}
+                            onClick={() => saveEdit(c)}
                             className="underline underline-offset-2 hover:text-gray-700">
                             저장
                           </button>
@@ -377,7 +498,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                               />
                             </button>
                             <button
-                              onClick={() => remove(c.id)}
+                              onClick={() => remove(c)}
                               aria-label="delete"
                               title="삭제"
                               className="px-1 py-1 hover:bg-gray-50">
@@ -394,38 +515,50 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                     </div>
                   </div>
 
-                  {/* 답글 토글 */}
+                  {/* 답글 토글 / 입력 */}
                   {isLogined && (
-                    <div className="mt-2">
+                    <div className="mt-2 flex items-center gap-4">
                       <button
-                        onClick={() =>
-                          setReplies((s) => ({
+                        onClick={async () => {
+                          // 대댓글 목록을 한 번도 안 불렀으면 로드
+                          await ensureReplies(c.id);
+                          // 입력창 토글
+                          setRepliesInput((s) => ({
                             ...s,
                             [c.id]: s[c.id] === undefined ? "" : undefined,
-                          }))
-                        }
+                          }));
+                        }}
                         className="text-[12px] text-gray-600 underline-offset-2 hover:underline mt-2">
-                        {replies[c.id] === undefined
+                        {repliesInput[c.id] === undefined
                           ? "답글 쓰기"
                           : "답글 닫기"}
                       </button>
+
+                      {typeof c.replyCount === "number" && c.replyCount > 0 && (
+                        <button
+                          onClick={() => ensureReplies(c.id)}
+                          className="text-[12px] text-gray-600 underline-offset-2 hover:underline mt-2"
+                          title="대댓글 보기">
+                          대댓글 {c.replyCount}개 보기
+                        </button>
+                      )}
                     </div>
                   )}
 
                   {/* 답글 작성 */}
-                  {isLogined && replies[c.id] !== undefined && (
+                  {isLogined && repliesInput[c.id] !== undefined && (
                     <div className="mt-3 pl-5 border-l border-gray-200">
                       <div className="flex items-start gap-4">
                         <span className="mt-2 text-gray-400">↳</span>
                         <div className="flex-1">
                           <div className="mb-1 text-[12px] text-gray-500">
                             <span className="mr-1">작성자</span>
-                            <span>{getDisplayName(user)}</span>
+                            <span>{labelFromUser(user)}</span>
                           </div>
                           <textarea
-                            value={replies[c.id]}
+                            value={repliesInput[c.id]}
                             onChange={(e) =>
-                              setReplies((s) => ({
+                              setRepliesInput((s) => ({
                                 ...s,
                                 [c.id]: e.target.value,
                               }))
@@ -437,9 +570,9 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                           <div className="mt-2 flex justify-end">
                             <button
                               onClick={() => submitReply(c.id)}
-                              disabled={!replies[c.id]?.trim()}
+                              disabled={!repliesInput[c.id]?.trim()}
                               className={`h-8 rounded px-3 text-xs text-white ${
-                                replies[c.id]?.trim()
+                                repliesInput[c.id]?.trim()
                                   ? "bg-gray-900 hover:bg-gray-800"
                                   : "bg-gray-300 cursor-not-allowed"
                               }`}>
@@ -451,13 +584,16 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                     </div>
                   )}
 
-                  {/* 답글 리스트 */}
-                  {(childOf.get(c.id) || []).length > 0 && (
+                  {/* 대댓글 리스트 */}
+                  {(repliesMap.get(c.id) || []).length > 0 && (
                     <div className="mt-3 space-y-2 pl-5">
-                      {(childOf.get(c.id) || []).map((r) => {
-                        const rOwnerKey = getOwnerKeyFromComment(r);
-                        const rCanEdit =
-                          !!currentKey && currentKey === rOwnerKey;
+                      {loadingMap.get(c.id) && (
+                        <div className="text-[12px] text-gray-500">
+                          대댓글 불러오는 중…
+                        </div>
+                      )}
+                      {(repliesMap.get(c.id) || []).map((r) => {
+                        const rCanEdit = isOwner(user, r);
                         return (
                           <div
                             key={r.id}
@@ -467,7 +603,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                                 {editing[r.id] !== undefined ? (
                                   <>
                                     <div className="mb-1 text-[12px] text-gray-500">
-                                      ↳ {r.author}
+                                      ↳ {getAuthorLabel(r)}
                                     </div>
                                     <textarea
                                       value={editing[r.id]}
@@ -483,15 +619,10 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                                 ) : (
                                   <div className="flex items-baseline gap-2 flex-wrap">
                                     <span className="shrink-0 text-[12px] text-gray-500">
-                                      ↳ {r.author}
+                                      ↳ {getAuthorLabel(r)}
                                     </span>
                                     <p className="break-words text-[13px] leading-relaxed text-gray-900">
                                       {r.content}
-                                      {r.editedAt && (
-                                        <span className="ml-2 text-[11px] text-gray-400">
-                                          (수정됨)
-                                        </span>
-                                      )}
                                     </p>
                                   </div>
                                 )}
@@ -504,7 +635,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                                 {editing[r.id] !== undefined ? (
                                   <>
                                     <button
-                                      onClick={() => saveEdit(r.id)}
+                                      onClick={() => saveEdit(r, true, c.id)}
                                       className="underline underline-offset-2 hover:text-gray-700">
                                       저장
                                     </button>
@@ -529,7 +660,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
                                         />
                                       </button>
                                       <button
-                                        onClick={() => remove(r.id)}
+                                        onClick={() => remove(r, true, c.id)}
                                         title="삭제"
                                         className="px-1 py-1 hover:bg-gray-50">
                                         <Image
@@ -567,8 +698,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
               </p>
               <Link
                 href={loginUrl}
-                className="px-3 py-2 text-sm rounded bg黑 text-white hover:bg-gray-800"
-                style={{ backgroundColor: "black" }}>
+                className="px-3 py-2 text-sm rounded bg-black text-white hover:bg-gray-800">
                 로그인하기
               </Link>
             </div>
@@ -578,7 +708,7 @@ export default function CommentsSection({ postId, bodyRef, onCountChange }) {
               <div className="flex gap-3 min-h-[100px]">
                 <div className="w-44 px-3 py-2 text-sm text-gray-600">
                   <span className="text-gray-400 mr-1">작성자</span>
-                  <span className="font-medium">{getDisplayName(user)}</span>
+                  <span className="font-medium">{labelFromUser(user)}</span>
                 </div>
                 <textarea
                   value={content}

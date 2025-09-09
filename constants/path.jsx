@@ -4,7 +4,7 @@ export const ROUTES = {
   TOGETHER: "/together",
   COMMUNITY: "/community",
   HELP: "/help",
-  MYPAGE: "/mypage",
+  MYPAGE: "/mypage/useredit",
   TOGETHER_MANAGE: "/mypage/together-manage",
   HISTORY: "/mypage/history",
   INTEREST: "/mypage/interest",

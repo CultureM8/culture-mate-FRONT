@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
+import StarScore from "@/lib/StarScore";
 
 export default function PostEventMiniCard({
   eventImage = "/img/default_img.svg", // 기본 디폴트 이미지
@@ -10,7 +11,7 @@ export default function PostEventMiniCard({
   eventName = "이벤트명",
   description = "이벤트 설명에 대한 내용을 아무것도 입력 안할 경우 디폴트...",
   recommendations = 0, // 추천
-  starScore = 0, // 별점
+  score = 0, // 별점
   initialLiked = false, // 초기 좋아요
   registeredPosts = 0, // 등록된 게시물
   alt = "event-image",
@@ -69,7 +70,7 @@ export default function PostEventMiniCard({
 
           {/* 통계 정보 - 한 줄로 배치 */}
           <div className="flex items-center gap-4 mb-3">
-            {/* 추천 수 */}
+            {/* 추천 수
             <div className="flex items-center gap-1">
               <Image
                 src={ICONS.THUMBSUP_FULL}
@@ -80,14 +81,11 @@ export default function PostEventMiniCard({
               <span className="text-sm text-gray-600">
                 추천 · {recommendations.toLocaleString()}명
               </span>
-            </div>
+            </div> */}
 
             {/* 별점 - 별 1개만 표시 */}
             <div className="flex items-center gap-1">
-              <Image src={ICONS.STAR_FULL} alt="star" width={16} height={16} />
-              <span className="text-sm text-gray-600">
-                {starScore.toFixed(1)}
-              </span>
+              <StarScore score={score} />
             </div>
 
             {/* 관심 버튼 */}

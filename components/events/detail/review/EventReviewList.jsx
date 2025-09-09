@@ -1,23 +1,67 @@
+"use client";
+
 import StarScore from "@/lib/StarScore";
-import ListComponent from "../../../global/ListComponent";
 import { useState } from "react";
-import EventReviewModal from "./EventReviewModal";
 import Image from "next/image";
 import { IMAGES } from "@/constants/path";
+import { displayNameFromTriplet } from "@/lib/displayName";
 
-// 이벤트 후기 목록 항목 컴포넌트
-export default function EventReviewList({
-  userNickname = "사용자별명",
-  userProfileImg = "",
-  userProfileImgAlt = "",
-  content = "이벤트 후기 내용",
-  score = 0,
-  createdDate = "00.00.00",
-}) {
+// 날짜 포맷 함수
+const formatDate = (dateString) => {
+  if (!dateString) return "00.00.00";
+  try {
+    const date = new Date(dateString);
+    return date
+      .toLocaleDateString("ko-KR", {
+        year: "2-digit",
+        month: "2-digit",
+        day: "2-digit",
+      })
+      .replace(/\. /g, ".")
+      .replace(/\.$/, "");
+  } catch (e) {
+    return "00.00.00";
+  }
+};
+
+// 백엔드 author 정보를 포함한 이벤트 후기 목록 항목 컴포넌트
+export default function EventReviewList(props) {
+  console.log("EventReviewList received props:", props);
+
+  const {
+    id,
+    eventId,
+    memberId,
+    rating = 0,
+    content = "이벤트 후기 내용",
+    createdAt,
+    updatedAt,
+    author, // 백엔드에서 제공하는 author 정보
+  } = props || {};
+
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
 
   const extendReviewTab = () => {
     setReviewTabExtend(!reviewTabExtend);
+  };
+
+  // 사용자 표시명 생성 (author 정보 활용)
+  const getUserDisplayName = () => {
+    if (!author) return `#${memberId || "unknown"}`;
+
+    return displayNameFromTriplet(
+      author.nickname,
+      author.loginId,
+      author.id || memberId
+    );
+  };
+
+  // 프로필 이미지 URL (author 정보 활용)
+  const getProfileImageUrl = () => {
+    if (author?.profileImagePath && author.profileImagePath.trim() !== "") {
+      return author.profileImagePath;
+    }
+    return IMAGES.GALLERY_DEFAULT_IMG;
   };
 
   return (
@@ -31,22 +75,18 @@ export default function EventReviewList({
       <div className="flex flex-col h-full min-w-0 gap-4">
         <div className="flex gap-4">
           <Image
-            src={
-              userProfileImg && userProfileImg.trim() !== ""
-                ? userProfileImg
-                : IMAGES.GALLERY_DEFAULT_IMG
-            }
-            alt={userProfileImgAlt}
+            src={getProfileImageUrl()}
+            alt={getUserDisplayName()}
             width={80}
             height={80}
-            className="w-[50px] h-[50px] rounded-full"
+            className="w-[50px] h-[50px] rounded-full object-cover"
           />
           <div className="flex flex-col flex-1 gap-2">
-            <div className="text-gray-700">{userNickname}</div>
+            <div className="text-gray-700">{getUserDisplayName()}</div>
             <div className="flex gap-2">
               {/* 별점 */}
-              <StarScore score={score} />
-              <span className="text-gray-300">{createdDate}</span>
+              <StarScore score={rating} />
+              <span className="text-gray-300">{formatDate(createdAt)}</span>
             </div>
           </div>
         </div>

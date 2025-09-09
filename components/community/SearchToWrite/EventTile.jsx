@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 
-import StarRating from "@/lib/StarRating";
+import StarScore from "@/lib/StarScore";
 import { ICONS } from "@/constants/path";
 
 export default function EventTile({ card, onPick }) {
@@ -41,7 +41,7 @@ export default function EventTile({ card, onPick }) {
       {/* 별점 추천 */}
       <div className="mt-2 flex items-center gap-1 text-[12px] text-gray-700 whitespace-nowrap">
         <div className="scale-70 origin-left">
-          <StarRating rating={starScore} readonly={true} />
+          <StarScore score={starScore} readonly={true} />
         </div>
         <span className="text-gray-400">·</span>
       </div>

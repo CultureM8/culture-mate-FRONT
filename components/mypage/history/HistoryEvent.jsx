@@ -87,45 +87,8 @@ export default function HistoryEvent() {
 
     (async () => {
       try {
-        /* 리뷰 목록 불러오기 - 백엔드 연동 */
-        const list = await getMyEventReviews({ memberId: user.id });
-
-        /* 이벤트 메타 없는 항목 보강 */
-        const enriched = await Promise.all(
-          (list || []).map(async (rv) => {
-            if (rv.event?.name && rv.event?.type && rv.event?.image) return rv;
-            // try {
-            //   const ev = await getEventById(rv.eventId);
-            try {
-              console.log("API 호출 시작 - memberId:", user.id);
-              /* 리뷰 목록 불러오기 - 백엔드 연동 */
-              const list = await getMyEventReviews({ memberId: user.id });
-              console.log("API 응답 받은 데이터:", list);
-
-              // ... 나머지 코드
-              return {
-                ...rv,
-                event: {
-                  // 🔧 DUMMY_EVENTS 키에 맞춰 매핑
-                  name: ev?.title || "이벤트",
-                  type: ev?.eventType || "이벤트",
-                  image:
-                    ev?.imgSrc || rv?.event?.image || "/img/default_img.svg",
-                },
-              };
-            } catch {
-              return {
-                ...rv,
-                event: {
-                  name: rv?.eventName || "이벤트",
-                  type: rv?.eventType || "이벤트",
-                  image: rv?.eventImage || rv?.imgSrc || "/img/default_img.svg",
-                },
-              };
-            }
-          })
-        );
-        setReviews(enriched);
+        const list = await getMyEventReviews();
+        setReviews(list);
       } catch (error) {
         console.error("리뷰 데이터 로드 실패:", error);
         setReviews([]);

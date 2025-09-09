@@ -4,9 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import HistoryEvent from "@/components/mypage/history/HistoryEvent";
 import HistoryWith from "@/components/mypage/history/HistoryWith";
 import { togetherData } from "@/lib/togetherData";
-// import GalleryLayout from "@/components/global/GalleryLayout";
 import { getAllEvents } from "@/lib/eventData";
-import EditSetting from "@/components/global/EditSetting";
 
 export default function History() {
   const [activeTab, setActiveTab] = useState("event");

@@ -42,12 +42,12 @@ export default function EditSetting({
           </button>
         )}
 
-        <button
+        {/* <button
           className="flex items-center gap-2 hover:cursor-pointer"
           onClick={onOpenSetting}>
           설정
           <Image src={ICONS.SETTING} alt="설정" width={16} height={16} />
-        </button>
+        </button> */}
       </div>
     </div>
   );

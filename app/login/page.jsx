@@ -1,12 +1,5 @@
 "use client";
 
-/** 로그인 페이지 (아이디 + 비밀번호, 프론트 전용)
- * - 아이디와 비밀번호를 모두 입력해야 제출 가능
- * - remember 체크 시 7일, 아니면 24시간 유지 (fakeLogin 이용)
- * - ?next=/원래경로 가 있으면 로그인 후 그 경로로 복귀
- * - 아무 next가 없으면 referrer → 없으면 홈으로
- */
-
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
@@ -98,7 +91,6 @@ export default function LoginPage() {
     }
     /**로그인 실행 */
     try {
-      /**fakelogin에 전달 */
       await doLogin({
         login_id: username.trim(),
         password: password,

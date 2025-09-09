@@ -2,9 +2,7 @@
 const nextConfig = {
   async rewrites() {
     return [
-      // ✅ 채팅 전용 오버라이드: 프론트는 /api/chat/* 로 호출하지만,
-      //    백엔드는 /chat/* (API prefix 없음) 으로 전달한다.
-      //    가장 위(특정 경로 우선)로 배치해야 함!
+      // ✅ 채팅 전용 오버라이드
       {
         source: "/api/chat/rooms/list",
         destination: "http://localhost:8080/chat/rooms/list",
@@ -13,7 +11,6 @@ const nextConfig = {
         source: "/api/chat/room/list",
         destination: "http://localhost:8080/chat/room/list",
       },
-
       {
         source: "/api/chat/room",
         destination: "http://localhost:8080/chat/room",
@@ -30,7 +27,6 @@ const nextConfig = {
         source: "/api/chat/rooms/create",
         destination: "http://localhost:8080/chat/rooms/create",
       },
-
       {
         source: "/api/chat/room/:roomId",
         destination: "http://localhost:8080/chat/room/:roomId",
@@ -39,19 +35,29 @@ const nextConfig = {
         source: "/api/chat/room/:roomId/messages",
         destination: "http://localhost:8080/chat/room/:roomId/messages",
       },
-
-      // ✅ 그 외 일반 API는 그대로 /api/* -> /api/* 로 프록시
+      // ✅ 일반 API
       {
         source: "/api/:path*",
         destination: "http://localhost:8080/api/:path*",
       },
-
-      // SockJS/STOMP (이미 OK)
+      // ✅ SockJS/STOMP
       {
         source: "/ws-chat/:path*",
         destination: "http://localhost:8080/ws-chat/:path*",
       },
     ];
+  },
+
+  // ✅ 이미지 도메인 허용 추가
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8080",
+        pathname: "/**", // /images/** 같은 경로를 다 허용
+      },
+    ],
   },
 };
 

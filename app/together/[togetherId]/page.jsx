@@ -130,7 +130,54 @@ export default function TogetherDetailPage() {
     setMounted(true);
   }, []);
 
-  /* 글 로드 + 조회수 세션당 1회 증가 + 좋아요 초기 상태 */
+  /* 날짜 포맷팅 함수 - 컴포넌트 내부에 추가 */
+  const formatDisplayDate = (dateValue, format = "date-only") => {
+    if (!dateValue || !mounted) return "";
+
+    try {
+      const dateObj = new Date(dateValue);
+      if (isNaN(dateObj.getTime())) {
+        return String(dateValue);
+      }
+
+      switch (format) {
+        case "date-only":
+          return dateObj
+            .toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })
+            .replace(/\s/g, "");
+
+        case "datetime":
+          return dateObj.toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+        default:
+          return dateObj.toLocaleDateString("ko-KR");
+      }
+    } catch (e) {
+      console.warn("날짜 포맷팅 실패:", e);
+      return String(dateValue);
+    }
+  };
+
+  /* 인원수 포맷팅 함수 추가 */
+  const formatGroupInfo = (post) => {
+    if (!post) return "1명";
+
+    const maxCount = post.companionCount || post.maxPeople || 1;
+    const currentCount = post.currentParticipants || 1;
+
+    return `${currentCount}/${maxCount}명`;
+  };
+
   /* 글 로드 + 조회수 세션당 1회 증가 + 좋아요 초기 상태 */
   useEffect(() => {
     const loadPost = async () => {
@@ -142,6 +189,10 @@ export default function TogetherDetailPage() {
         if (!p) {
           try {
             const dummyPost = await getTogetherPostById(togetherId);
+            const groupParts = dummyPost.group.split("/");
+            const currentCount = parseInt(groupParts[0]) || 1;
+            const maxCount = parseInt(groupParts[1]) || 2;
+
             // 더미 데이터를 로컬스토리지 형식으로 변환
             p = {
               id: dummyPost.togetherId,
@@ -164,8 +215,9 @@ export default function TogetherDetailPage() {
                 title: dummyPost.eventName,
               },
               companionDate: dummyPost.date,
-              companionCount: parseInt(dummyPost.group.split("/")[1]) || 2,
-              maxPeople: parseInt(dummyPost.group.split("/")[1]) || 2,
+              companionCount: maxCount,
+              maxPeople: maxCount,
+              currentParticipants: currentCount, // 추가
               stats: {
                 views: 0,
                 likes: 0,
@@ -306,14 +358,10 @@ export default function TogetherDetailPage() {
 
   const createdAtText = getFormattedDate(post?.createdAt);
 
+  /* getCompanionDate 함수 수정 */
   const getCompanionDate = () => {
-    if (post?.companionDate) {
-      return String(post.companionDate);
-    }
-    if (mounted && post?.createdAt) {
-      return formatDateSafe(post.createdAt);
-    }
-    return "";
+    const rawDate = post?.companionDate || post?.createdAt;
+    return formatDisplayDate(rawDate, "date-only");
   };
 
   // 호스트 식별값(모달에 전달)
@@ -486,10 +534,13 @@ export default function TogetherDetailPage() {
         postData={{
           togetherId: post.id,
           title: post.title,
-          date: mounted
-            ? post.companionDate || formatDateSafe(post.createdAt)
-            : "",
-          group: post.companionCount || post.maxPeople || 1,
+          date: formatDisplayDate(
+            post.companionDate || post.createdAt,
+            "date-only"
+          ),
+          group: formatGroupInfo(post), // "1/2명" 형식
+          maxParticipants: post.companionCount || post.maxPeople || 1,
+          currentParticipants: post.currentParticipants || 1,
           eventId: post.eventId,
           imgSrc:
             post.eventSnapshot?.eventImage ||
@@ -499,7 +550,6 @@ export default function TogetherDetailPage() {
           eventType: post.eventSnapshot?.eventType || "기타",
           eventName:
             post.eventSnapshot?.name || post.eventSnapshot?.title || "이벤트",
-
           // 수신자(호스트) 식별값을 확실히 채움
           authorUid: hostUid || authorMeta.uid || "",
           authorId:

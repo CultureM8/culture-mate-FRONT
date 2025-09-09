@@ -20,10 +20,9 @@ export default function EventPageClient({ eventData }) {
   const [togetherViewType, setTogetherViewType] = useState("List");
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [reviews, setReviews] = useState(
-    eventReviewData.filter((item) => item.eventId === eventData.eventId)
-  );
+  const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => setIsReviewModalOpen(true);
@@ -40,7 +39,13 @@ export default function EventPageClient({ eventData }) {
     setReviewsLoading(true);
     try {
       const reviewData = await getEventReviews(eventData.eventId);
-      setReviews(reviewData);
+      console.log("EventPageClient: Raw API response:", reviewData);
+
+      // API 응답이 배열인지 확인
+      const reviews = Array.isArray(reviewData) ? reviewData : [];
+      console.log("EventPageClient: Processed reviews:", reviews);
+
+      setReviews(reviews);
     } catch (error) {
       console.error("후기 데이터 로드 실패:", error);
       setReviews([]);
@@ -48,8 +53,10 @@ export default function EventPageClient({ eventData }) {
       setReviewsLoading(false);
     }
   };
+
   const handleReviewAdded = (newReview) => {
-    setReviews((prev) => [...prev, newReview]);
+    // 새 리뷰 추가 후 목록 다시 로드
+    loadReviews();
   };
 
   return (
@@ -66,27 +73,7 @@ export default function EventPageClient({ eventData }) {
           // 이벤트 상세 정보
           <EventDetail eventData={eventData} />
         )}
-        {/* {currentMenu === menuList[1] && (
-          // 이벤트 리뷰
-          <>
-            <div className="flex justify-end py-4">
-              <button
-                onClick={openReviewModal}
-                className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-500">
-                후기 작성
-              </button>
-            </div>
-            <ListLayout Component={EventReviewList} items={reviews} />
-            <EventReviewModal
-              isOpen={isReviewModalOpen}
-              onClose={closeReviewModal}
-              eventId={eventData.eventId}
-              onReviewAdded={handleReviewAdded}
-              eventData={eventData}
-            />
-          </>
-        )} */}
-        {/* 백엔드 */}
+
         {currentMenu === menuList[1] && (
           // 이벤트 리뷰
           <>
@@ -117,6 +104,7 @@ export default function EventPageClient({ eventData }) {
             />
           </>
         )}
+
         {currentMenu === menuList[2] && (
           // 모집중인 동행
           <>

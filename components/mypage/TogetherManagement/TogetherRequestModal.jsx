@@ -70,15 +70,42 @@ export default function TogetherRequestModal(props) {
     "/img/default_img.svg";
 
   const metaText = useMemo(() => {
-    const group =
-      togetherPost?.group ??
-      togetherPost?.currentParticipants ??
-      togetherPost?.maxParticipants ??
-      "";
-    const date = togetherPost?.date ?? togetherPost?.meetingDate ?? "";
-    return { group, date };
-  }, [togetherPost]);
+    // 인원수 처리
+    const currentCount = togetherPost?.currentParticipants ?? 0;
+    const maxCount = togetherPost?.maxParticipants ?? 0;
+    let groupText = togetherPost?.group || "";
 
+    if (!groupText && maxCount > 0) {
+      groupText = `${currentCount}/${maxCount}명`;
+    } else if (!groupText) {
+      groupText = "인원 미정";
+    }
+
+    // 날짜 처리
+    const rawDate = togetherPost?.date ?? togetherPost?.meetingDate ?? "";
+    let formattedDate = "날짜 미정";
+
+    if (rawDate) {
+      try {
+        const dateObj = new Date(rawDate);
+        if (!isNaN(dateObj.getTime())) {
+          formattedDate = dateObj
+            .toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })
+            .replace(/\s/g, "");
+        } else {
+          formattedDate = rawDate; // ISO 형식이 아닌 경우 원본 사용
+        }
+      } catch (e) {
+        formattedDate = rawDate;
+      }
+    }
+
+    return { group: groupText, date: formattedDate };
+  }, [togetherPost]);
   const handleSendRequest = async () => {
     const trimmed = message.trim();
     if (!trimmed) return alert("메시지를 입력해주세요.");

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import MyPostGrid from "./MyPostGrid";
-import HistoryWith from "./history/HistoryWith";
+import MyPostGrid from "../components/mypage/MyPostGrid";
+import HistoryWith from "../components/mypage/history/HistoryWith";
 
 export default function MyPostManageTab({ posts }) {
   const [activeTab, setActiveTab] = useState("MyPostTab");
