@@ -36,7 +36,7 @@ export default function AdminEventsAll() {
   // 데이터 변환 함수: DUMMY_EVENTS -> 관리자 페이지 형식
   const convertEventData = (eventData) => {
     return eventData.map(event => ({
-      id: event.eventCode,
+      id: event.eventId,
       type: event.eventType,
       name: event.title,
       startDate: event.startDate,
@@ -77,8 +77,8 @@ export default function AdminEventsAll() {
   // 필터링된 이벤트 데이터
   const filteredEventData = allEventData.filter(event => {
     const matchesSearch = event.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         event.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.id.toLowerCase().includes(searchQuery.toLowerCase());
+                        event.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        event.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = eventTypeFilter === "전체" || event.type === eventTypeFilter;
     const matchesStatus = statusFilter === "전체" || event.status === statusFilter;
     
@@ -214,7 +214,7 @@ export default function AdminEventsAll() {
           <div className="flex gap-4 items-center">
             {eventTypes.map((type, index) => (
               <button 
-                key={index}
+                key={type}
                 onClick={() => handleEventTypeFilterChange(type)}
                 className={`px-1 py-0 text-[16px] font-medium border-b-2 transition-colors ${
                   eventTypeFilter === type 
@@ -306,7 +306,7 @@ export default function AdminEventsAll() {
           <div className="flex gap-4 items-center">
             {["전체", "진행중", "종료"].map((status, index) => (
               <button 
-                key={index}
+                key={status}
                 onClick={() => handleStatusFilterChange(status)}
                 className={`px-1 py-0 text-[16px] font-medium border-b-2 transition-colors ${
                   statusFilter === status 
@@ -365,7 +365,7 @@ export default function AdminEventsAll() {
               <div className="absolute top-full right-0 mt-1 bg-white shadow-lg z-10 min-w-[200px]">
                 {["이벤트 기간 최신순", "이벤트 기간 오래된순", "이벤트 번호 오름차순", "이벤트 번호 내림차순"].map((option, index) => (
                   <button
-                    key={index}
+                    key={option}
                     onClick={() => handleSortChange(option)}
                     className={`w-full px-4 py-2 text-left text-[14px] hover:bg-gray-50 border-none outline-none ${
                       sortType === option ? "text-black bg-gray-100 font-bold" : ""
