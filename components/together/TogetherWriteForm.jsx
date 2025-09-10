@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import SearchToWrite from "@/components/community/SearchToWrite";
 import Calendar from "@/components/global/Calendar";
+import RegionSelector from "@/components/global/RegionSelector";
 
 export default function TogetherWriteForm({
   onEventSelect,
@@ -14,10 +15,12 @@ export default function TogetherWriteForm({
 }) {
   const [formData, setFormData] = useState({
     companionDate: initialData.companionDate || "",
-    companionCount: initialData.companionCount || "00 명",
-    minAge: initialData.minAge || "제한없음",
-    maxAge: initialData.maxAge || "제한없음",
-    locationQuery: initialData.locationQuery || "",
+    maxParticipants: initialData.maxParticipants || 2,
+    // minAge: initialData.minAge || "제한없음", // 백엔드 미지원으로 주석처리
+    // maxAge: initialData.maxAge || "제한없음", // 백엔드 미지원으로 주석처리
+    // 모임장소 관련 필드
+    meetingRegion: initialData.meetingRegion || { level1: "", level2: "", level3: "" },
+    meetingLocation: initialData.meetingLocation || "", // 간단한 모임장소 (카페명, 지하철역 등)
     ...initialData,
   });
 
@@ -45,12 +48,18 @@ export default function TogetherWriteForm({
     }
   };
 
-  // 지역 검색 핸들러
-  const handleLocationSearch = () => {
-    if (onLocationSearch) {
-      onLocationSearch(formData.locationQuery);
+  // 모임장소 지역 선택 핸들러
+  const handleRegionChange = (region) => {
+    const newFormData = {
+      ...formData,
+      meetingRegion: region,
+    };
+    setFormData(newFormData);
+
+    // 부모 컴포넌트에 변경사항 전달
+    if (onFormChange) {
+      onFormChange(newFormData);
     }
-    console.log("지역 검색:", formData.locationQuery);
   };
 
   // 날짜 변경 핸들러
@@ -105,47 +114,32 @@ export default function TogetherWriteForm({
           </div>
         </div>
 
-        {/* 동행 인원 */}
+        {/* 최대 참여자 수 */}
         <div className="flex items-center gap-4">
           <label className="text-sm text-gray-700 w-32 flex-shrink-0">
-            동행 인원
+            최대 참여자 수
           </label>
           <div className="relative w-1/6">
-            <select
-              value={formData.companionCount}
+            <input
+              type="number"
+              value={formData.maxParticipants}
               onChange={(e) =>
-                handleInputChange("companionCount", e.target.value)
+                handleInputChange("maxParticipants", parseInt(e.target.value, 10) || 2)
               }
-              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
-              <option value="00 명">00 명</option>
-              <option value="1명">1명</option>
-              <option value="2명">2명</option>
-              <option value="3명">3명</option>
-              <option value="4명">4명</option>
-              <option value="5명">5명</option>
-              <option value="6명">6명</option>
-              <option value="7명">7명</option>
-              <option value="8명">8명</option>
-              <option value="9명">9명</option>
-              <option value="10명+">10명+</option>
-            </select>
-            <Image
-              src={ICONS.DOWN_ARROW}
-              alt="dropdown"
-              width={14}
-              height={14}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none"
+              min="2"
+              max="100"
+              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 focus:outline-none focus:border-blue-500"
+              placeholder="2~100명"
             />
           </div>
         </div>
 
-        {/* 나이 제한 */}
-        <div className="flex items-center gap-4">
+        {/* 나이 제한 - 백엔드 미지원으로 임시 주석처리 */}
+        {/* <div className="flex items-center gap-4">
           <label className="text-sm text-gray-700 w-32 flex-shrink-0">
             나이 제한
           </label>
           <div className="flex items-center gap-2">
-            {/* 최소 나이 */}
             <div className="relative">
               <select
                 value={formData.minAge || "제한없음"}
@@ -168,11 +162,7 @@ export default function TogetherWriteForm({
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none"
               />
             </div>
-
-            {/* 구분자 */}
             <span className="text-gray-500">~</span>
-
-            {/* 최대 나이 */}
             <div className="relative">
               <select
                 value={formData.maxAge || "제한없음"}
@@ -181,7 +171,6 @@ export default function TogetherWriteForm({
                 <option value="제한없음">제한없음</option>
                 <option value="7세미만">7세미만</option>
                 {Array.from({ length: 52 }, (_, i) => i + 8).map((age) => {
-                  // 최소 나이가 설정되어 있고, 현재 나이가 최소 나이보다 작으면 비활성화
                   const isDisabled =
                     formData.minAge !== "제한없음" &&
                     formData.minAge !== "" &&
@@ -210,28 +199,41 @@ export default function TogetherWriteForm({
               />
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* 이벤트 주소 */}
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-gray-700 w-32 flex-shrink-0">
-            이벤트 주소
-          </label>
-          <div className="relative w-1/3">
+        {/* 모임장소 */}
+        <div className="border-t border-gray-200 pt-4 mt-4">
+          <div className="mb-4">
+            <label className="text-sm text-gray-700 font-medium">
+              모임장소 <span className="text-red-500">*</span>
+            </label>
+          </div>
+          
+          {/* 지역 선택 */}
+          <div className="flex items-center gap-4 mb-3">
+            <label className="text-sm text-gray-700 w-32 flex-shrink-0">
+              지역
+            </label>
+            <RegionSelector
+              value={formData.meetingRegion}
+              onChange={handleRegionChange}
+            />
+          </div>
+
+          {/* 모임장소 */}
+          <div className="flex items-center gap-4">
+            <label className="text-sm text-gray-700 w-32 flex-shrink-0">
+              모임장소
+            </label>
             <input
               type="text"
-              value={formData.locationQuery}
+              value={formData.meetingLocation}
               onChange={(e) =>
-                handleInputChange("locationQuery", e.target.value)
+                handleInputChange("meetingLocation", e.target.value)
               }
-              className="w-full h-10 px-4 pr-12 border border-gray-300 rounded-full bg-white text-sm focus:outline-none focus:border-blue-500"
-              placeholder="검색"
+              className="w-1/2 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 focus:outline-none focus:border-blue-500"
+              placeholder="예: 스타벅스 역삼점, 2호선 강남역 3번출구"
             />
-            <button
-              onClick={handleLocationSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 rounded-full p-1">
-              <Image src={ICONS.SEARCH} alt="search" width={18} height={18} />
-            </button>
           </div>
         </div>
       </div>

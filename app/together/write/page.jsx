@@ -134,15 +134,7 @@ export default function TogetherRecruitmentPage() {
           </div>
         )}
 
-        <div className="mb-6">
-          <TogetherWriteForm
-            onEventSelect={handleEventSelect}
-            onLocationSearch={(q) => console.log("지역 검색:", q)}
-            onFormChange={handleFormChange}
-            initialData={form}
-          />
-        </div>
-
+        {/* 선택된 이벤트 표시 - 이벤트 검색 영역 바로 위에 배치 */}
         {selectedEvent && (
           <div className="mb-6 relative">
             <h3 className="text-lg font-medium text-gray-700 mb-2">
@@ -160,6 +152,15 @@ export default function TogetherRecruitmentPage() {
             <PostEventMiniCard {...selectedEvent} />
           </div>
         )}
+
+        <div className="mb-6">
+          <TogetherWriteForm
+            onEventSelect={handleEventSelect}
+            onLocationSearch={(q) => console.log("지역 검색:", q)}
+            onFormChange={handleFormChange}
+            initialData={form}
+          />
+        </div>
 
         <div className="w-full mb-6">
           <label className="block text-lg font-medium text-gray-700 mb-2">
