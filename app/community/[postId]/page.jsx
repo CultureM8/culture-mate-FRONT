@@ -1,96 +1,167 @@
 "use client";
 
 import ConfirmModal from "@/components/global/ConfirmModal";
-import { deletePost } from "@/lib/storage";
 import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import PostEventMiniCard from "@/components/global/PostEventMiniCard";
+import { toCard } from "@/lib/schema";
+import CommentsSection from "@/components/community/CommentsSection";
+import { ICONS } from "@/constants/path";
+import useLogin from "@/hooks/useLogin";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import PostEventMiniCard from '@/components/global/PostEventMiniCard';
-import mockEvents from '@/components/community/mockEvents';
-import { toCard } from '@/lib/schema';
-import CommentsSection from '@/components/community/CommentsSection';
-import { useRef } from 'react';
-import { ICONS, IMAGES } from '@/constants/path';
+/* 백엔드 */
+import { fetchPost, deletePostApi, toggleBoardLike } from "@/lib/communityApi";
+import { getEventById } from "@/lib/eventApi";
 
-import {
-  getPost,
-  bumpViews,
-  isRecommended,
-  toggleRecommendation,
-} from "@/lib/storage";
-
-/* 작성자 표시*/
-function getAuthorId(post) {
-  if (!post) return "";
-  if (post.author_login_id) return post.author_login_id;
-  const a = post.author;
-  if (!a) return "";
-  if (typeof a === "string") return a;
-  return a.login_id || a.id || a.name || "";
+/** 권한 키 */
+function userKey(u) {
+  const uid = u?.id ?? u?.user_id ?? "";
+  const lid = u?.login_id ?? "";
+  return String(uid || lid || "");
 }
 
-export default function CommunityDonePage() {
+/** 내 추천 기록(로컬) */
+const recKey = (postId) => `recusers:community:${postId}`;
+const loadRecSet = (postId) => {
+  try {
+    const arr = JSON.parse(localStorage.getItem(recKey(postId)) || "[]");
+    return Array.isArray(arr) ? new Set(arr) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+const saveRecSet = (postId, set) => {
+  try {
+    localStorage.setItem(recKey(postId), JSON.stringify([...set]));
+  } catch {}
+};
+
+/** 작성자 표시명 */
+function displayAuthorOf(post) {
+  return (
+    post?.author_display_name ||
+    post?.authorLoginId ||
+    String(post?.authorId || "") ||
+    "익명"
+  );
+}
+
+export default function CommunityDetailPage() {
   const { postId } = useParams();
   const router = useRouter();
   const bodyRef = useRef(null);
+  const { ready, isLogined, user } = useLogin();
+
   const [openDelete, setOpenDelete] = useState(false);
   const [post, setPost] = useState(null);
-
   const [recommended, setRecommended] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
+  /** 이벤트 미니카드용 데이터 (백엔드 연동) */
+  const [eventCard, setEventCard] = useState(null);
+
+  /* 글 로드 */
   useEffect(() => {
-    const p = getPost("community", postId);
-    setPost(p || null);
+    let stop = false;
+    (async () => {
+      try {
+        const p = await fetchPost(postId); // GET /api/v1/board/{postId}
+        if (stop) return;
 
-    const onceKey = `viewed:community:${postId}`;
-    if (p && !sessionStorage.getItem(onceKey)) {
-      bumpViews("community", postId);
-      sessionStorage.setItem(onceKey, "1");
-      const updated = getPost("community", postId);
-      setPost(updated || p);
-    }
+        setPost(p || null);
 
-    setRecommended(isRecommended("community", postId));
-
-    const raw = localStorage.getItem(`comments:${postId}`);
-    const list = raw ? JSON.parse(raw) : [];
-    setCommentCount(Array.isArray(list) ? list.length : 0);
+        // 댓글 수(루트만) – 서버 응답에 없으니 기존 로컬 계산 유지
+        try {
+          const raw = localStorage.getItem(`comments:${postId}`);
+          const list = raw ? JSON.parse(raw) : [];
+          const roots = Array.isArray(list)
+            ? list.filter((c) => !c.parentId).length
+            : 0;
+          setCommentCount(roots);
+        } catch {
+          setCommentCount(0);
+        }
+      } catch (e) {
+        console.error(e);
+        setPost(null);
+        setCommentCount(0);
+      }
+    })();
+    return () => {
+      stop = true;
+    };
   }, [postId]);
 
-  const card = useMemo(() => {
-    if (!post) return null;
-    if (post.eventSnapshot) return post.eventSnapshot;
-    if (!post.eventId) return null;
+  // 내 추천 여부(초기값: 로컬 기록 사용)
+  useEffect(() => {
+    if (!post) return;
+    const set = loadRecSet(postId);
+    setRecommended(user ? set.has(userKey(user)) : false);
+  }, [post, user, postId]);
 
-    const raw = DUMMY_EVENTS.find(
-      (e) => String(e.eventId) === String(post.eventId)
-    );
-    if (raw) {
-      /* eventData변환*/
-      const transformedEvent = {
-        id: raw.eventId,
-        name: raw.title,
-        eventName: raw.title,
-        eventType: raw.eventType,
-        type: raw.eventType,
-        image: raw.imgSrc,
-        description: raw.title,
-        rating: raw.score,
-        likes: raw.likesCount,
+  // 이벤트 카드 로딩(백엔드): post.eventSnapshot 우선, 없고 eventId 있으면 조회
+  useEffect(() => {
+    let stop = false;
+
+    const makeCardFromEvent = (ev) => {
+      // eventApi.getEventById 스키마를 toCard 입력 포맷으로 변환
+      const img =
+        ev?.imgSrc && typeof ev.imgSrc === "string" && ev.imgSrc.trim()
+          ? ev.imgSrc
+          : "/img/default_img.svg";
+
+      return toCard({
+        id: ev?.eventId ?? ev?.id,
+        name: ev?.title,
+        eventName: ev?.title,
+        eventType: ev?.eventType,
+        type: ev?.eventType,
+        image: img,
+        description: ev?.title,
+        rating: ev?.score ?? 0,
+        likes: ev?.likesCount ?? 0,
         postsCount: 0,
         isLiked: false,
-      };
-      return toCard(transformedEvent);
-    }
+      });
+    };
 
-    return null;
+    (async () => {
+      if (!post) {
+        setEventCard(null);
+        return;
+      }
+
+      // 1) 스냅샷이 있으면 그대로 사용
+      if (post.eventSnapshot) {
+        setEventCard(post.eventSnapshot);
+        return;
+      }
+
+      // 2) 스냅샷 없고 이벤트 ID가 있으면 BE에서 조회
+      if (post.eventId) {
+        try {
+          const ev = await getEventById(post.eventId);
+          if (그만) return;
+          setEventCard(makeCardFromEvent(ev));
+        } catch (err) {
+          console.warn("이벤트 조회 실패, 기본 카드 생략:", err);
+          setEventCard(null);
+        }
+      } else {
+        setEventCard(null);
+      }
+    })();
+
+    return () => {
+      stop = true;
+    };
   }, [post]);
 
   if (!post) {
     return (
-      <div className="w-full max-w-[1200px] mx-auto px-6 py-10">
+      <div className="w-full max-w-full mx-auto px-6 py-10">
         <h1 className="text-2xl font-semibold mb-4">글을 찾을 수 없습니다</h1>
         <div className="flex gap-2">
           <button
@@ -108,75 +179,88 @@ export default function CommunityDonePage() {
     );
   }
 
-  const views = post?.stats?.views ?? 0;
+  const currentKey = userKey(user);
+  const ownerKey =
+    post._ownerKey || String(post.authorId || post.authorLoginId || "");
+  const canDelete = !!currentKey && currentKey === String(ownerKey);
 
-  const recommendations =
-    post?.stats?.recommendations ?? post?.recommendations ?? 0;
-  const displayAuthor = getAuthorId(post);
-  /*------------------------------------------------------------------------*/
+  const views = post?._views ?? 0;
+  const recommends = post?.recommendCount ?? 0;
+  const authorName = displayAuthorOf(post);
+
   return (
-    <>
-      <div className="mx-6 my-4 max-w-[1200px] h-[108px] flex items-center">
-        <h1 className="font-inter font-semibold text-[36px] leading-[44px] tracking-[-0.005em] text-[#26282A]">
-          자유 게시판
-        </h1>
-      </div>
+    <div className="w-full min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto px-8 py-6">
+        {/* 헤더 */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-black">자유 게시판</h1>
+        </div>
 
-      <div className="w-full max-w-[1200px]  mx-auto   ">
-        <header>
-          <h1 className="text-2xl font-semibold text-gray-900 break-words px-6 my-4">
-            {post.title}
-          </h1>
-          <div className="flex mt-2 py-6 px-6 text-base text-gray-400 border-b-2 border-gray-300 justify-between">
-            <div className="flex items-center gap-6">
-              <span className="gap-2">작성자{displayAuthor}</span>
+        {/* 제목/메타 */}
+        <div className=" mb-4 pb-5 border-b border-gray-200">
+          <h2 className="text-xl font-bold text-black mb-4">{post.title}</h2>
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center gap-4">
+              <span>작성자 : {authorName}</span>
               <span>{new Date(post.createdAt).toLocaleString()}</span>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 pr-2">
               <span>조회 {views}</span>
-              <span>추천 {recommendations}</span>
+              <span>추천 {recommends}</span>
               <span>댓글 {commentCount}</span>
             </div>
           </div>
-        </header>
-
-        {card && <PostEventMiniCard {...card} />}
-        {/* 본문영역 */}
-        <div ref={bodyRef} className="mt-6 min-h-[600]">
-          {post.mode === "plain" ? (
-            <p className="whitespace-pre-line text-gray-800">{post.content}</p>
-          ) : (
-            <div
-              className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
-          )}
         </div>
+
+        {/* 이벤트 카드 (백엔드 연동) */}
+        <div className="mb-6">
+          {eventCard && <PostEventMiniCard {...eventCard} />}
+        </div>
+
+        {/* 본문 */}
+        <div ref={bodyRef} className="mb-8 min-h-[600px]">
+          <div className="text-sm text-gray-700 whitespace-pre-line">
+            {post.content}
+          </div>
+        </div>
+
+        {/* 추천/공유/신고 */}
         <div className="flex justify-center my-6">
           <button
             className="flex flex-col items-center gap-2 px-4 py-3"
-            onClick={() => {
-              const ret = toggleRecommendation("community", postId);
+            onClick={async () => {
+              if (!ready) return;
+              if (!isLogined) {
+                const next = encodeURIComponent(
+                  window.location.pathname + window.location.search
+                );
+                return router.replace(`/login?next=${next}`);
+              }
 
-              const nextCount =
-                typeof ret === "number"
-                  ? ret
-                  : ret?.count ?? ret?.recommendations ?? 0;
-              const nextRecommended =
-                typeof ret === "number" ? !recommended : !!ret?.recommended;
+              const memberId = user?.id ?? user?.user_id;
+              if (!memberId) {
+                return alert("회원 정보를 확인할 수 없습니다.");
+              }
 
-              setRecommended(nextRecommended);
-              setPost((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      stats: {
-                        ...(prev.stats || {}),
-                        recommendations: nextCount,
-                      },
-                    }
-                  : prev
-              );
+              try {
+                const liked = await toggleBoardLike(postId, memberId);
+
+                // 최신 데이터 재조회
+                const latest = await fetchPost(postId);
+                setPost(latest || null);
+
+                // 로컬 추천기록도 업데이트(초기상태 표시에 사용)
+                const k = userKey(user);
+                const set = loadRecSet(postId);
+                if (liked) set.add(k);
+                else set.delete(k);
+                saveRecSet(postId, set);
+
+                setRecommended(!!liked);
+              } catch (e) {
+                console.error("추천 처리 에러:", e);
+                alert("추천 처리 중 오류가 발생했습니다.");
+              }
             }}>
             {recommended ? (
               <Image
@@ -193,7 +277,9 @@ export default function CommunityDonePage() {
                 height={24}
               />
             )}
-            <span className="text-xs text-gray-400">{recommendations}</span>
+            <span className="text-xs text-gray-400">
+              {post?.recommendCount ?? 0}
+            </span>
           </button>
 
           <button
@@ -207,28 +293,43 @@ export default function CommunityDonePage() {
             />
             <span className="text-xs text-gray-400">공유</span>
           </button>
+
+          <button
+            className="flex flex-col items-center gap-2 px-4 py-3"
+            onClick={() => navigator.clipboard.writeText(window.location.href)}>
+            <Image src="/img/bell.svg" alt="신고" width={24} height={24} />
+            <span className="text-xs text-gray-400">신고</span>
+          </button>
         </div>
 
-        {/* 댓글  */}
-        <CommentsSection
-          postId={postId}
-          bodyRef={bodyRef}
-          onCountChange={setCommentCount}
-        />
+        {/* 댓글 */}
+        <section className="mt-8">
+          <CommentsSection
+            postId={postId}
+            bodyRef={bodyRef}
+            onCountChange={setCommentCount}
+          />
+        </section>
 
+        {/* 액션 */}
         <div className="flex gap-2 mt-3 mb-10 justify-end">
+          {canDelete && (
+            <button
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+              onClick={() => setOpenDelete(true)}
+              disabled={deleting}>
+              {deleting ? "삭제 중…" : "삭제"}
+            </button>
+          )}
           <button
-            className="px-2 py-2 rounded border border-red text-red-600 hover:bg-red-400 hover:text-white"
-            onClick={() => setOpenDelete(true)}>
-            삭제
-          </button>
-          <button
-            className="px-2 py-2 border rounded border-gray-700  hover:bg-gray-500 hover:text-white"
+            className="px-6 py-2 bg-gray-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
             onClick={() => router.push("/community")}>
             목록으로
           </button>
         </div>
       </div>
+
+      {/* 삭제 확인 */}
       <ConfirmModal
         open={openDelete}
         title="게시글을 삭제할까요?"
@@ -236,14 +337,22 @@ export default function CommunityDonePage() {
         confirmText="삭제"
         cancelText="취소"
         variant="danger"
-        onConfirm={() => {
-          deletePost("community", postId, { purgeExtras: true });
-          setOpenDelete(false);
-          // 목록으로 이동
-          router.push("/community");
+        onConfirm={async () => {
+          if (!canDelete) {
+            setOpenDelete(false);
+            return alert("이 글을 삭제할 권한이 없습니다.");
+          }
+          setDeleting(true);
+          try {
+            await deletePostApi(postId);
+            setOpenDelete(false);
+            router.push("/community");
+          } finally {
+            setDeleting(false);
+          }
         }}
         onClose={() => setOpenDelete(false)}
       />
-    </>
+    </div>
   );
 }

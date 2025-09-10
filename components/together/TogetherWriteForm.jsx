@@ -3,43 +3,46 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
+import SearchToWrite from "@/components/community/SearchToWrite";
+import Calendar from "@/components/global/Calendar";
 
 export default function TogetherWriteForm({
-  onEventSearch,
+  onEventSelect,
   onLocationSearch,
   onFormChange,
-  initialData = {}
+  initialData = {},
 }) {
   const [formData, setFormData] = useState({
-    eventQuery: initialData.eventQuery || "",
-    companionDate: initialData.companionDate || "0000-00-00",
+    companionDate: initialData.companionDate || "",
     companionCount: initialData.companionCount || "00 명",
-    locationQuery: initialData.locationQuery || "",
     minAge: initialData.minAge || "제한없음",
     maxAge: initialData.maxAge || "제한없음",
-    ...initialData
+    locationQuery: initialData.locationQuery || "",
+    ...initialData,
   });
+
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // 폼 데이터 변경 핸들러
   const handleInputChange = (field, value) => {
     const newFormData = {
       ...formData,
-      [field]: value
+      [field]: value,
     };
     setFormData(newFormData);
-    
+
     // 부모 컴포넌트에 변경사항 전달
     if (onFormChange) {
       onFormChange(newFormData);
     }
   };
 
-  // 이벤트 검색 핸들러
-  const handleEventSearch = () => {
-    if (onEventSearch) {
-      onEventSearch(formData.eventQuery);
+  // 이벤트 선택 핸들러
+  const handleEventSelect = (eventCard) => {
+    if (onEventSelect) {
+      onEventSelect(eventCard);
     }
-    console.log("이벤트 검색:", formData.eventQuery);
   };
 
   // 지역 검색 핸들러
@@ -50,28 +53,28 @@ export default function TogetherWriteForm({
     console.log("지역 검색:", formData.locationQuery);
   };
 
+  // 날짜 변경 핸들러
+  const handleDatesChange = (dates) => {
+    setSelectedDates(dates);
+    setShowCalendar(false);
+    if (dates.length > 0) {
+      const dateStr = `${dates[0].getFullYear()}-${String(
+        dates[0].getMonth() + 1
+      ).padStart(2, "0")}-${String(dates[0].getDate()).padStart(2, "0")}`;
+      handleInputChange("companionDate", dateStr);
+    }
+  };
+
   return (
-    <div className="border border-gray-300 rounded-lg p-6 bg-white">
+    <div className="border border-gray-300 rounded-lg p-6 bg-white relative overflow-visible">
       <div className="space-y-4">
-        {/* 이벤트 선택/주소 */}
+        {/* 이벤트 선택/추가 */}
         <div className="flex items-center gap-4">
           <label className="text-sm text-gray-700 w-32 flex-shrink-0">
-            이벤트 선택/주소
+            이벤트 선택/추가
           </label>
-          <div className="relative w-1/4">
-            <input
-              type="text"
-              value={formData.eventQuery}
-              onChange={(e) => handleInputChange("eventQuery", e.target.value)}
-              className="w-full h-10 px-4 pr-12 border border-gray-300 rounded-full bg-white text-sm focus:outline-none focus:border-blue-500"
-              placeholder="검색"
-            />
-            <button
-              onClick={handleEventSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 rounded-full p-1"
-            >
-              <Image src={ICONS.SEARCH} alt="search" width={18} height={18} />
-            </button>
+          <div className="w-1/3">
+            <SearchToWrite onSelect={handleEventSelect} />
           </div>
         </div>
 
@@ -80,13 +83,18 @@ export default function TogetherWriteForm({
           <label className="text-sm text-gray-700 w-32 flex-shrink-0">
             동행 날짜
           </label>
-          <div className="relative w-1/6">
-            <input
-              type="date"
-              value={formData.companionDate === "0000-00-00" ? "" : formData.companionDate}
-              onChange={(e) => handleInputChange("companionDate", e.target.value || "0000-00-00")}
-              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 focus:outline-none focus:border-blue-500"
-            />
+          <div className="relative w-1/4">
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 focus:outline-none focus:border-blue-500 text-left">
+              {selectedDates.length > 0
+                ? `${selectedDates[0].getFullYear()}-${String(
+                    selectedDates[0].getMonth() + 1
+                  ).padStart(2, "0")}-${String(
+                    selectedDates[0].getDate()
+                  ).padStart(2, "0")}`
+                : "연도 - 월 - 일"}
+            </button>
             <Image
               src={ICONS.CALENDAR}
               alt="calendar"
@@ -105,9 +113,10 @@ export default function TogetherWriteForm({
           <div className="relative w-1/6">
             <select
               value={formData.companionCount}
-              onChange={(e) => handleInputChange("companionCount", e.target.value)}
-              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500"
-            >
+              onChange={(e) =>
+                handleInputChange("companionCount", e.target.value)
+              }
+              className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
               <option value="00 명">00 명</option>
               <option value="1명">1명</option>
               <option value="2명">2명</option>
@@ -141,12 +150,13 @@ export default function TogetherWriteForm({
               <select
                 value={formData.minAge || "제한없음"}
                 onChange={(e) => handleInputChange("minAge", e.target.value)}
-                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500"
-              >
+                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
                 <option value="제한없음">제한없음</option>
                 <option value="7세미만">7세미만</option>
-                {Array.from({ length: 53 }, (_, i) => i + 8).map(age => (
-                  <option key={age} value={age}>{age}세</option>
+                {Array.from({ length: 52 }, (_, i) => i + 8).map((age) => (
+                  <option key={age} value={age}>
+                    {age}세
+                  </option>
                 ))}
                 <option value="60세이상">60세이상</option>
               </select>
@@ -158,34 +168,33 @@ export default function TogetherWriteForm({
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none"
               />
             </div>
-              
+
             {/* 구분자 */}
             <span className="text-gray-500">~</span>
-              
+
             {/* 최대 나이 */}
             <div className="relative">
               <select
                 value={formData.maxAge || "제한없음"}
                 onChange={(e) => handleInputChange("maxAge", e.target.value)}
-                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500"
-              >
+                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
                 <option value="제한없음">제한없음</option>
                 <option value="7세미만">7세미만</option>
-                {Array.from({ length: 53 }, (_, i) => i + 8).map(age => {
+                {Array.from({ length: 52 }, (_, i) => i + 8).map((age) => {
                   // 최소 나이가 설정되어 있고, 현재 나이가 최소 나이보다 작으면 비활성화
-                  const isDisabled = formData.minAge !== "제한없음" && 
-                                  formData.minAge !== "" && 
-                                  formData.minAge !== "7세미만" &&
-                                  formData.minAge !== "60세이상" &&
-                                  age < parseInt(formData.minAge);
-                  
+                  const isDisabled =
+                    formData.minAge !== "제한없음" &&
+                    formData.minAge !== "" &&
+                    formData.minAge !== "7세미만" &&
+                    formData.minAge !== "60세이상" &&
+                    age < parseInt(formData.minAge);
+
                   return (
-                    <option 
-                      key={age} 
-                      value={age} 
+                    <option
+                      key={age}
+                      value={age}
                       disabled={isDisabled}
-                      style={isDisabled ? { color: '#ccc' } : {}}
-                    >
+                      style={isDisabled ? { color: "#ccc" } : {}}>
                       {age}세
                     </option>
                   );
@@ -208,23 +217,36 @@ export default function TogetherWriteForm({
           <label className="text-sm text-gray-700 w-32 flex-shrink-0">
             이벤트 주소
           </label>
-          <div className="relative w-1/4">
+          <div className="relative w-1/3">
             <input
               type="text"
               value={formData.locationQuery}
-              onChange={(e) => handleInputChange("locationQuery", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("locationQuery", e.target.value)
+              }
               className="w-full h-10 px-4 pr-12 border border-gray-300 rounded-full bg-white text-sm focus:outline-none focus:border-blue-500"
               placeholder="검색"
             />
             <button
               onClick={handleLocationSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 rounded-full p-1"
-            >
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:bg-gray-100 rounded-full p-1">
               <Image src={ICONS.SEARCH} alt="search" width={18} height={18} />
             </button>
           </div>
         </div>
       </div>
+
+      {/* 캘린더 (필터창 밖으로 나오도록) */}
+      {showCalendar && (
+        <div className="absolute top-20 left-44 z-30">
+          <Calendar
+            onDatesChange={handleDatesChange}
+            selectedDates={selectedDates}
+            mode="single"
+            className="max-w-xs w-80 shadow-xl"
+          />
+        </div>
+      )}
     </div>
   );
 }

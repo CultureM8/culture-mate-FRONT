@@ -9,7 +9,7 @@ export default function UsageGuidePage() {
     <div className="w-full min-h-screen bg-white">
       {/* 1. 이용 가이드 큰 타이틀 - 반응형 정렬 */}
       <div className="w-full">
-        <div className="w-full max-w-none lg:max-w-[1200px] mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
+        <div className="w-full max-w-none lg:max-w-full mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
           <h1 className="text-4xl font-bold py-[10px] h-16">
             이용 가이드
           </h1>
@@ -17,7 +17,7 @@ export default function UsageGuidePage() {
       </div>
 
       {/* 콘텐츠 영역 - 1200px 제한 */}
-      <div className="w-full max-w-none lg:max-w-[1200px] mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
+      <div className="w-full max-w-none lg:max-w-full mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
         {/* 모바일 전용 세로 레이아웃 */}
         <div className="block lg:hidden">
           {/* 1. findevent 이미지 */}

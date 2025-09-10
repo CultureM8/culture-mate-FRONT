@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /*
  * TODO: 로그인 시스템 구현 후 수정 필요사항
@@ -11,94 +11,150 @@
  *    pathname.startsWith() 방식으로 조건 확장 필요
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
-
-import Link from 'next/link';
-import Image from 'next/image';
-
-import useLogin from '@/hooks/useLogin';
-import { ROUTES, IMAGES, ICONS } from '@/constants/path';
-import SearchBar from './SearchBar';
-import MiniProfile from './MiniProfile';
+import useLogin from "@/hooks/useLogin";
+import { ROUTES, IMAGES, ICONS } from "@/constants/path";
+import SearchBar from "./SearchBar";
+import MiniProfile from "./MiniProfile";
 
 export default function NavigationBar() {
   const { ready, isLogined, user, logout, loading } = useLogin();
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [mounted, setMounted] = useState(false); // Hydration 안전성을 위한 마운트 상태
 
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  /**  현재 페이지의 전체 경로(path + query) 생성(로그인 후 기존 페이지로 이동)*/
+  // Hydration 안전성을 위한 마운트 확인
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  /** 현재 페이지의 전체 경로(path + query) 생성(로그인 후 기존 페이지로 이동) */
   const fullPath = useMemo(() => {
     const q = searchParams?.toString();
     return q ? `${pathname}?${q}` : pathname;
   }, [pathname, searchParams]);
 
-  /**임시 관리자 체크방식 */
+  /** 관리자 체크: 컨텍스트 role 우선, 없으면 localStorage 폴백 */
   useEffect(() => {
-    const userRole =
-      typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-    const adminByRole = userRole === 'admin';
-    const adminByPath = pathname === ROUTES.ADMIN;
-    setIsAdmin(Boolean(adminByRole || adminByPath));
-  }, [pathname, user]);
-  /**기존코드
-useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const userRole = localStorage.getItem('userRole'); // 사용자 역할 정보
-    
-    // 마이페이지나 관리자 페이지에 있다면 로그인 상태로 간주 (테스트용)
-    const isInProtectedRoute = pathname === ROUTES.MYPAGE || pathname === ROUTES.ADMIN;
-    
-    setIsLoggedIn(!!token || isInProtectedRoute);
-    setIsAdmin(userRole === 'admin' || pathname === ROUTES.ADMIN);
-  }, [pathname]);*/
+    if (!mounted) return; // 마운트 후에만 실행
 
-  /*프로필 아이콘 클릭 핸들러*/
+    const roleFromContext = user?.role; // 예: "ADMIN" | "MEMBER" | null
+    const roleFromStorage =
+      typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    const role = (roleFromContext ?? roleFromStorage ?? "")
+      .toString()
+      .toUpperCase();
+    const adminByRole = role === "ADMIN";
+    const adminByPath = pathname === ROUTES.ADMIN; // /admin 직접 접근 시도
+    setIsAdmin(Boolean(adminByRole || adminByPath));
+  }, [pathname, user, mounted]);
+
+  /* 프로필 아이콘 클릭 핸들러 */
   const handleProfileClick = () => setIsDropdownOpen((v) => !v);
 
-  /*로그아웃*/
+  /* 로그아웃 */
   const handleLogout = async () => {
     await logout();
     setIsDropdownOpen(false);
   };
 
   const flexStyle =
-    'flex items-center justify-between md:gap-[clamp(8px,3vw,48px)] sm:gap-3';
+    "flex items-center justify-between md:gap-[clamp(8px,3vw,48px)] sm:gap-3";
 
-  /**로그인 상태에 따른 메뉴 구성*/
+  /** 로그인 상태에 따른 메뉴 구성 */
   const getNavMenu = () => {
     const baseMenu = [
-      ['서비스 소개', ROUTES.ABOUT],
-      ['이용 가이드', ROUTES.GUIDE],
-      ['이벤트', ROUTES.EVENTS],
-      ['동행찾기', ROUTES.TOGETHER],
-      ['커뮤니티', ROUTES.COMMUNITY],
-      ['고객센터', ROUTES.HELP],
+      ["서비스 소개", ROUTES.ABOUT],
+      ["이용 가이드", ROUTES.GUIDE],
+      ["이벤트", ROUTES.EVENTS],
+      ["동행찾기", ROUTES.TOGETHER],
+      ["커뮤니티", ROUTES.COMMUNITY],
+      ["고객센터", ROUTES.HELP],
     ];
-    return isAdmin ? [...baseMenu, ['관리자', ROUTES.ADMIN]] : baseMenu;
+    return isAdmin ? [...baseMenu, ["관리자", ROUTES.ADMIN]] : baseMenu;
   };
   const navMenu = getNavMenu();
 
-  /*flicker방지 자리차지용*/
-  const RightPlaceHolder = () => (
-    <div className={`${flexStyle} shrink-0`}>
-      {/* 메뉴 자리 */}
-      <div className="flex gap-4">
-        <div className="w-16 h-6 bg-gray-100 rounded" />
-        <div className="w-16 h-6 bg-gray-100 rounded" />
-        <div className="w-16 h-6 bg-gray-100 rounded" />
-      </div>
-      {/* 아이콘 자리 */}
-      <div className="w-6 h-6 bg-gray-100 rounded-full" />
-    </div>
-  );
+  /** 현재 경로가 메뉴 링크와 일치하는지 확인 */
+  const isActiveMenu = (href) => {
+    // 정확히 일치하는 경우
+    if (pathname === href) return true;
+
+    // 하위 경로인 경우 (예: /community/posts는 /community 메뉴에서 활성화)
+    if (href !== "/" && pathname.startsWith(href + "/")) return true;
+
+    return false;
+  };
+
+  /* Hydration 안전한 사용자 메뉴 렌더링 */
+  const renderUserMenu = () => {
+    // 마운트 전에는 항상 로그아웃 상태로 렌더링 (서버와 동일)
+    if (!mounted || !ready) {
+      return (
+        <Link
+          href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
+          aria-label="로그인 페이지로 이동">
+          <Image src={ICONS.LOGIN_BTN} alt="login-btn" width={24} height={24} />
+        </Link>
+      );
+    }
+
+    // 마운트 후 실제 로그인 상태에 따라 렌더링
+    if (isLogined) {
+      return (
+        <>
+          {/* 프로필 아이콘 & 드롭다운 */}
+          <div className="relative">
+            <button
+              onClick={handleProfileClick}
+              className="hover:cursor-pointer"
+              aria-label="프로필 메뉴 열기">
+              <Image
+                src={ICONS.DEFAULT_PROFILE}
+                alt="profile-image"
+                width={24}
+                height={24}
+              />
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute top-8 right-0 z-50">
+                <MiniProfile />
+              </div>
+            )}
+          </div>
+
+          {/* 로그아웃 아이콘 → /logout 페이지로 이동 */}
+          <a href="/logout" aria-label="로그아웃">
+            <Image
+              src={ICONS.LOGOUT_BTN}
+              alt="logout-btn"
+              width={24}
+              height={24}
+            />
+          </a>
+        </>
+      );
+    } else {
+      return (
+        <Link
+          href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
+          aria-label="로그인 페이지로 이동">
+          <Image src={ICONS.LOGIN_BTN} alt="login-btn" width={24} height={24} />
+        </Link>
+      );
+    }
+  };
 
   return (
     <nav className="border-b border-b-[#EEF0F2] bg-white w-full px-[clamp(0px,6vw,120px)]">
@@ -123,71 +179,24 @@ useEffect(() => {
         </div>
 
         {/* 우측: 메뉴 + 로그인/마이페이지 */}
-        {!ready ? (
-          <RightPlaceHolder />
-        ) : (
-          <div className={`${flexStyle} shrink-0`}>
-            {/* 상단 메뉴 */}
-            {navMenu.map(([label, href], i) => (
-              <Link key={i} href={href} className="text-xl">
-                {label}
-              </Link>
-            ))}
+        <div className={`${flexStyle} shrink-0`}>
+          {/* 상단 메뉴 */}
+          {navMenu.map(([label, href], i) => (
+            <Link
+              key={i}
+              href={href}
+              className={`text-xl transition-all duration-200 hover:font-semibold ${
+                isActiveMenu(href)
+                  ? "font-bold text-black"
+                  : "font-normal text-gray-700 hover:text-black"
+              }`}>
+              {label}
+            </Link>
+          ))}
 
-            {/* 로그인 상태에 따른 아이콘 */}
-            {isLogined ? (
-              <>
-                {/* 프로필 아이콘 & 드롭다운 */}
-                <div className="relative">
-                  <button
-                    onClick={handleProfileClick}
-                    className="hover:cursor-pointer"
-                    aria-label="프로필 메뉴 열기">
-                    <Image
-                      src={ICONS.DEFAULT_PROFILE}
-                      alt="profile-image"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-
-                  {isDropdownOpen && (
-                    <div className="absolute top-8 right-0 z-50">
-                      <MiniProfile />
-                    </div>
-                  )}
-                </div>
-
-                {/* 로그아웃 아이콘 → logout() */}
-                <button
-                  onClick={handleLogout}
-                  disabled={loading}
-                  aria-label="로그아웃">
-                  <Image
-                    src={ICONS.LOGOUT_BTN}
-                    alt="logout-btn"
-                    width={24}
-                    height={24}
-                    className={loading ? 'opacity-60' : ''}
-                  />
-                </button>
-              </>
-            ) : (
-              // 로그인 아이콘 → /login 이동
-
-              <Link
-                href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
-                aria-label="로그인 페이지로 이동">
-                <Image
-                  src={ICONS.LOGIN_BTN}
-                  alt="login-btn"
-                  width={24}
-                  height={24}
-                />
-              </Link>
-            )}
-          </div>
-        )}
+          {/* Hydration 안전한 사용자 메뉴 */}
+          {renderUserMenu()}
+        </div>
       </div>
 
       {/* 모바일 */}
@@ -203,8 +212,18 @@ useEffect(() => {
             />
           </a>
 
-          {!ready ? (
-            <div className="w-6 h-6 bg-gray-100 rounded-full" />
+          {/* 모바일에서도 동일한 Hydration 안전 렌더링 */}
+          {!mounted || !ready ? (
+            <Link
+              href={{ pathname: ROUTES.LOGIN, query: { next: fullPath } }}
+              aria-label="로그인 페이지로 이동">
+              <Image
+                src={ICONS.LOGIN_BTN}
+                alt="login-btn"
+                width={24}
+                height={24}
+              />
+            </Link>
           ) : isLogined ? (
             <div className="relative">
               <button

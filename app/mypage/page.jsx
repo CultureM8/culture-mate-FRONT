@@ -11,7 +11,7 @@ export default function MyPage() {
       <ProfileBG />
       
       {/* 프로필 상세 정보 */}
-      <div className="w-full max-w-[1200px] mx-auto px-4 py-6">
+      <div className="w-full max-w-full mx-auto px-4 py-6">
         <ProfileDetail />
       </div>
       

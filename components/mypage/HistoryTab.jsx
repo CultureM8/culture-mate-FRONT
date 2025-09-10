@@ -4,7 +4,7 @@ import { useState } from "react";
 import HistoryEvent from "./HistoryEvent";
 import HistoryWith from "./HistoryWith";
 
-export default function HistoryTab({ eventData }) {
+export default function HistoryTab({ eventData, withData }) {
   const [activeTab, setActiveTab] = useState("HistoryEventTab");
 
   return (
@@ -36,7 +36,7 @@ export default function HistoryTab({ eventData }) {
           <HistoryEvent eventData={eventData} />
         )}
         {activeTab === "HistoryWithTab" && (
-          <HistoryWith eventData={eventData} />
+          <HistoryWith posts={withData} />
         )}
       </div>
     </div>

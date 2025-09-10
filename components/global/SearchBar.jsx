@@ -1,41 +1,51 @@
-"use client"
+"use client";
 
-import { ICONS } from "@/constants/path";
-import Image from "next/image";
 import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { ICONS } from "@/constants/path";
 
-export default function SearchBar() {
-  const [query, setQuery] = useState("");
+export default function SearchBar({
+  value,
+  onChange,
+  onSearch,
+  placeholder = "검색어를 입력해주세요",
+  className = "",
+}) {
+  const router = useRouter();
+  const isControlled =
+    typeof value === "string" && typeof onChange === "function";
+  const [inner, setInner] = useState("");
+
+  const q = isControlled ? value : inner;
+  const setQ = isControlled ? onChange : setInner;
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // 새로고침 방지
+    e.preventDefault();
+    const trimmed = q.trim();
+    if (!trimmed) return;
 
-    if (!query.trim()) return;
-
-    // 1️⃣ 검색어로 페이지 이동 (예: /search?q=키워드)
-    window.location.href = `/search?q=${encodeURIComponent(query)}`;
-
-    // 또는
-    // 2️⃣ 검색 함수 실행
-    // searchFunction(query);
+    if (typeof onSearch === "function") {
+      onSearch(trimmed);
+    } else {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
   };
 
   return (
-    <form 
-      action="" 
-      className="flex items-center h-8 w-[clamp(50px,30vw,300px)]
-        border border-gray-300 rounded-full p-3 gap-2"
-    >
-      <input type="text" className="w-full bg-transparent focus:outline-none focus:placeholder:opacity-0" 
-        placeholder="검색어를 입력해주세요" 
+    <form
+      onSubmit={handleSubmit}
+      className={`flex items-center h-8 w-[clamp(50px,30vw,300px)]
+        border border-gray-300 rounded-full p-3 gap-2 ${className}`}>
+      <input
+        type="text"
+        className="w-full bg-transparent focus:outline-none focus:placeholder:opacity-0"
+        placeholder={placeholder}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
       />
-      <button type="submit" className="hover:cursor-pointer">
-        <Image 
-          src={ICONS.SEARCH} 
-          alt="search"
-          width={24}
-          height={24}
-        />
+      <button type="submit" className="hover:cursor-pointer" aria-label="검색">
+        <Image src={ICONS.SEARCH} alt="search" width={24} height={24} />
       </button>
     </form>
   );

@@ -11,8 +11,7 @@ export default function MyPostGrid({ reply }) {
       {/* 게시글 헤더 */}
       <div
         className="grid bg-gray-100 font-semibold text-center rounded-t-md p-2"
-        style={{ gridTemplateColumns: gridCols }}
-      >
+        style={{ gridTemplateColumns: gridCols }}>
         <div>게시물분류</div>
         <div className="text-left">제목</div>
         <div>작성일</div>
@@ -23,13 +22,11 @@ export default function MyPostGrid({ reply }) {
         <div
           key={reply.id}
           className="border rounded-2xl p-3 shadow-md hover:shadow-lg space-y-1"
-          style={{ width: "100%" }}
-        >
+          style={{ width: "100%" }}>
           {/* 제목 행 */}
           <div
             className="grid items-center text-center"
-            style={{ gridTemplateColumns: gridCols }}
-          >
+            style={{ gridTemplateColumns: gridCols }}>
             <div className="row-span-2 flex items-center justify-center">
               {reply.category}
             </div>
@@ -44,8 +41,7 @@ export default function MyPostGrid({ reply }) {
           {/* 댓글 + 버튼 행 */}
           <div
             className="grid items-center text-center mt-1"
-            style={{ gridTemplateColumns: gridCols }}
-          >
+            style={{ gridTemplateColumns: gridCols }}>
             <div></div> {/* 분류열 (비움) */}
             <div className="text-left text-sm text-gray-500 flex items-center gap-1">
               <Image

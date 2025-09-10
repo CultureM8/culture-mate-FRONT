@@ -1,4 +1,3 @@
-import EventInfo from "./EventInfo";
 import EventPageClient from "./EventPageClient";
 import { getEventById } from "@/lib/eventData";
 
@@ -25,7 +24,6 @@ export default async function EventId({ params }) {
 
   return(
     <>
-      <EventInfo eventData={eventData} />
       <EventPageClient eventData={eventData} />
     </>
   )

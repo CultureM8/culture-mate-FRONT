@@ -81,7 +81,7 @@ export default function GalleryLayout({ Component, items, commonProps={}, itemsP
 
   return (
     <div ref={layoutRef}>
-      <div className="grid grid-cols-[repeat(auto-fit,300px)] gap-0">
+      <div className="grid grid-cols-4 gap-0">
         {currentItems.map((item, idx) => (
           <Component key={startIndex + idx} {...item} {...commonProps} />
         ))}

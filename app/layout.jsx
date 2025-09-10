@@ -14,9 +14,7 @@ export default function RootLayout({ children }) {
       <body>
         <LoginProvider>
           <NavigationBar />
-          <main className="mx-auto max-w-300 px-[clamp(0px,6vw,0px)] relative">
-            {children}
-          </main>
+          {children}
           <Footer />
         </LoginProvider>
       </body>
