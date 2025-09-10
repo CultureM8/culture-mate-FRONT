@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import { toCard } from "@/lib/schema";
-import { DUMMY_EVENTS } from "@/lib/eventData";
+import { searchEvents } from "@/lib/eventApi"; // ✅ 백엔드 연동
 import EventTile from "./EventTile";
 
 export default function SearchToWrite({ onSelect = () => {} }) {
@@ -17,23 +17,23 @@ export default function SearchToWrite({ onSelect = () => {} }) {
   const MIN_QUERY_LEN = 1;
   const PAGE_SIZE = 6;
 
-  /* eventData호환 형식으로 변환*/
-  const transformEventData = (events) => {
-    return events.map((event) => ({
-      id: event.eventId,
-      name: event.title,
-      eventName: event.title,
-      eventType: event.eventType,
-      type: event.eventType,
-      image: event.imgSrc,
-      description: event.title,
-      rating: event.score,
-      likes: event.likesCount,
+  // eventApi.searchEvents() 결과를 카드 호환 형태로 변환
+  const transformFromApi = (events = []) =>
+    events.map((e) => ({
+      id: e.id, // string
+      name: e.title, // 카드에서 쓰는 이름
+      eventName: e.title, // 기존 호환
+      eventType: e.eventType,
+      type: e.eventType, // 기존 호환
+      image: e.imgSrc || "/img/default_img.svg", // 기본이미지 폴백
+      description: e.title,
+      rating: e.score ?? 0, // (api엔 avgRating 없어서 0)
+      likes: e.interestCount ?? 0,
       postsCount: 0,
       isLiked: false,
     }));
-  };
 
+  // 바디 스크롤 잠금 유지 (기존 동작 그대로)
   useEffect(() => {
     const isModalOpen = open || warnOpen;
 
@@ -59,7 +59,7 @@ export default function SearchToWrite({ onSelect = () => {} }) {
     };
   }, [open, warnOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const q = query.trim();
     if (q.length < MIN_QUERY_LEN) {
@@ -67,21 +67,19 @@ export default function SearchToWrite({ onSelect = () => {} }) {
       return;
     }
 
-    /* DUMMY_EVENTS를 변환된 형태로 사용*/
-    const transformedData = transformEventData(DUMMY_EVENTS);
-    const lower = q.toLowerCase();
-    const filtered = transformedData.filter((ev) => {
-      const name = (ev.name || ev.eventName || "").toLowerCase();
-      const desc = (ev.description || "").toLowerCase();
-      const type = (ev.type || ev.eventType || "").toLowerCase();
-      return (
-        name.includes(lower) || desc.includes(lower) || type.includes(lower)
-      );
-    });
-
-    setResults(filtered.map(toCard));
-    setShowAll(false);
-    setOpen(true);
+    try {
+      // ✅ 백엔드 검색 호출
+      const apiList = await searchEvents({ keyword: q });
+      const transformed = transformFromApi(apiList);
+      setResults(transformed.map(toCard));
+      setShowAll(false);
+      setOpen(true);
+    } catch (err) {
+      console.error("이벤트 검색 실패:", err);
+      setResults([]);
+      setShowAll(false);
+      setOpen(true);
+    }
   };
 
   const handlePick = (card) => {
@@ -152,7 +150,6 @@ export default function SearchToWrite({ onSelect = () => {} }) {
                     className="px-4 py-2 text-sm border rounded"
                     onClick={() => {
                       setShowAll(false);
-
                       const scroller = document.querySelector(
                         ".bg-white.w-full.max-w-\\[1000px\\].max-h-\\[75vh\\].rounded-lg.p-4.flex.flex-col.overflow-hidden .overflow-y-auto"
                       );

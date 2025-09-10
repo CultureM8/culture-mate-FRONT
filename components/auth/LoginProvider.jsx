@@ -126,6 +126,7 @@ export default function LoginProvider({ children }) {
     };
   }, []);
 
+  // 발췌: doLogin 그대로, 단 로그아웃 시 accessToken 제거가 수행되도록 authApi.logout 사용
   const doLogin = async ({ login_id, password, remember = false }) => {
     setLoading(true);
     try {
@@ -138,19 +139,16 @@ export default function LoginProvider({ children }) {
         role: profile.role ?? null,
       };
       const now = Date.now();
-      const ttlMs = remember ? 1000 * 60 * 60 * 24 * 7 : 1000 * 60 * 60 * 24; // 7일/1일
+      const ttlMs = remember ? 1000 * 60 * 60 * 24 * 7 : 1000 * 60 * 60 * 24;
 
       setUser(u);
       save({ user: u, expiresAt: now + ttlMs });
 
-      // 기존 코드 호환(관리자 메뉴 등)
       try {
         localStorage.setItem("userRole", (u.role ?? "").toString());
       } catch {}
 
-      // 멀티탭 동기화
       if (bcRef.current) bcRef.current.postMessage({ type: "login", user: u });
-
       return u;
     } finally {
       setLoading(false);
@@ -160,7 +158,7 @@ export default function LoginProvider({ children }) {
   const logout = async () => {
     setLoading(true);
     try {
-      await apiLogout();
+      await apiLogout(); // 내부에서 accessToken 제거
       setUser(null);
       clear();
       if (bcRef.current) bcRef.current.postMessage("logout");

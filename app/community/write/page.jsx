@@ -6,10 +6,6 @@ import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import useLogin from "@/hooks/useLogin";
-// import { makePost, normalizeEventSnapshot } from "@/lib/schema";
-// import { makePostV1 as makePost, normalizeEventSnapshot } from "@/lib/schema";
-// import { addPost } from "@/lib/storage";
-
 import { normalizeEventSnapshot } from "@/lib/schema";
 import { createPost } from "@/lib/communityApi";
 

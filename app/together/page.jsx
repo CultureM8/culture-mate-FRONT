@@ -37,7 +37,10 @@ export default function TogetherPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // hook: 서버/스토리지에서 가져온 원본 목록
-  const { items, loading } = useTogetherItems(selectedEventType, sortOption);
+  const { items, loading, error, refetch } = useTogetherItems(
+    selectedEventType,
+    sortOption
+  );
 
   // URL 업데이트
   useEffect(() => {
@@ -95,7 +98,6 @@ export default function TogetherPage() {
     <>
       <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
       <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
-
       <div className="border w-full h-[200px] flex items-center justify-center relative z-10">
         <div className="border w-full h-full flex items-center justify-center relative z-10 bg-white">
           <img
@@ -105,12 +107,10 @@ export default function TogetherPage() {
           />
         </div>
       </div>
-
       <EventSelector
         selected={selectedEventType}
         setSelected={setSelectedEventType}
       />
-
       <div className="px-2.5 h-16 flex items-center justify-between">
         {/* 좌측: 뷰 토글 */}
         <div className="flex items-center gap-2">
@@ -188,15 +188,45 @@ export default function TogetherPage() {
           ) : null}
         </div>
       </div>
-
       {/* 검색 결과 수 */}
       <div className="px-2.5 text-sm text-gray-500">
-        {loading ? "불러오는 중…" : `총 ${filtered.length}건`}
+        {loading ? (
+          "불러오는 중…"
+        ) : error ? (
+          <div className="flex items-center gap-2">
+            <span className="text-red-500">오류: {error}</span>
+            <button
+              onClick={refetch}
+              className="text-blue-500 underline text-xs">
+              재시도
+            </button>
+          </div>
+        ) : (
+          `총 ${filtered.length}건`
+        )}
       </div>
 
       {/* 본문 */}
       {loading ? (
-        <div className="p-6 text-gray-500">불러오는 중…</div>
+        <div className="p-6 text-gray-500 text-center">
+          <div>불러오는 중…</div>
+        </div>
+      ) : error ? (
+        <div className="p-6 text-center">
+          <div className="text-red-500 mb-4">
+            모임 목록을 불러오는데 실패했습니다.
+          </div>
+          <div className="text-gray-600 mb-4">{error}</div>
+          <button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            다시 시도
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="p-6 text-gray-500 text-center">
+          {query.trim() ? "검색 결과가 없습니다." : "등록된 모임이 없습니다."}
+        </div>
       ) : viewType === "Gallery" ? (
         <GalleryLayout Component={TogetherGallery} items={filtered} />
       ) : (

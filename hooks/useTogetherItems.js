@@ -1,154 +1,182 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { loadPosts } from "@/lib/storage";
-import { togetherData } from "@/lib/togetherData";
+import { fetchTogetherList } from "@/lib/togetherApi";
 
-/* 안전한 시간(ms) 변환 */
-const toTime = (v) => {
-  if (!v) return 0;
-  if (typeof v === "number") return v;
-  if (v instanceof Date) return v.getTime();
-  if (typeof v === "string") {
-    const s = v.trim();
-    // "YYYY.MM.DD"
-    if (/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(s)) {
-      const [y, m, d] = s.split(".").map((n) => parseInt(n, 10));
-      const t = new Date(y, m - 1, d).getTime();
-      return Number.isNaN(t) ? 0 : t;
-    }
-    const t = Date.parse(s); // ISO 등
-    return Number.isNaN(t) ? 0 : t;
+/* 백엔드 응답 데이터 -> 카드 아이템 변환 */
+const fromServerResponse = (item = {}) => {
+  // 백엔드 응답 구조에 맞게 매핑
+  return {
+    togetherId: item.id || item.togetherId,
+    imgSrc:
+      item.eventSnapshot?.eventImage ||
+      item.eventImage ||
+      item.imgSrc ||
+      "/img/default_img.svg",
+    title: item.title || "제목 없음",
+    eventType: item.eventSnapshot?.eventType || item.eventType || "기타",
+    eventName:
+      item.eventSnapshot?.name ||
+      item.eventSnapshot?.eventName ||
+      item.eventName ||
+      "",
+    group: item.maxParticipants
+      ? `${item.currentParticipants || 0}/${item.maxParticipants}`
+      : item.companionCount || 1,
+    date: item.meetingDate
+      ? new Date(item.meetingDate)
+          .toLocaleDateString("ko-KR")
+          .replace(/\./g, ".")
+          .replace(/ /g, "")
+      : item.companionDate
+      ? new Date(item.companionDate)
+          .toLocaleDateString("ko-KR")
+          .replace(/\./g, ".")
+          .replace(/ /g, "")
+      : "",
+    address: item.eventSnapshot?.location || item.address || "",
+    author:
+      item.author?.nickname ||
+      item.author?.displayName ||
+      item.authorName ||
+      "-",
+    views: item.viewCount || item.views || 0,
+    isClosed: !item.active || item.isClosed || false,
+
+    // 정렬을 위한 원본 데이터 보존
+    _createdTime: item.createdAt ? new Date(item.createdAt).getTime() : 0,
+    _eventTime: item.meetingDate
+      ? new Date(item.meetingDate).getTime()
+      : item.companionDate
+      ? new Date(item.companionDate).getTime()
+      : 0,
+    _views: item.viewCount || item.views || 0,
+
+    // 원본 데이터 보존 (상세 페이지에서 필요할 수 있음)
+    _original: item,
+  };
+};
+
+/* 정렬 옵션을 백엔드 API 파라미터로 변환 */
+const getSortParam = (sortOption) => {
+  switch (sortOption) {
+    case "createdAt_desc":
+      return "createdAt,desc";
+    case "createdAt_asc":
+      return "createdAt,asc";
+    case "event_desc":
+      return "meetingDate,desc";
+    case "event_asc":
+      return "meetingDate,asc";
+    case "views_desc":
+      // 조회수 필드가 없으므로 생성일 기준으로 대체
+      return "createdAt,desc";
+    default:
+      return "meetingDate,desc"; // 기본: 최근 이벤트순
   }
-  return 0;
 };
-
-/* id 꼬리에 박힌 base36/10 타임스탬프 추출(없으면 0) */
-const timeFromId = (id) => {
-  if (!id || typeof id !== "string") return 0;
-  const tail = id.split(":").pop().split("-").pop();
-  const b36 = parseInt(tail, 36);
-  if (Number.isFinite(b36) && b36 > 0) return b36;
-  const b10 = parseInt(tail, 10);
-  return Number.isFinite(b10) && b10 > 0 ? b10 : 0;
-};
-
-/* ─ 작성 시각 키(이벤트 날짜 절대 사용 X) ─ */
-const getCreatedTimeFromPost = (p = {}) =>
-  toTime(p.createdAt) || toTime(p.updatedAt) || timeFromId(p.id);
-const getCreatedTimeFromDummy = (d = {}) =>
-  toTime(d.createdAt) || timeFromId(d.togetherId);
-
-/* ─ 이벤트 날짜 키 ─ */
-const getEventTimeFromPost = (p = {}) =>
-  toTime(p.companionDate) ||
-  toTime(p?.eventSnapshot?.date) ||
-  toTime(p?.eventSnapshot?.eventDate);
-const getEventTimeFromDummy = (d = {}) => toTime(d.date);
-
-/* 작성자 표시 규칙 */
-const getAuthorDisplay = (p = {}) =>
-  p?.author?.display_name ??
-  p?.author?.nickname ??
-  p?.author_login_id ??
-  p?.author?.login_id ??
-  p?.authorName ??
-  p?.author?.name ??
-  p?.author_id ??
-  p?.authorId ??
-  p?.author?.id ??
-  "-";
-
-/* 저장된 글 -> 카드 아이템 */
-const fromPost = (p = {}) => ({
-  togetherId: p.id,
-  imgSrc:
-    p?.eventSnapshot?.eventImage ??
-    p?.eventSnapshot?.imgSrc ??
-    p?.imgSrc ??
-    "/img/default_img.svg",
-  title: p.title || "제목 없음",
-  eventType: p?.eventSnapshot?.eventType ?? p?.eventType ?? "기타",
-  eventName:
-    p?.eventSnapshot?.name ?? p?.eventName ?? p?.eventSnapshot?.title ?? "",
-  group: p?.companionCount ?? p?.maxPeople ?? p?.group ?? 1,
-  date:
-    p?.companionDate ??
-    (p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : ""),
-  address: p?.eventSnapshot?.location ?? p?.address ?? "",
-  author: getAuthorDisplay(p),
-  views: p?.stats?.views ?? 0,
-  isClosed: !!p?.isClosed,
-
-  _createdTime: getCreatedTimeFromPost(p),
-  _eventTime: getEventTimeFromPost(p),
-});
-
-/* 더미 글 -> 카드 아이템 */
-const fromDummy = (d = {}) => ({
-  togetherId: d.togetherId,
-  imgSrc: d.imgSrc ?? "/img/default_img.svg",
-  title: d.title ?? "제목 없음",
-  eventType: d.eventType ?? "기타",
-  eventName: d.eventName ?? d.title ?? "",
-  group: d.group ?? 1,
-  date: d.date ?? "",
-  address: d.address ?? "",
-  author: d.authorName ?? d.author ?? "-",
-  views: d.views ?? d.viewCount ?? 0,
-  isClosed: !!d.isClosed,
-
-  _createdTime: getCreatedTimeFromDummy(d),
-  _eventTime: getEventTimeFromDummy(d),
-});
 
 export default function useTogetherItems(
   selectedEventType = "전체",
-  sortOption = "event_desc" // 기본: 최근 이벤트순
+  sortOption = "event_desc"
 ) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const posts = (loadPosts("together") || []).map(fromPost);
-    const dummies = (togetherData || []).map(fromDummy);
+    const loadItems = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    // ID 기준 병합 (실제 글이 있으면 덮어쓰기)
-    const map = new Map();
-    [...dummies, ...posts].forEach((it) => {
-      if (!it?.togetherId) return;
-      map.set(it.togetherId, { ...(map.get(it.togetherId) || {}), ...it });
-    });
+        // API 파라미터 구성
+        const params = {
+          eventType:
+            selectedEventType === "전체" ? undefined : selectedEventType,
+          sort: getSortParam(sortOption),
+          // 필요하다면 페이징 파라미터도 추가
+          page: 0,
+          size: 100, // 일단 충분히 큰 값으로
+        };
 
-    let list = Array.from(map.values());
+        // 백엔드 API 호출
+        const response = await fetchTogetherList(params);
 
-    // 유형 필터
-    if (selectedEventType !== "전체") {
-      list = list.filter(
-        (it) => (it.eventType ?? "기타") === selectedEventType
-      );
-    }
+        // 응답 데이터 구조에 따라 조정 필요
+        // 만약 페이징된 응답이라면: response.content 또는 response.data
+        // 단순 배열이라면: response 그대로
+        const rawItems = Array.isArray(response)
+          ? response
+          : response.content || response.data || [];
 
-    // 정렬
-    list.sort((a, b) => {
-      switch (sortOption) {
-        case "createdAt_desc": // 최근 작성순
-          return (b._createdTime || 0) - (a._createdTime || 0);
-        case "createdAt_asc": // 작성 오래된순
-          return (a._createdTime || 0) - (b._createdTime || 0);
-        case "views_desc": // 조회수많은순
-          return (b.views || 0) - (a.views || 0);
-        case "event_asc": // 이벤트 오래된순
-          return (a._eventTime || 0) - (b._eventTime || 0);
-        case "event_desc": // 최근 이벤트순
-        default:
-          return (b._eventTime || 0) - (a._eventTime || 0);
+        // 데이터 변환
+        const transformedItems = rawItems.map(fromServerResponse);
+
+        // 클라이언트 사이드에서 추가 정렬이 필요한 경우
+        // (백엔드에서 정렬을 완전히 처리한다면 이 부분은 불필요)
+        const sortedItems = [...transformedItems].sort((a, b) => {
+          switch (sortOption) {
+            case "createdAt_desc":
+              return b._createdTime - a._createdTime;
+            case "createdAt_asc":
+              return a._createdTime - b._createdTime;
+            case "views_desc":
+              return b._views - a._views;
+            case "event_asc":
+              return a._eventTime - b._eventTime;
+            case "event_desc":
+            default:
+              return b._eventTime - a._eventTime;
+          }
+        });
+
+        setItems(sortedItems);
+      } catch (err) {
+        console.error("모임 목록 조회 실패:", err);
+        setError(err.message || "모임 목록을 불러오는데 실패했습니다.");
+
+        // 에러 발생 시 빈 배열로 설정
+        setItems([]);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    setItems(list);
-    setLoading(false);
+    loadItems();
   }, [selectedEventType, sortOption]);
 
-  return { items, loading };
+  return {
+    items,
+    loading,
+    error,
+    // 에러 재시도 함수
+    refetch: () => {
+      const loadItems = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const params = {
+            eventType:
+              selectedEventType === "전체" ? undefined : selectedEventType,
+            sort: getSortParam(sortOption),
+            page: 0,
+            size: 100,
+          };
+          const response = await fetchTogetherList(params);
+          const rawItems = Array.isArray(response)
+            ? response
+            : response.content || response.data || [];
+          const transformedItems = rawItems.map(fromServerResponse);
+          setItems(transformedItems);
+        } catch (err) {
+          setError(err.message || "모임 목록을 불러오는데 실패했습니다.");
+          setItems([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadItems();
+    },
+  };
 }

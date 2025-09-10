@@ -5,21 +5,14 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
-import { DUMMY_EVENTS } from "@/lib/eventData";
 import { toCard } from "@/lib/schema";
 import CommentsSection from "@/components/community/CommentsSection";
 import { ICONS } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
-//프론트용
-// import {
-//   getPost,
-//   bumpViews,
-//   deletePost,
-//   toggleRecommendation,
-// } from "@/lib/storage";
 
-/*백엔드*/
+/* 백엔드 */
 import { fetchPost, deletePostApi, toggleBoardLike } from "@/lib/communityApi";
+import { getEventById } from "@/lib/eventApi";
 
 /** 권한 키 */
 function userKey(u) {
@@ -66,45 +59,20 @@ export default function CommunityDetailPage() {
   const [commentCount, setCommentCount] = useState(0);
   const [deleting, setDeleting] = useState(false);
 
-  // // 로드 + 조회수 프론트용
-  // useEffect(() => {
-  //   const p = getPost("community", postId);
-  //   setPost(p || null);
+  /** 이벤트 미니카드용 데이터 (백엔드 연동) */
+  const [eventCard, setEventCard] = useState(null);
 
-  //   if (p) {
-  //     const onceKey = `viewed:community:${postId}`;
-  //     if (!sessionStorage.getItem(onceKey)) {
-  //       bumpViews("community", postId); // _views +1
-  //       sessionStorage.setItem(onceKey, "1");
-  //       setPost(getPost("community", postId) || p);
-  //     }
-  //   }
-
-  //   // 댓글수(루트만)
-  //   try {
-  //     const raw = localStorage.getItem(`comments:${postId}`);
-  //     const list = raw ? JSON.parse(raw) : [];
-  //     const roots = Array.isArray(list)
-  //       ? list.filter((c) => !c.parentId).length
-  //       : 0;
-  //     setCommentCount(roots);
-  //   } catch {
-  //     setCommentCount(0);
-  //   }
-  // }, [postId]);
-
-  /*백엔드 로드+조회수*/
+  /* 글 로드 */
   useEffect(() => {
     let stop = false;
     (async () => {
       try {
-        // 서버 단건 조회: GET /api/v1/board/{postId}
-        const p = await fetchPost(postId);
+        const p = await fetchPost(postId); // GET /api/v1/board/{postId}
         if (stop) return;
 
         setPost(p || null);
 
-        // 댓글 수는 서버 응답에 없으므로 일단 기존 로컬 계산 유지
+        // 댓글 수(루트만) – 서버 응답에 없으니 기존 로컬 계산 유지
         try {
           const raw = localStorage.getItem(`comments:${postId}`);
           const list = raw ? JSON.parse(raw) : [];
@@ -126,39 +94,69 @@ export default function CommunityDetailPage() {
     };
   }, [postId]);
 
-  // 내 추천 여부
+  // 내 추천 여부(초기값: 로컬 기록 사용)
   useEffect(() => {
     if (!post) return;
     const set = loadRecSet(postId);
     setRecommended(user ? set.has(userKey(user)) : false);
   }, [post, user, postId]);
 
-  // 이벤트 카드
-  const card = useMemo(() => {
-    if (!post) return null;
-    if (post.eventSnapshot) return post.eventSnapshot;
-    if (!post.eventId) return null;
+  // 이벤트 카드 로딩(백엔드): post.eventSnapshot 우선, 없고 eventId 있으면 조회
+  useEffect(() => {
+    let stop = false;
 
-    const raw = DUMMY_EVENTS.find(
-      (e) => String(e.eventId) === String(post.eventId)
-    );
-    if (raw) {
-      const transformedEvent = {
-        id: raw.eventId,
-        name: raw.title,
-        eventName: raw.title,
-        eventType: raw.eventType,
-        type: raw.eventType,
-        image: raw.imgSrc,
-        description: raw.title,
-        rating: raw.score,
-        likes: raw.likesCount,
+    const makeCardFromEvent = (ev) => {
+      // eventApi.getEventById 스키마를 toCard 입력 포맷으로 변환
+      const img =
+        ev?.imgSrc && typeof ev.imgSrc === "string" && ev.imgSrc.trim()
+          ? ev.imgSrc
+          : "/img/default_img.svg";
+
+      return toCard({
+        id: ev?.eventId ?? ev?.id,
+        name: ev?.title,
+        eventName: ev?.title,
+        eventType: ev?.eventType,
+        type: ev?.eventType,
+        image: img,
+        description: ev?.title,
+        rating: ev?.score ?? 0,
+        likes: ev?.likesCount ?? 0,
         postsCount: 0,
         isLiked: false,
-      };
-      return toCard(transformedEvent);
-    }
-    return null;
+      });
+    };
+
+    (async () => {
+      if (!post) {
+        setEventCard(null);
+        return;
+      }
+
+      // 1) 스냅샷이 있으면 그대로 사용
+      if (post.eventSnapshot) {
+        setEventCard(post.eventSnapshot);
+        return;
+      }
+
+      // 2) 스냅샷 없고 이벤트 ID가 있으면 BE에서 조회
+      if (post.eventId) {
+        try {
+          const ev = await getEventById(post.eventId);
+          if (그만) return;
+          setEventCard(makeCardFromEvent(ev));
+        } catch (err) {
+          console.warn("이벤트 조회 실패, 기본 카드 생략:", err);
+          setEventCard(null);
+        }
+      } else {
+        setEventCard(null);
+      }
+    })();
+
+    return () => {
+      stop = true;
+    };
   }, [post]);
 
   if (!post) {
@@ -214,8 +212,10 @@ export default function CommunityDetailPage() {
           </div>
         </div>
 
-        {/* 이벤트 카드 */}
-        <div className="mb-6">{card && <PostEventMiniCard {...card} />}</div>
+        {/* 이벤트 카드 (백엔드 연동) */}
+        <div className="mb-6">
+          {eventCard && <PostEventMiniCard {...eventCard} />}
+        </div>
 
         {/* 본문 */}
         <div ref={bodyRef} className="mb-8 min-h-[600px]">
@@ -228,42 +228,6 @@ export default function CommunityDetailPage() {
         <div className="flex justify-center my-6">
           <button
             className="flex flex-col items-center gap-2 px-4 py-3"
-            //프론트용
-            // onClick={() => {
-            //   if (!ready) return;
-            //   if (!isLogined) {
-            //     const next = encodeURIComponent(
-            //       window.location.pathname + window.location.search
-            //     );
-            //     return router.replace(`/login?next=${next}`);
-            //   }
-            //   const k = currentKey;
-            //   if (!k) return;
-
-            //   const set = loadRecSet(postId);
-            //   const had = set.has(k);
-
-            //   // 저장소 카운트 갱신( recommendCount)
-            //   const ret = toggleRecommendation(
-            //     "community",
-            //     postId,
-            //     had ? -1 : +1
-            //   );
-            //   const nextCount = typeof ret === "number" ? ret : ret?.count ?? 0;
-
-            //   // 내 기록 토글
-            //   if (had) set.delete(k);
-            //   else set.add(k);
-            //   saveRecSet(postId, set);
-
-            //   setRecommended(!had);
-            //   setPost((prev) =>
-            //     prev ? { ...prev, recommendCount: nextCount } : prev
-            //   );
-            // }}
-
-            //백엔드용
-            // 상세 페이지 추천 버튼 onClick 수정
             onClick={async () => {
               if (!ready) return;
               if (!isLogined) {
@@ -279,14 +243,19 @@ export default function CommunityDetailPage() {
               }
 
               try {
-                // 서버에 좋아요 토글
                 const liked = await toggleBoardLike(postId, memberId);
 
                 // 최신 데이터 재조회
                 const latest = await fetchPost(postId);
                 setPost(latest || null);
 
-                // 추천 상태 업데이트
+                // 로컬 추천기록도 업데이트(초기상태 표시에 사용)
+                const k = userKey(user);
+                const set = loadRecSet(postId);
+                if (liked) set.add(k);
+                else set.delete(k);
+                saveRecSet(postId, set);
+
                 setRecommended(!!liked);
               } catch (e) {
                 console.error("추천 처리 에러:", e);
@@ -368,23 +337,6 @@ export default function CommunityDetailPage() {
         confirmText="삭제"
         cancelText="취소"
         variant="danger"
-        //프론트용
-        // onConfirm={async () => {
-        //   if (!canDelete) {
-        //     setOpenDelete(false);
-        //     return alert("이 글을 삭제할 권한이 없습니다.");
-        //   }
-        //   setDeleting(true);
-        //   try {
-        //     deletePost("community", postId, { purgeExtras: true });
-        //     setOpenDelete(false);
-        //     router.push("/community");
-        //   } finally {
-        //     setDeleting(false);
-        //   }
-        // }}
-
-        //백엔드
         onConfirm={async () => {
           if (!canDelete) {
             setOpenDelete(false);

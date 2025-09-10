@@ -7,43 +7,25 @@ import TogetherWriteForm from "@/components/together/TogetherWriteForm";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import useLogin from "@/hooks/useLogin";
 import useTogetherWriteState from "@/hooks/useTogetherWriteState";
-import { addPost } from "@/lib/storage";
-import { makeTogetherV1, normalizeEventSnapshot } from "@/lib/schema";
-
-/** 작성자(meta) 빌더: LoginProvider 구조 기준 */
-const buildAuthorFromUser = (u) => {
-  const id = u?.id ?? null;
-  const login = u?.login_id ?? u?.loginId ?? "";
-  const nick = u?.nickname ?? null;
-  const display =
-    u?.display_name ??
-    nick ??
-    (login ? String(login) : id != null ? String(id) : "사용자");
-  return {
-    id,
-    login_id: login,
-    nickname: nick,
-    display_name: display,
-  };
-};
+import {
+  submitTogetherPost,
+  validateTogetherForm,
+} from "@/lib/togetherWriteUtils";
 
 export default function TogetherRecruitmentPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const router = useRouter();
   const { ready, isLogined, user } = useLogin();
 
   // 작성 훅: 이벤트 정규화 + 폼 상태
-  const {
-    selectedEvent,
-    handleEventSelect,
-    form,
-    handleFormChange,
-    buildPost, // (보존용) 기존 훅이 노출하는 빌더
-  } = useTogetherWriteState();
+  const { selectedEvent, handleEventSelect, form, handleFormChange } =
+    useTogetherWriteState();
 
   // 비로그인 접근 시 로그인으로 유도
   useEffect(() => {
@@ -54,86 +36,74 @@ export default function TogetherRecruitmentPage() {
     }
   }, [ready, isLogined, router]);
 
-  const canSubmit = useMemo(
-    () =>
-      ready &&
-      isLogined &&
-      !!user &&
-      title.trim().length > 0 &&
-      content.trim().length > 0,
-    [ready, isLogined, user, title, content]
-  );
+  // 폼 유효성 검사
+  const validation = useMemo(() => {
+    return validateTogetherForm({
+      title,
+      content,
+      selectedEvent,
+      form,
+      user,
+    });
+  }, [title, content, selectedEvent, form, user]);
+
+  const canSubmit = ready && isLogined && user && validation.isValid;
 
   const handleSubmit = () => {
-    if (!title.trim()) return alert("제목을 입력해주세요.");
-    if (!content.trim()) return alert("내용을 입력해주세요.");
-    if (!ready || !isLogined || !user)
-      return alert(
-        "로그인 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요."
-      );
+    if (!validation.isValid) {
+      alert(validation.errors[0]); // 첫 번째 오류 메시지 표시
+      return;
+    }
+
+    setSubmitError(""); // 이전 에러 클리어
     setShowSuccessModal(true);
   };
 
-  const handleConfirmSave = () => {
+  const handleConfirmSave = async () => {
     if (!canSubmit) {
       setShowSuccessModal(false);
       return;
     }
 
-    // 이벤트 스냅샷 정규화
-    const evSnap = normalizeEventSnapshot(
-      selectedEvent ? { ...selectedEvent } : null
-    );
+    setIsSubmitting(true);
+    setSubmitError("");
 
-    // 서버 스키마 생성 함수가 있으면 사용, 없으면 아래에서 보강
-    let post =
-      makeTogetherV1?.({
+    try {
+      // 백엔드 API 호출
+      const response = await submitTogetherPost({
         title,
         content,
-        eventId: evSnap?.eventId ?? 0,
-        eventSnapshot: evSnap,
-        form, // region/address/meetingDate/maxPeople 등 매핑됨
+        selectedEvent,
+        form,
         user,
-      }) ?? {};
+      });
 
-    // ✅ "바로 적용 가능한 저장 규격" 강제 세팅
-    const author = buildAuthorFromUser(user);
-    post = {
-      ...post,
-      id: post?.id ?? crypto?.randomUUID?.() ?? String(Date.now()),
-      board: "together",
-      title: post?.title ?? title,
-      content: post?.content ?? content,
-      eventId: post?.eventId ?? evSnap?.eventId ?? 0,
-      eventSnapshot: post?.eventSnapshot ?? evSnap ?? null,
+      setShowSuccessModal(false);
 
-      // 작성자 정보 (객체 + 호환 키)
-      author: typeof post?.author === "object" ? post.author : author,
-      author_login_id:
-        post?.author_login_id ??
-        author.login_id ??
-        (typeof post?.author === "string" ? post.author : ""),
-
-      // 호스트 식별 (상세/마이페이지 필터에서 사용)
-      hostId: post?.hostId ?? post?.authorId ?? author.id ?? null,
-      authorId: post?.authorId ?? author.id ?? null,
-
-      // 생성 시각
-      createdAt: post?.createdAt ?? new Date().toISOString(),
-
-      // 좋아요/뷰 (동행은 likes만 사용)
-      stats: {
-        views: post?.stats?.views ?? 0,
-        likes: post?.stats?.likes ?? 0,
-        ...(post?.stats || {}),
-      },
-    };
-
-    // 로컬 저장
-    addPost(post);
-
-    setShowSuccessModal(false);
-    router.push(`/together/${post.id}`);
+      // 작성 성공 시 상세 페이지로 이동
+      const togetherID = response?.id || response?.togetherId;
+      if (togetherID) {
+        router.push(`/together/${togetherID}`);
+      } else {
+        // ID를 받지 못한 경우 목록으로
+        router.push("/together");
+      }
+    } catch (error) {
+      console.error("모임 작성 실패:", error);
+      
+      // 인증 에러 처리
+      if (error?.status === 401 || error?.status === 403) {
+        console.log("인증 만료 - 로그인 페이지로 이동");
+        const currentPath = encodeURIComponent(window.location.pathname + window.location.search);
+        router.push(`/login?next=${currentPath}`);
+        return;
+      }
+      
+      setSubmitError(error.message || "모임 글 작성에 실패했습니다.");
+      setShowSuccessModal(false);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -142,6 +112,27 @@ export default function TogetherRecruitmentPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-black">동행 모집글 작성</h1>
         </div>
+
+        {/* 에러 메시지 표시 */}
+        {submitError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{submitError}</p>
+          </div>
+        )}
+
+        {/* 유효성 검사 에러 표시 */}
+        {!validation.isValid && validation.errors.length > 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-700 text-sm font-medium mb-2">
+              입력 확인 필요:
+            </p>
+            <ul className="text-yellow-700 text-sm list-disc list-inside space-y-1">
+              {validation.errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mb-6">
           <TogetherWriteForm
@@ -172,7 +163,7 @@ export default function TogetherRecruitmentPage() {
 
         <div className="w-full mb-6">
           <label className="block text-lg font-medium text-gray-700 mb-2">
-            제목
+            제목 <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -180,6 +171,7 @@ export default function TogetherRecruitmentPage() {
             placeholder="동행 모집글 제목을 입력해주세요"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={isSubmitting}
           />
         </div>
 
@@ -190,6 +182,7 @@ export default function TogetherRecruitmentPage() {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
+            disabled={isSubmitting}
             className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500 resize-none"
             placeholder={`동행 모집에 대한 상세 내용을 작성해주세요
 
@@ -204,18 +197,19 @@ export default function TogetherRecruitmentPage() {
         <div className="flex justify-end gap-4">
           <button
             onClick={() => setShowCancelModal(true)}
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+            disabled={isSubmitting}
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             취소
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              canSubmit
+              canSubmit && !isSubmitting
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-gray-300 text-white cursor-not-allowed"
             }`}>
-            등록
+            {isSubmitting ? "등록 중..." : "등록"}
           </button>
         </div>
 
@@ -238,13 +232,19 @@ export default function TogetherRecruitmentPage() {
         <ConfirmModal
           open={showSuccessModal}
           title="글을 등록하시겠습니까?"
-          description="등록 후 작성 글 페이지로 이동합니다."
-          confirmText="등록"
+          description={
+            isSubmitting
+              ? "등록 중입니다. 잠시만 기다려주세요..."
+              : "등록 후 작성 글 페이지로 이동합니다."
+          }
+          confirmText={isSubmitting ? "등록 중..." : "등록"}
           cancelText="아니오"
           onConfirm={handleConfirmSave}
-          onClose={() => setShowSuccessModal(false)}
+          onClose={() => !isSubmitting && setShowSuccessModal(false)}
+          confirmDisabled={isSubmitting}
         />
       </div>
     </div>
   );
 }
+
