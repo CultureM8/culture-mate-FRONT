@@ -1,6 +1,7 @@
 "use client";
 import { getEventReviews } from "@/lib/eventApi";
 import EventDetail from "@/components/events/detail/EventDetail";
+import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
@@ -14,7 +15,7 @@ import TogetherList from "@/components/together/TogetherList";
 import EventReviewList from "@/components/events/detail/review/EventReviewList";
 import EventReviewModal from "@/components/events/detail/review/EventReviewModal";
 
-export default function EventPageClient({ eventData }) {
+export default function EventPageClient({ eventData: initialEventData }) {
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
   const [togetherViewType, setTogetherViewType] = useState("List");
@@ -22,11 +23,17 @@ export default function EventPageClient({ eventData }) {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [eventData, setEventData] = useState(initialEventData);
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => setIsReviewModalOpen(true);
   const closeReviewModal = () => setIsReviewModalOpen(false);
+
+  // 초기 eventData prop 변경 시 동기화
+  useEffect(() => {
+    setEventData(initialEventData);
+  }, [initialEventData]);
 
   // 후기 데이터 로드
   useEffect(() => {
@@ -54,13 +61,24 @@ export default function EventPageClient({ eventData }) {
     }
   };
 
-  const handleReviewAdded = (newReview) => {
+  const handleReviewAdded = async (newReview) => {
     // 새 리뷰 추가 후 목록 다시 로드
-    loadReviews();
+    await loadReviews();
+    
+    // 이벤트 데이터도 새로고침하여 평균별점 업데이트
+    try {
+      const { getEventById } = await import("@/lib/eventApi");
+      const updatedEventData = await getEventById(eventData.eventId);
+      setEventData(updatedEventData);
+      console.log("이벤트 데이터 업데이트 완료:", updatedEventData);
+    } catch (error) {
+      console.error("이벤트 데이터 업데이트 실패:", error);
+    }
   };
 
   return (
     <>
+      <EventInfo eventData={eventData} />
       <HorizontalTab
         currentMenu={currentMenu}
         menuList={menuList}

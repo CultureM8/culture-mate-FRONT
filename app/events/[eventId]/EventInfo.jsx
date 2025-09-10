@@ -80,8 +80,8 @@ export default function EventInfo({ eventData, score = 0 }) {
                   height={24}
                 />
                 {eventData.score} */}
-                {/* API에 평점 정보가 없어서 임시로 0 표시 */}
-                <StarScore score={0} />
+                {/* 백엔드에서 제공하는 평균 별점 표시 */}
+                <StarScore score={eventData.avgRating || eventData.score || 0} />
               </div>
               {/* <div className="flex gap-2 items-center">
                 <button onClick={handleLike} className="hover:cursor-pointer">

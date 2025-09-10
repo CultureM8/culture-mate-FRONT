@@ -15,7 +15,7 @@ export default function EventReviewModal({
   eventData = {},
 }) {
   const [content, setContent] = useState("");
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { user, isLogined } = useContext(LoginContext);
@@ -28,9 +28,9 @@ export default function EventReviewModal({
       return;
     }
 
-    if (rating === 0) {
-      const confirmed = confirm("별점이 0점입니다. 정말로 0점을 주시겠습니까?");
-      if (!confirmed) return;
+    if (rating < 1 || rating > 5) {
+      alert("별점은 1-5점 사이에서 선택해야 합니다.");
+      return;
     }
 
     if (!content.trim()) {
@@ -62,7 +62,7 @@ export default function EventReviewModal({
 
       alert("후기가 성공적으로 등록되었습니다!");
       setContent("");
-      setRating(0);
+      setRating(1);
       onClose();
     } catch (error) {
       console.error("리뷰 등록 중 오류:", error);
