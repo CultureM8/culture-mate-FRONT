@@ -19,7 +19,7 @@ const ICONS = {
   STAR_SERVICEINTRO: "/img/star_serviceintro.svg",
 };
 
-export default function CompleteServiceIntro({ backgroundMedia }) {
+export default function CompleteServiceIntro({ backgroundMedia = "/img/aboutbanner.gif" }) {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
