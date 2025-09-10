@@ -1,14 +1,14 @@
+// 👉 파일: (원본과 동일 경로) EventInfo.jsx
 "use client";
 
 import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
-import { useState } from "react";
-import StarScore from "@/lib/StarScore";
-import { useContext } from "react";
+import { useState, useContext } from "react";
+import StarRating from "@/lib/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
 
 export default function EventInfo({ eventData, score = 0 }) {
-  const [interest, setInterest] = useState(false);
+  const [interest, setInterest] = useState(!!eventData?.isInterested);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 로그인 컨텍스트
@@ -26,10 +26,23 @@ export default function EventInfo({ eventData, score = 0 }) {
     setIsSubmitting(true);
     try {
       const { toggleEventInterest } = await import("@/lib/eventApi");
-      const result = await toggleEventInterest(eventData.eventId, user.id);
+      // 토큰 기반: memberId 없이 호출
+      const result = await toggleEventInterest(eventData.eventId);
 
-      setInterest(!interest);
-      console.log("관심 등록/해제 결과:", result);
+      // 서버 응답 우선 반영(불리언 제공 시), 없으면 토글
+      const next =
+        typeof result?.interested === "boolean" ? result.interested : !interest;
+      setInterest(next);
+      console.log("관심 등록/해제 결과:", result?.raw ?? result);
+
+      // 관심 변경 브로드캐스트 (관심 목록 페이지 갱신용)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("interest:changed", {
+            detail: { eventId: eventData.eventId, interested: next },
+          })
+        );
+      }
     } catch (error) {
       console.error("관심 등록/해제 실패:", error);
       alert("관심 등록/해제에 실패했습니다.");
@@ -73,36 +86,13 @@ export default function EventInfo({ eventData, score = 0 }) {
           <div className="px-2 py-6 flex justify-between">
             <div className="flex gap-6">
               <div className="flex gap-2 items-center">
-                {/* <Image 
-                  src={ICONS.STAR_FULL}
-                  alt="별점"
-                  width={24}
-                  height={24}
+                <StarRating
+                  rating={eventData.avgRating || eventData.score || 0}
+                  mode="average"
+                  showNumber={true}
+                  showStars={true}
                 />
-                {eventData.score} */}
-                {/* 백엔드에서 제공하는 평균 별점 표시 */}
-                <StarScore score={eventData.avgRating || eventData.score || 0} />
               </div>
-              {/* <div className="flex gap-2 items-center">
-                <button onClick={handleLike} className="hover:cursor-pointer">
-                  {like ? (
-                    <Image
-                      src={ICONS.THUMBSUP_FULL}
-                      alt="추천"
-                      width={24}
-                      height={24}
-                    />
-                  ) : (
-                    <Image
-                      src={ICONS.THUMBSUP_EMPTY}
-                      alt="추천"
-                      width={24}
-                      height={24}
-                    />
-                  )}
-                </button>
-                {eventData.likesCount}
-              </div> */}
             </div>
             <div className="flex gap-6">
               <button onClick={handleInterest} className="hover:cursor-pointer">
@@ -152,7 +142,17 @@ export default function EventInfo({ eventData, score = 0 }) {
             </div>
             <div className="flex">
               <span className="w-25 font-medium">가격</span>
-              <span>{eventData.price}</span>
+              <div className="flex flex-col">
+                {eventData.priceList?.length > 0 ? (
+                  eventData.priceList.map((priceItem, index) => (
+                    <span key={index} className="mb-1">
+                      {priceItem.type} {priceItem.price}원
+                    </span>
+                  ))
+                ) : (
+                  <span>미정</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

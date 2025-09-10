@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import StarScore from "@/lib/StarScore";
+import StarRating from "@/lib/StarRating";
 import { useEffect, useState } from "react";
 
 const TYPE_LABELS = {
@@ -213,7 +213,12 @@ export default function ReviewHistoryCard({
                 </span>
               </div>
               <div className="mt-4 ml-1">
-                <StarScore score={finalScore} />
+                <StarRating 
+                  rating={finalScore} 
+                  mode="display"
+                  showNumber={true}
+                  showStars={true}
+                />
               </div>
             </div>
           </div>

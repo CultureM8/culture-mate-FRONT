@@ -64,7 +64,7 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const handleReviewAdded = async (newReview) => {
     // 새 리뷰 추가 후 목록 다시 로드
     await loadReviews();
-    
+
     // 이벤트 데이터도 새로고침하여 평균별점 업데이트
     try {
       const { getEventById } = await import("@/lib/eventApi");

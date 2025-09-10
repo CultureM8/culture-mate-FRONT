@@ -119,7 +119,12 @@ export default function EventReviewModal({
 
         <div className="mb-4 flex gap-2 items-center">
           <span>별점 :</span>
-          <StarRating rating={rating} onRatingChange={setRating} />
+          <StarRating 
+            rating={rating} 
+            onRatingChange={setRating} 
+            mode="input"
+            showNumber={true}
+          />
         </div>
 
         <div className="w-[800px] h-[500px] mb-6">

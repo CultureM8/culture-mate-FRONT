@@ -1,6 +1,6 @@
 "use client";
 
-import StarScore from "@/lib/StarScore";
+import StarRating from "@/lib/StarRating";
 import { useState } from "react";
 import Image from "next/image";
 import { IMAGES } from "@/constants/path";
@@ -79,27 +79,39 @@ export default function EventReviewList(props) {
             alt={getUserDisplayName()}
             width={80}
             height={80}
-            className="w-[50px] h-[50px] rounded-full object-cover"
+            className="w-[60px] h-[60px] rounded-full object-cover"
           />
           <div className="flex flex-col flex-1 gap-2">
             <div className="text-gray-700">{getUserDisplayName()}</div>
             <div className="flex gap-2">
               {/* 별점 */}
-              <StarScore score={rating} />
+              <StarRating 
+                rating={rating} 
+                mode="display"
+                showNumber={true}
+                showStars={true}
+              />
               <span className="text-gray-300">{formatDate(createdAt)}</span>
             </div>
           </div>
         </div>
         {/* 후기 내용 */}
         <div
-          className={`
-            text-gray-700 mt-2 leading-relaxed px-2
-            ${
-              !reviewTabExtend &&
-              "overflow-hidden whitespace-nowrap text-ellipsis"
-            }
-          `}>
-          {content}
+        className={`
+        text-gray-700 mt-2 leading-relaxed px-2 break-words
+        ${
+        !reviewTabExtend
+        ? "overflow-hidden"
+        : "whitespace-pre-line"
+        }
+        `}
+        style={{
+        display: "-webkit-box",
+        WebkitLineClamp: reviewTabExtend ? "none" : 1,
+        WebkitBoxOrient: "vertical",
+        overflow: reviewTabExtend ? "visible" : "hidden",
+        }}>
+        {content}
         </div>
       </div>
       <div className="flex items-center gap-6 mb-1 flex-shrink-0"></div>
