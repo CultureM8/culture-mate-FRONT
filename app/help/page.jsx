@@ -104,7 +104,7 @@ export default function FaqPage() {
     <div className="w-full min-h-screen">
       {/* 1. 고객센터 큰 타이틀 - 반응형 정렬 */}
       <div className="w-full">
-        <div className="w-full max-w-none lg:max-w-[1200px] mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
+        <div className="w-full max-w-none lg:max-w-full mx-auto px-4 lg:px-4 md:px-6 sm:px-4">
           <h1 className="text-4xl font-bold py-[10px] h-16">
             고객센터
           </h1>
@@ -112,7 +112,7 @@ export default function FaqPage() {
       </div>
       
       {/* 2. 메인 컨텐츠 영역 */}
-      <div className="w-full max-w-none lg:max-w-[1200px] mx-auto px-4 lg:px-4 md:px-6 sm:px-4 flex flex-col lg:flex-row gap-6 mt-8">
+      <div className="w-full max-w-none lg:max-w-full mx-auto px-4 lg:px-4 md:px-6 sm:px-4 flex flex-col lg:flex-row gap-6 mt-8">
         {/* 왼쪽 사이드바 */}
         <div className="w-full lg:w-[200px] lg:shrink-0 mb-6 lg:mb-0">
           <div className="lg:-ml-4">
