@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
-
 import useLogin from "@/hooks/useLogin";
 import { ICONS } from "@/constants/path";
-import SlidingBanner from "@/components/community/SlidingBanner";
 import { fetchPosts, searchPosts } from "@/lib/communityApi";
 import SearchBar from "@/components/global/SearchBar";
 
@@ -254,8 +252,19 @@ export default function CommunityListTablePage() {
     <>
       <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
       <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
+      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mb-8">
+        <div className="relative w-full h-[370px] overflow-hidden ">
+          <div className="min-w-full h-full relative flex-shrink-0">
+            <img
+              src={"/img/default_img.svg"}
+              alt={"배너이미지"}
+              className="w-full h-full object-cover block"
+            />
+          </div>
+        </div>
+      </div>
 
-      <SlidingBanner />
+      {/* 배너이미지 */}
 
       <div className="w-full mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar
