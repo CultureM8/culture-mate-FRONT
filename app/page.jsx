@@ -379,7 +379,7 @@ function ReviewCard({
       <div className="flex items-center p-5 h-[90px]">
         {/* 프로필 이미지 */}
         <div className="mr-2.5">
-          {profileImage ? (
+          {profileImage && profileImage.trim() !== "" ? (
             <Image 
               src={profileImage} 
               alt="profile" 

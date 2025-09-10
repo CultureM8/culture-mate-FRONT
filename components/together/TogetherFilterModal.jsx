@@ -4,7 +4,7 @@ import Modal from "../global/Modal";
 import LocationSelector from "../global/LocationSelector";
 import { useState } from "react";
 
-export default function EventFilterModal({ isOpen, onClose }) {
+export default function TogetherFilterModal({ isOpen, onClose }) {
   // 기본 날짜 설정: 오늘부터 다음주까지
   const getDefaultDateRange = () => {
     const today = new Date();

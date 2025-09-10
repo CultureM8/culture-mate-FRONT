@@ -3,17 +3,17 @@
 import { useState, useEffect, useContext } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { ICONS } from "@/constants/path";
+import { ICONS, ROUTES } from "@/constants/path";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import TogetherRequestModal from "@/components/mypage/TogetherManagement/TogetherRequestModal";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import { LoginContext } from "@/components/auth/LoginProvider";
-/* 더미 데이터 */
-import { getTogetherPostById } from "@/lib/togetherData";
+/* API */
+import togetherApi from "@/lib/api/togetherApi";
 
 /* storage 유틸 */
 import {
-  getPost,
+  // getPost, // 더 이상 주 데이터 소스로 사용 안 함
   bumpViews,
   isLiked,
   toggleLike,
@@ -24,15 +24,18 @@ import {
 import { addChatRequest } from "@/lib/chatRequestUtils";
 
 /* 이벤트 조회(스냅샷 없을 때만 사용) */
-import { getEventById } from "@/lib/eventData";
+import eventApi from "@/lib/api/eventApi";
 
 /* ============= 헬퍼 ============= */
 
-/** 작성자 표시용 메타 추출 (문자/객체/스네이크 모두 호환) */
-function pickAuthorMeta(p) {
+/** 호스트 표시용 메타 추출 (문자/객체/스네이크 모두 호환) */
+function pickHostMeta(p) {
   const fallback = { displayName: "익명", loginId: "", uid: "" };
   if (!p) return fallback;
 
+  // 백엔드에서 host 객체로 옴
+  const a = p.host || p.author || {};
+  
   if (typeof p.author === "string") {
     const loginId = p.author || p.author_login_id || "";
     return {
@@ -41,11 +44,9 @@ function pickAuthorMeta(p) {
       uid: "",
     };
   }
-
-  const a = p.author || {};
   const displayName =
-    (a.display_name && String(a.display_name).trim()) ||
     (a.nickname && String(a.nickname).trim()) ||
+    (a.display_name && String(a.display_name).trim()) ||
     (a.name && String(a.name).trim()) ||
     (p.author_login_id && String(p.author_login_id).trim()) ||
     (a.login_id && String(a.login_id).trim()) ||
@@ -172,7 +173,7 @@ export default function TogetherDetailPage() {
   const formatGroupInfo = (post) => {
     if (!post) return "1명";
 
-    const maxCount = post.companionCount || post.maxPeople || 1;
+    const maxCount = post.maxParticipants || 1;
     const currentCount = post.currentParticipants || 1;
 
     return `${currentCount}/${maxCount}명`;
@@ -181,67 +182,25 @@ export default function TogetherDetailPage() {
   /* 글 로드 + 조회수 세션당 1회 증가 + 좋아요 초기 상태 */
   useEffect(() => {
     const loadPost = async () => {
+      if (!togetherId) return; // togetherId가 없으면 API 호출하지 않음
+
       try {
-        // 1. 로컬스토리지에서 먼저 찾기
-        let p = getPost("together", togetherId);
+        // 1. API를 통해 최신 데이터 가져오기
+        const apiPost = await togetherApi.getById(togetherId);
+        setPost(apiPost); // API 응답으로 상태 설정
 
-        // 2. 로컬스토리지에 없으면 더미 데이터에서 찾기
-        if (!p) {
+        // 2. 좋아요 상태 설정
+        setLiked(isLiked("together", togetherId));
+
+        // 3. 이벤트 데이터 설정
+        if (apiPost?.event) {
+          // 백엔드에서 event 객체로 옴
+          setEventData(apiPost.event);
+        } else if (apiPost?.eventSnapshot) {
+          setEventData(apiPost.eventSnapshot);
+        } else if (apiPost?.eventId) {
           try {
-            const dummyPost = await getTogetherPostById(togetherId);
-            const groupParts = dummyPost.group.split("/");
-            const currentCount = parseInt(groupParts[0]) || 1;
-            const maxCount = parseInt(groupParts[1]) || 2;
-
-            // 더미 데이터를 로컬스토리지 형식으로 변환
-            p = {
-              id: dummyPost.togetherId,
-              board: "together",
-              title: dummyPost.title,
-              content: `${dummyPost.eventName} 동행을 모집합니다!\n\n📅 일정: ${dummyPost.date}\n👥 모집인원: ${dummyPost.group}\n🎭 이벤트: ${dummyPost.eventName}`,
-              author: "익명",
-              authorId: "dummy_host",
-              authorUid: "dummy_host",
-              authorLoginId: "host",
-              authorName: "호스트",
-              createdAt: new Date().toISOString(),
-              eventId: dummyPost.eventId,
-              eventSnapshot: {
-                eventImage: dummyPost.imgSrc,
-                image: dummyPost.imgSrc,
-                imgSrc: dummyPost.imgSrc,
-                eventType: dummyPost.eventType,
-                name: dummyPost.eventName,
-                title: dummyPost.eventName,
-              },
-              companionDate: dummyPost.date,
-              companionCount: maxCount,
-              maxPeople: maxCount,
-              currentParticipants: currentCount, // 추가
-              stats: {
-                views: 0,
-                likes: 0,
-              },
-              _views: 0,
-            };
-          } catch (error) {
-            console.warn("더미 데이터에서도 찾을 수 없음:", error);
-          }
-        }
-
-        setPost(p || null);
-
-        if (p) {
-          // 좋아요 상태
-          setLiked(isLiked("together", togetherId));
-        }
-
-        // 이벤트 데이터 (스냅샷 없으면 fetch)
-        if (p?.eventSnapshot) {
-          setEventData(p.eventSnapshot);
-        } else if (p?.eventId) {
-          try {
-            const ev = await getEventById(p.eventId);
+            const ev = await eventApi.getEventById(apiPost.eventId);
             setEventData(ev || null);
           } catch {
             setEventData(null);
@@ -249,28 +208,40 @@ export default function TogetherDetailPage() {
         } else {
           setEventData(null);
         }
+
       } catch (error) {
         console.error("게시글 로드 실패:", error);
-        setPost(null);
+        setPost(null); // 에러 발생 시 post를 null로 설정
+
+        // API 에러 처리 (401, 403 등)
+        if (error.status === 401 || error.status === 403) {
+          alert("글을 볼 수 있는 권한이 없습니다. 로그인 상태를 확인해주세요.");
+          router.push(`/login?next=/together/${togetherId}`);
+        } else if (error.status === 404) {
+          alert("요청하신 글을 찾을 수 없습니다.");
+          router.push("/together"); // 목록 페이지로 이동
+        } else {
+          alert("글을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        }
       }
     };
 
     loadPost();
-  }, [togetherId]);
+  }, [togetherId, router]); // router를 의존성 배열에 추가
 
-  /* 조회수 증가 - 마운트 후에만 실행 */
-  useEffect(() => {
-    if (!mounted || !post) return;
+  /* 조회수 증가 - 마운트 후에만 실행 (백엔드에 조회수 속성 없음 - 주석 처리) */
+  // useEffect(() => {
+  //   if (!mounted || !post) return;
 
-    const onceKey = `viewed:together:${togetherId}`;
-    if (!sessionStorage.getItem(onceKey)) {
-      bumpViews("together", togetherId);
-      sessionStorage.setItem(onceKey, "1");
-      // 최신값 재반영
-      const updated = getPost("together", togetherId);
-      setPost(updated || post);
-    }
-  }, [mounted, post, togetherId]);
+  //   const onceKey = `viewed:together:${togetherId}`;
+  //   if (!sessionStorage.getItem(onceKey)) {
+  //     bumpViews("together", togetherId);
+  //     sessionStorage.setItem(onceKey, "1");
+  //     // 최신값 재반영
+  //     // const updated = getPost("together", togetherId); // getPost is not defined
+  //     // setPost(updated || post);
+  //   }
+  // }, [mounted, post, togetherId]);
 
   /* 로딩/존재 확인 */
   if (!post) {
@@ -282,9 +253,9 @@ export default function TogetherDetailPage() {
   }
 
   /* 표시 데이터 가공 */
-  const authorMeta = pickAuthorMeta(post);
-  const displayAuthor = authorMeta.displayName || "익명";
-  const views = post?._views ?? post?.stats?.views ?? 0;
+  const hostMeta = pickHostMeta(post);
+  const displayHost = hostMeta.displayName || "익명";
+  // const views = post?._views ?? post?.stats?.views ?? 0; // 백엔드에 조회수 속성 없음 - 주석 처리
   const likeCount = post?.stats?.likes ?? post?.likes ?? 0;
 
   /* 내 글 여부 계산 */
@@ -302,6 +273,14 @@ export default function TogetherDetailPage() {
     : eventData
     ? toMiniCard(eventData, 0)
     : null;
+
+  /* 이벤트 카드 클릭 핸들러 */
+  const handleEventCardClick = () => {
+    const eventId = post?.eventId || eventData?.id;
+    if (eventId) {
+      router.push(`${ROUTES.EVENTS}/${eventId}`);
+    }
+  };
 
   /* 좋아요 토글 */
   const onToggleLike = () => {
@@ -329,14 +308,14 @@ export default function TogetherDetailPage() {
     alert("신고가 접수되었습니다. (데모)");
   };
 
-  /* 채팅 신청 버튼 핸들러 — 본인 글 차단 + 로그인 필수 */
+  /* 동행 신청 버튼 핸들러 — 본인 글 차단 + 로그인 필수 */
   const handleChatClick = () => {
     if (!isLogined) {
       alert("로그인이 필요한 서비스입니다.");
       return;
     }
     if (isOwnPost) {
-      alert("본인 글에는 채팅 신청을 보낼 수 없습니다.");
+      alert("본인 글에는 동행 신청을 보낼 수 없습니다.");
       return;
     }
     setIsChatModalOpen(true);
@@ -381,12 +360,12 @@ export default function TogetherDetailPage() {
 
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center gap-4">
-              <span>작성자 : {displayAuthor}</span>
+              <span>작성자 : {displayHost}</span>
               {mounted && <span>{createdAtText}</span>}
             </div>
 
             <div className="flex items-center pr-2 gap-2">
-              <span>조회 {views}</span>
+              {/* <span>조회 {views}</span> // 백엔드에 조회수 속성 없음 - 주석 처리 */}
               <span>
                 <button
                   className="flex flex-col items-center py-3 ml-2"
@@ -416,7 +395,7 @@ export default function TogetherDetailPage() {
         {/* 이벤트 미니 카드 */}
         {card && (
           <div className="mb-4">
-            <PostEventMiniCard {...card} />
+            <PostEventMiniCard {...card} onClick={handleEventCardClick} />
           </div>
         )}
 
@@ -433,23 +412,32 @@ export default function TogetherDetailPage() {
             <div className="flex items-center gap-8">
               <span className="text-base text-black w-20">동행 인원</span>
               <span className="text-base">
-                {post.companionCount || post.maxPeople || 1} 명
+                {`${post.currentParticipants || 1} / ${post.maxParticipants || 1} 명`}
               </span>
             </div>
 
             <div className="flex items-center gap-8">
-              <span className="text-base text-black w-20">이벤트 주소</span>
+              <span className="text-base text-black w-20">모임 지역</span>
+              <span className="text-base">
+                {post?.region 
+                  ? `${post.region.level1} ${post.region.level2} ${post.region.level3}`.trim()
+                  : "지역 정보 없음"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-8">
+              <span className="text-base text-black w-20">모임 장소</span>
               <div className="flex items-center gap-2">
                 <span className="text-base">
-                  {eventData?.location || "주소 정보 없음"}
+                  {post?.meetingLocation || "장소 정보 없음"}
                 </span>
-                <Image src={ICONS.PIN} alt="위치" width={16} height={16} />
-                <button className="text-base text-blue-500">지도 보기</button>
-                <Image src={ICONS.COPY} alt="복사" width={16} height={16} />
-                <button
+                {/* <Image src={ICONS.PIN} alt="위치" width={16} height={16} /> */}
+                {/* <button className="text-base text-blue-500">지도 보기</button> */}
+                {/* <Image src={ICONS.COPY} alt="복사" width={16} height={16} /> */}
+                {/* <button
                   className="text-base text-gray-500"
                   onClick={() => {
-                    const addr = eventData?.location || "";
+                    const addr = post?.meetingLocation || "";
                     if (!addr) return;
                     navigator.clipboard
                       .writeText(addr)
@@ -457,7 +445,7 @@ export default function TogetherDetailPage() {
                       .catch(() => alert("복사에 실패했습니다."));
                   }}>
                   주소 복사
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -480,12 +468,12 @@ export default function TogetherDetailPage() {
             <span>신고</span>
           </button>
 
-          {/* 채팅 신청 버튼 - 마운트 후에만 조건부 렌더링 */}
+          {/* 동행 신청 버튼 - 마운트 후에만 조건부 렌더링 */}
           {mounted && isLogined && !isOwnPost && (
             <button
               onClick={handleChatClick}
               className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
-              채팅 신청
+              동행 신청
             </button>
           )}
         </div>
@@ -496,7 +484,7 @@ export default function TogetherDetailPage() {
             <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium">{displayAuthor}</span>
+                <span className="font-medium">{displayHost}</span>
                 {/* 본인 글이 아닌 경우에만 연락 추가 버튼 표시 */}
                 {mounted && !isOwnPost && (
                   <button className="px-3 py-1 bg-blue-100 text-blue-600 text-xs rounded">
@@ -527,7 +515,7 @@ export default function TogetherDetailPage() {
         </div>
       </div>
 
-      {/* 채팅 신청 모달 */}
+      {/* 동행 신청 모달 */}
       <TogetherRequestModal
         isOpen={isChatModalOpen}
         onClose={() => setIsChatModalOpen(false)}
@@ -539,8 +527,8 @@ export default function TogetherDetailPage() {
             "date-only"
           ),
           group: formatGroupInfo(post), // "1/2명" 형식
-          maxParticipants: post.companionCount || post.maxPeople || 1,
-          currentParticipants: post.currentParticipants || 1,
+          maxParticipants: post.maxParticipants || 1,
+          currentParticipants: post.currentParticipants ?? 0,
           eventId: post.eventId,
           imgSrc:
             post.eventSnapshot?.eventImage ||
@@ -551,11 +539,11 @@ export default function TogetherDetailPage() {
           eventName:
             post.eventSnapshot?.name || post.eventSnapshot?.title || "이벤트",
           // 수신자(호스트) 식별값을 확실히 채움
-          authorUid: hostUid || authorMeta.uid || "",
+          authorUid: hostUid || hostMeta.uid || "",
           authorId:
-            hostUid || authorMeta.uid || hostLogin || authorMeta.loginId || "",
-          authorLoginId: hostLogin || authorMeta.loginId || "",
-          authorName: displayAuthor,
+            hostUid || hostMeta.uid || hostLogin || hostMeta.loginId || "",
+          authorLoginId: hostLogin || hostMeta.loginId || "",
+          authorName: displayHost,
         }}
         eventData={eventData}
         onSendRequest={async (payload) => {
@@ -568,7 +556,7 @@ export default function TogetherDetailPage() {
               ...payload,
               toUserId:
                 hostUid ||
-                authorMeta.uid ||
+                hostMeta.uid ||
                 payload.authorUid ||
                 payload.authorId, // 받는 사람 ID
               fromUserId: user?.id || user?.user_id, // 보내는 사람 ID

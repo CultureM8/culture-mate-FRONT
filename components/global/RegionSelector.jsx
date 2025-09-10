@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import { getLevel1Regions, getLevel2Regions, getLevel3Regions } from "@/lib/regionApi";
+import regionApi from "@/lib/api/regionApi";
 
 export default function RegionSelector({ 
   value = { level1: "", level2: "", level3: "" }, 
@@ -31,7 +31,7 @@ export default function RegionSelector({
     const loadLevel1Data = async () => {
       setLoading(prev => ({ ...prev, level1: true }));
       try {
-        const level1Data = await getLevel1Regions();
+        const level1Data = await regionApi.getLevel1Regions();
         setOptions(prev => ({ ...prev, level1: level1Data }));
       } catch (error) {
         console.error('Level1 지역 로드 실패:', error);
@@ -55,7 +55,7 @@ export default function RegionSelector({
     if (level1) {
       setLoading(prev => ({ ...prev, level2: true }));
       try {
-        const level2Data = await getLevel2Regions(level1);
+        const level2Data = await regionApi.getLevel2Regions(level1);
         setOptions(prev => ({ ...prev, level2: level2Data }));
       } catch (error) {
         console.error('Level2 지역 로드 실패:', error);
@@ -77,7 +77,7 @@ export default function RegionSelector({
     if (selectedRegion.level1 && level2) {
       setLoading(prev => ({ ...prev, level3: true }));
       try {
-        const level3Data = await getLevel3Regions(selectedRegion.level1, level2);
+        const level3Data = await regionApi.getLevel3Regions(selectedRegion.level1, level2);
         setOptions(prev => ({ ...prev, level3: level3Data }));
       } catch (error) {
         console.error('Level3 지역 로드 실패:', error);

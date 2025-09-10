@@ -15,6 +15,7 @@ export default function PostEventMiniCard({
   initialLiked = false, // 초기 좋아요
   registeredPosts = 0, // 등록된 게시물
   alt = "event-image",
+  onClick, // 클릭 핸들러 (선택적)
 }) {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [broken, setBroken] = useState(false);
@@ -29,13 +30,19 @@ export default function PostEventMiniCard({
     return encoded.startsWith("/") ? encoded : `/${encoded}`;
   };
 
-  const handleLikeToggle = () => {
+  const handleLikeToggle = (e) => {
+    e.stopPropagation(); // 이벤트 버블링 방지
     setIsLiked(!isLiked);
     // TODO: 백엔드 API 호출로 좋아요 상태 업데이트
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden w-full">
+    <div 
+      className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden w-full ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+      onClick={onClick}
+    >
       {/* 가로 레이아웃: 이미지 왼쪽 + 콘텐츠 오른쪽 */}
       <div className="flex">
         {/* 왼쪽 이미지 영역 - 세로 가운데 정렬 */}

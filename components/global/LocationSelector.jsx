@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { getLocations1, getLocations2, getLocations3 } from "@/constants/addressData";
+import regionApi from "@/lib/api/regionApi";
 
 export default function LocationSelector({
   onRegionSelect,
@@ -13,9 +13,29 @@ export default function LocationSelector({
   const [selectedLocation2, setSelectedLocation2] = useState("");
   const [selectedLocation3, setSelectedLocation3] = useState("");
   
-  const [locations1] = useState(getLocations1());
+  const [locations1, setLocations1] = useState([]);
   const [locations2, setLocations2] = useState([]);
   const [locations3, setLocations3] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // 컴포넌트 마운트 시 1차 지역 로드
+  useEffect(() => {
+    const loadLevel1Regions = async () => {
+      try {
+        setLoading(true);
+        const regions = await regionApi.getLevel1Regions();
+        const regionNames = ["전체", ...regions];
+        setLocations1(regionNames);
+      } catch (error) {
+        console.error("1차 지역 로드 실패:", error);
+        setLocations1(["전체"]); // 에러 시 기본값
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadLevel1Regions();
+  }, []);
 
   // 통합된 location 업데이트 로직
   const resetLowerLevels = (level) => {
@@ -30,23 +50,54 @@ export default function LocationSelector({
   };
 
   useEffect(() => {
-    if (selectedLocation1) {
-      setLocations2(getLocations2(selectedLocation1));
-      resetLowerLevels(2);
-    } else {
-      setLocations2([]);
-      resetLowerLevels(2);
-    }
+    const loadLevel2Regions = async () => {
+      if (selectedLocation1 && selectedLocation1 !== "전체") {
+        try {
+          setLoading(true);
+          const regions = await regionApi.getLevel2Regions(selectedLocation1);
+          const regionNames = ["전체", ...regions];
+          setLocations2(regionNames);
+          resetLowerLevels(2);
+        } catch (error) {
+          console.error("2차 지역 로드 실패:", error);
+          setLocations2(["전체"]);
+          resetLowerLevels(2);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLocations2([]);
+        resetLowerLevels(2);
+      }
+    };
+
+    loadLevel2Regions();
   }, [selectedLocation1]);
 
   useEffect(() => {
-    if (selectedLocation1 && selectedLocation2) {
-      setLocations3(getLocations3(selectedLocation1, selectedLocation2));
-      resetLowerLevels(3);
-    } else {
-      setLocations3([]);
-      resetLowerLevels(3);
-    }
+    const loadLevel3Regions = async () => {
+      if (selectedLocation1 && selectedLocation1 !== "전체" && 
+          selectedLocation2 && selectedLocation2 !== "전체") {
+        try {
+          setLoading(true);
+          const regions = await regionApi.getLevel3Regions(selectedLocation1, selectedLocation2);
+          const regionNames = ["전체", ...regions];
+          setLocations3(regionNames);
+          resetLowerLevels(3);
+        } catch (error) {
+          console.error("3차 지역 로드 실패:", error);
+          setLocations3(["전체"]);
+          resetLowerLevels(3);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLocations3([]);
+        resetLowerLevels(3);
+      }
+    };
+
+    loadLevel3Regions();
   }, [selectedLocation1, selectedLocation2]);
 
   // 단순화된 핸들러들
@@ -134,17 +185,21 @@ export default function LocationSelector({
         <div className="flex flex-col h-full min-h-0">
           <label className="text-sm text-gray-600 mb-1 flex-shrink-0">시/도</label>
           <div className="flex-1 border rounded overflow-y-auto bg-white min-h-0">
-            {locations1.map((location1) => (
-              <button
-                key={location1}
-                onClick={() => handleLocationSelect(1, location1)}
-                className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
-                  selectedLocation1 === location1 ? 'bg-blue-100 text-blue-800 font-medium' : ''
-                }`}
-              >
-                {location1}
-              </button>
-            ))}
+            {loading && locations1.length === 0 ? (
+              <div className="p-2 text-sm text-gray-400">로딩 중...</div>
+            ) : (
+              locations1.map((location1) => (
+                <button
+                  key={location1}
+                  onClick={() => handleLocationSelect(1, location1)}
+                  className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
+                    selectedLocation1 === location1 ? 'bg-blue-100 text-blue-800 font-medium' : ''
+                  }`}
+                >
+                  {location1}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
