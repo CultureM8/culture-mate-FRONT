@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ROUTES } from "@/constants/path";
 
-export default function MypageSideBar() {
+export default function MypageSidebar() {
   const pathname = usePathname();
 
   const menuItems = [

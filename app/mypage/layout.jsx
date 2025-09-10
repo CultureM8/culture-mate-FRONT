@@ -1,4 +1,4 @@
-import MypageSideBar from "@/components/mypage/MypageSideBar";
+import MypageSidebar from "@/components/mypage/MypageSidebar";
 
 export default function MypageLayout({ children }) {
   return (
@@ -10,13 +10,11 @@ export default function MypageLayout({ children }) {
           <div className="flex">
             {/* 사이드바 */}
             <div className="w-64 mt-32">
-              <MypageSideBar />
+              <MypageSidebar />
             </div>
-            
+
             {/* 페이지 컨텐츠 */}
-            <div className="w-[1200px]">
-              {children}
-            </div>
+            <div className="w-[1200px]">{children}</div>
           </div>
         </div>
       </main>
