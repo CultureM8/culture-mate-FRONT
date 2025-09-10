@@ -262,9 +262,17 @@ export default function TogetherDetailPage() {
   let isOwnPost = false;
   if (mounted && ready && post && user) {
     const myUid = user.id;
-    const authorUid = post.hostId || post.authorId || post._ownerKey;
+    const authorUid = post.host?.id || post.hostId || post.authorId || post._ownerKey;
+    console.log("🔍 Own Post Check:", {
+      myUid,
+      authorUid,
+      postHost: post.host,
+      userInfo: user,
+      postData: post
+    });
     isOwnPost =
       myUid != null && authorUid != null && String(myUid) === String(authorUid);
+    console.log("✅ isOwnPost:", isOwnPost);
   }
 
   /* 이벤트 카드 데이터 */
@@ -468,13 +476,21 @@ export default function TogetherDetailPage() {
             <span>신고</span>
           </button>
 
-          {/* 동행 신청 버튼 - 마운트 후에만 조건부 렌더링 */}
-          {mounted && isLogined && !isOwnPost && (
-            <button
-              onClick={handleChatClick}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
-              동행 신청
-            </button>
+          {/* 버튼 - 마운트 후에만 조건부 렌더링 */}
+          {mounted && isLogined && (
+            isOwnPost ? (
+              <button
+                onClick={() => router.push(`/together/write?edit=${togetherId}`)}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
+                게시물 수정
+              </button>
+            ) : (
+              <button
+                onClick={handleChatClick}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
+                동행 신청
+              </button>
+            )
           )}
         </div>
 

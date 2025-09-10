@@ -26,6 +26,36 @@ export default function RegionSelector({
     level3: false
   });
 
+  // value prop이 변경될 때 내부 상태 동기화
+  useEffect(() => {
+    setSelectedRegion(value);
+  }, [value]);
+
+  // 드롭다운 클릭 시 해당 레벨의 하위 데이터 로드
+  const handleDropdownClick = async (level) => {
+    if (level === 'level2' && selectedRegion.level1 && options.level2.length === 0) {
+      setLoading(prev => ({ ...prev, level2: true }));
+      try {
+        const level2Data = await regionApi.getLevel2Regions(selectedRegion.level1);
+        setOptions(prev => ({ ...prev, level2: level2Data }));
+      } catch (error) {
+        console.error('Level2 지역 로드 실패:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, level2: false }));
+      }
+    } else if (level === 'level3' && selectedRegion.level1 && selectedRegion.level2 && options.level3.length === 0) {
+      setLoading(prev => ({ ...prev, level3: true }));
+      try {
+        const level3Data = await regionApi.getLevel3Regions(selectedRegion.level1, selectedRegion.level2);
+        setOptions(prev => ({ ...prev, level3: level3Data }));
+      } catch (error) {
+        console.error('Level3 지역 로드 실패:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, level3: false }));
+      }
+    }
+  };
+
   // 초기 Level1 데이터 로드
   useEffect(() => {
     const loadLevel1Data = async () => {
@@ -105,6 +135,12 @@ export default function RegionSelector({
           className="w-28 h-8 px-2 pr-6 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           <option value="">{loading.level1 ? "로딩..." : placeholder.level1}</option>
+          {/* 현재 선택된 값이 options에 없으면 추가 표시 */}
+          {selectedRegion.level1 && !options.level1.includes(selectedRegion.level1) && (
+            <option key={selectedRegion.level1} value={selectedRegion.level1}>
+              {selectedRegion.level1}
+            </option>
+          )}
           {options.level1.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -125,10 +161,17 @@ export default function RegionSelector({
         <select
           value={selectedRegion.level2}
           onChange={(e) => handleLevel2Change(e.target.value)}
+          onFocus={() => handleDropdownClick('level2')}
           disabled={!selectedRegion.level1 || loading.level2}
           className="w-28 h-8 px-2 pr-6 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           <option value="">{loading.level2 ? "로딩..." : placeholder.level2}</option>
+          {/* 현재 선택된 값이 options에 없으면 추가 표시 */}
+          {selectedRegion.level2 && !options.level2.includes(selectedRegion.level2) && (
+            <option key={selectedRegion.level2} value={selectedRegion.level2}>
+              {selectedRegion.level2}
+            </option>
+          )}
           {options.level2.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -149,10 +192,17 @@ export default function RegionSelector({
         <select
           value={selectedRegion.level3}
           onChange={(e) => handleLevel3Change(e.target.value)}
+          onFocus={() => handleDropdownClick('level3')}
           disabled={!selectedRegion.level2 || loading.level3}
           className="w-28 h-8 px-2 pr-6 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           <option value="">{loading.level3 ? "로딩..." : placeholder.level3}</option>
+          {/* 현재 선택된 값이 options에 없으면 추가 표시 */}
+          {selectedRegion.level3 && !options.level3.includes(selectedRegion.level3) && (
+            <option key={selectedRegion.level3} value={selectedRegion.level3}>
+              {selectedRegion.level3}
+            </option>
+          )}
           {options.level3.map((option) => (
             <option key={option} value={option}>
               {option}

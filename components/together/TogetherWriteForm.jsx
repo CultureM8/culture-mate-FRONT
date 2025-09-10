@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import SearchToWrite from "@/components/community/SearchToWrite";
@@ -26,6 +26,29 @@ export default function TogetherWriteForm({
 
   const [selectedDates, setSelectedDates] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
+
+  // initialData가 변경될 때 formData와 selectedDates 업데이트
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      // formData 업데이트
+      setFormData(prevFormData => ({
+        ...prevFormData,
+        ...initialData,
+      }));
+
+      // 캘린더 날짜 초기화 (companionDate가 있는 경우)
+      if (initialData.companionDate) {
+        try {
+          const dateObj = new Date(initialData.companionDate + 'T00:00:00');
+          if (!isNaN(dateObj.getTime())) {
+            setSelectedDates([dateObj]);
+          }
+        } catch (error) {
+          console.error("날짜 파싱 실패:", error);
+        }
+      }
+    }
+  }, [initialData]);
 
   // 폼 데이터 변경 핸들러
   const handleInputChange = (field, value) => {
