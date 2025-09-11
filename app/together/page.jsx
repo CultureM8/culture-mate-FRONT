@@ -98,13 +98,15 @@ export default function TogetherPage() {
     <>
       <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
       <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
-      <div className="border w-full h-[200px] flex items-center justify-center relative z-10">
-        <div className="border w-full h-full flex items-center justify-center relative z-10 bg-white">
-          <img
-            src="/together-main-img/togetherBanner.png"
-            alt="동행 모집 배너"
-            className="w-full h-full object-cover object-center"
-          />
+      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mb-8">
+        <div className="relative w-full h-[370px] overflow-hidden ">
+          <div className="min-w-full h-full relative flex-shrink-0">
+            <img
+              src={"/img/togetherbanner.jpg"}
+              alt={"배너이미지"}
+              className="w-full h-full object-cover block"
+            />
+          </div>
         </div>
       </div>
       <EventSelector
