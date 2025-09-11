@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchTogetherList } from "@/lib/togetherApi";
+import { fetchTogetherList } from "@/lib/api/togetherApi";
 
 /* 백엔드 응답 데이터 -> 카드 아이템 변환 */
 const fromServerResponse = (item = {}) => {
@@ -36,10 +36,7 @@ const fromServerResponse = (item = {}) => {
       : "",
     address: item.eventSnapshot?.location || item.address || "",
     author:
-      item.host?.nickname ||
-      item.host?.displayName ||
-      item.authorName ||
-      "-",
+      item.host?.nickname || item.host?.displayName || item.authorName || "-",
     views: item.viewCount || item.views || 0,
     isClosed: !item.active || item.isClosed || false,
 
@@ -49,7 +46,7 @@ const fromServerResponse = (item = {}) => {
     meetingDate: item.meetingDate,
     eventSnapshot: item.event, // 백엔드에서 event 객체로 옴
     event: item.event,
-    
+
     // 호스트 정보 (TogetherList에서 필요한 필드들)
     hostObj: item.host,
     hostNickname: item.host?.nickname,
