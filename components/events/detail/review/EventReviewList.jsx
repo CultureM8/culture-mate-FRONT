@@ -3,7 +3,7 @@
 import StarRating from "@/lib/StarRating";
 import { useState, useCallback } from "react";
 import Image from "next/image";
-import { IMAGES } from "@/constants/path";
+import { IMAGES, ICONS } from "@/constants/path";
 import { displayNameFromTriplet } from "@/lib/displayName";
 
 /** 날짜 포맷: YYYY.MM.DD */
@@ -50,6 +50,7 @@ export default function EventReviewList(props) {
     updatedAt,
     author,
     currentUserId, // 현재 사용자 ID (새로 추가)
+    onEditReview, // 리뷰 편집 콜백 (새로 추가)
   } = props || {};
 
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
@@ -165,7 +166,20 @@ export default function EventReviewList(props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6 mb-1 flex-shrink-0" />
+      {/* 내 리뷰인 경우 편집 버튼 */}
+      <div className="flex items-center gap-2 mb-1 flex-shrink-0">
+        {isMyReviewFlag && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // 리뷰 펼치기 이벤트 방지
+              onEditReview?.(props); // 편집 콜백 호출
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="리뷰 수정">
+            <Image src={ICONS.EDIT} alt="수정" width={16} height={16} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

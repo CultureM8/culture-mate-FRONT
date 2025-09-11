@@ -102,10 +102,17 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [eventData, setEventData] = useState(initialEventData);
   const [hasMyReview, setHasMyReview] = useState(false);
+  const [editingReview, setEditingReview] = useState(null); // 편집 중인 리뷰 데이터
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
-  const openReviewModal = () => setIsReviewModalOpen(true);
-  const closeReviewModal = () => setIsReviewModalOpen(false);
+  const openReviewModal = () => {
+    setEditingReview(null); // 생성 모드로 리셋
+    setIsReviewModalOpen(true);
+  };
+  const closeReviewModal = () => {
+    setEditingReview(null);
+    setIsReviewModalOpen(false);
+  };
   const reviewKey = (eid, uid) => `reviewed:${eid}:${uid}`;
 
   useEffect(() => {
@@ -186,6 +193,24 @@ export default function EventPageClient({ eventData: initialEventData }) {
       localStorage.setItem(reviewKey(eventData.eventId, currentUserId), "1");
     }
     await loadReviews();
+    await updateEventData();
+  };
+
+  // 리뷰 편집 처리
+  const handleEditReview = (reviewData) => {
+    setEditingReview(reviewData);
+    setIsReviewModalOpen(true);
+  };
+
+  // 리뷰 수정 완룉 처리
+  const handleReviewUpdated = async (updatedReview) => {
+    setEditingReview(null);
+    await loadReviews();
+    await updateEventData();
+  };
+
+  // 이벤트 데이터 업데이트 (공통 로직)
+  const updateEventData = async () => {
     try {
       const raw = await getEventById(eventData.eventId);
       const updated = mapDetail(raw);
@@ -235,7 +260,7 @@ export default function EventPageClient({ eventData: initialEventData }) {
               <ListLayout 
                 Component={EventReviewList} 
                 items={reviews} 
-                commonProps={{ currentUserId }}
+                commonProps={{ currentUserId, onEditReview: handleEditReview }}
               />
             ) : (
               <div className="flex justify-center py-8 text-gray-500">
@@ -248,6 +273,9 @@ export default function EventPageClient({ eventData: initialEventData }) {
               onClose={closeReviewModal}
               eventId={eventData.eventId}
               onReviewAdded={handleReviewAdded}
+              onReviewUpdated={handleReviewUpdated}
+              editMode={!!editingReview}
+              reviewData={editingReview}
               eventData={eventData}
             />
           </>
