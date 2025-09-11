@@ -36,12 +36,26 @@ const fromServerResponse = (item = {}) => {
       : "",
     address: item.eventSnapshot?.location || item.address || "",
     author:
-      item.author?.nickname ||
-      item.author?.displayName ||
+      item.host?.nickname ||
+      item.host?.displayName ||
       item.authorName ||
       "-",
     views: item.viewCount || item.views || 0,
     isClosed: !item.active || item.isClosed || false,
+
+    // 백엔드 원본 필드들을 직접 전달 (컴포넌트에서 사용)
+    maxParticipants: item.maxParticipants,
+    currentParticipants: item.currentParticipants,
+    meetingDate: item.meetingDate,
+    eventSnapshot: item.event, // 백엔드에서 event 객체로 옴
+    event: item.event,
+    
+    // 호스트 정보 (TogetherList에서 필요한 필드들)
+    hostObj: item.host,
+    hostNickname: item.host?.nickname,
+    hostLoginId: item.host?.loginId || item.host?.login_id,
+    hostId: item.host?.id,
+    host: item.host, // 백엔드 호스트 객체 직접 전달
 
     // 정렬을 위한 원본 데이터 보존
     _createdTime: item.createdAt ? new Date(item.createdAt).getTime() : 0,

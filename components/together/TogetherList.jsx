@@ -12,10 +12,10 @@ export default function TogetherList(props) {
     date,
     group,
     address,
-    authorNickname,
-    authorLoginId,
-    authorObj,
-    author,
+    hostNickname,
+    hostLoginId,
+    hostObj,
+    host,
     isClosed = false,
     editMode = false,
     selected = false,
@@ -62,26 +62,25 @@ export default function TogetherList(props) {
   })();
 
   const safeGroup = (() => {
-    const cur = rest.currentParticipants ?? rest.current ?? 0;
-    const max =
-      rest.maxParticipants ?? rest.maxPeople ?? rest.companionCount ?? 0;
+    const cur = rest.currentParticipants ?? rest.current ?? 1;
+    const max = rest.maxParticipants ?? rest.maxPeople ?? 1;
     return `${cur}/${max}`;
   })();
 
   const safeAddress =
     address || rest.address || rest.eventSnapshot?.location || "주소 정보 없음";
 
-  // ✅ 작성자 표시
-  const authorAsObj = typeof author === "object" && author ? author : authorObj;
-  const authorAsStr = typeof author === "string" ? author : "";
-  const displayAuthor =
+  // ✅ 호스트 표시
+  const hostAsObj = typeof host === "object" && host ? host : hostObj;
+  const hostAsStr = typeof host === "string" ? host : "";
+  const displayHost =
     [
-      authorNickname,
-      authorAsObj?.display_name,
-      authorAsObj?.nickname,
-      authorLoginId,
-      authorAsObj?.login_id,
-      authorAsStr,
+      hostNickname,
+      hostAsObj?.display_name,
+      hostAsObj?.nickname,
+      hostLoginId,
+      hostAsObj?.login_id,
+      hostAsStr,
     ]
       .map((v) => (typeof v === "string" ? v.trim() : ""))
       .find(Boolean) || "-";
@@ -128,7 +127,7 @@ export default function TogetherList(props) {
       )}
 
       <ListComponent
-        src={coverSrc}
+        src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={safeEventName || safeTitle}
         title={safeTitle}
         href={safeHref}
@@ -170,7 +169,7 @@ export default function TogetherList(props) {
               {safeAddress}
             </span>
           </div>
-          <div>작성자 : {displayAuthor}</div>
+          <div>작성자 : {displayHost}</div>
         </div>
       </ListComponent>
     </div>

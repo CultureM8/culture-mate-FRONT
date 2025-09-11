@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import TogetherWriteForm from "@/components/together/TogetherWriteForm";
 import ConfirmModal from "@/components/global/ConfirmModal";
@@ -11,6 +11,7 @@ import {
   submitTogetherPost,
   validateTogetherForm,
 } from "@/lib/togetherWriteUtils";
+import togetherApi from "@/lib/api/togetherApi";
 
 export default function TogetherRecruitmentPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -19,13 +20,72 @@ export default function TogetherRecruitmentPage() {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [isLoadingEditData, setIsLoadingEditData] = useState(false);
+  const [formInitialData, setFormInitialData] = useState({});
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { ready, isLogined, user } = useLogin();
 
   // 작성 훅: 이벤트 정규화 + 폼 상태
   const { selectedEvent, handleEventSelect, form, handleFormChange } =
     useTogetherWriteState();
+
+  // 편집 모드 확인 및 데이터 로드
+  useEffect(() => {
+    const editParam = searchParams.get('edit');
+    if (editParam) {
+      setIsEditMode(true);
+      setEditId(editParam);
+      
+      // 기존 데이터 로드
+      const loadEditData = async () => {
+        try {
+          const postData = await togetherApi.getById(editParam);
+          
+          setTitle(postData.title || "");
+          setContent(postData.content || "");
+          
+          // 이벤트 정보 설정
+          if (postData.event) {
+            handleEventSelect(postData.event);
+          }
+          
+          // TogetherWriteForm 컴포넌트용 초기 데이터 설정
+          const formInitialData = {
+            companionDate: postData.meetingDate || "",
+            maxParticipants: postData.maxParticipants || 2,
+            meetingLocation: postData.meetingLocation || "",
+            meetingRegion: postData.region || { level1: "", level2: "", level3: "" },
+          };
+          
+          setFormInitialData(formInitialData);
+          
+          // useTogetherWriteState용 데이터도 별도로 설정
+          const stateFormData = {
+            companionDate: postData.meetingDate || "",
+            companionCount: postData.maxParticipants ? `${postData.maxParticipants}명` : "",
+            minAge: "제한없음", // 백엔드에서 나이 제한 데이터가 없으면 기본값
+            maxAge: "제한없음",
+            locationQuery: postData.meetingLocation || "",
+            meetingRegion: postData.region || { level1: "", level2: "", level3: "" },
+            meetingLocation: postData.meetingLocation || "",
+          };
+          
+          // 폼 상태 업데이트 (useTogetherWriteState의 handleFormChange 사용)
+          handleFormChange(stateFormData);
+          
+        } catch (error) {
+          console.error("편집 데이터 로드 실패:", error);
+          setSubmitError("편집할 데이터를 불러올 수 없습니다.");
+        }
+      };
+      
+      loadEditData();
+    }
+  }, [searchParams]);
 
   // 비로그인 접근 시 로그인으로 유도
   useEffect(() => {
@@ -69,19 +129,32 @@ export default function TogetherRecruitmentPage() {
     setSubmitError("");
 
     try {
-      // 백엔드 API 호출
-      const response = await submitTogetherPost({
-        title,
-        content,
-        selectedEvent,
-        form,
-        user,
-      });
+      let response;
+      
+      if (isEditMode && editId) {
+        // 편집 모드: PUT 요청
+        response = await togetherApi.update(editId, {
+          title,
+          content,
+          selectedEvent,
+          form,
+          user,
+        });
+      } else {
+        // 작성 모드: POST 요청
+        response = await submitTogetherPost({
+          title,
+          content,
+          selectedEvent,
+          form,
+          user,
+        });
+      }
 
       setShowSuccessModal(false);
 
-      // 작성 성공 시 상세 페이지로 이동
-      const togetherID = response?.id || response?.togetherId;
+      // 성공 시 상세 페이지로 이동
+      const togetherID = response?.id || response?.togetherId || editId;
       if (togetherID) {
         router.push(`/together/${togetherID}`);
       } else {
@@ -110,7 +183,9 @@ export default function TogetherRecruitmentPage() {
     <div className="w-full min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-8 py-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-black">동행 모집글 작성</h1>
+          <h1 className="text-2xl font-bold text-black">
+            {isEditMode ? "동행 모집글 수정" : "동행 모집글 작성"}
+          </h1>
         </div>
 
         {/* 에러 메시지 표시 */}
@@ -155,10 +230,11 @@ export default function TogetherRecruitmentPage() {
 
         <div className="mb-6">
           <TogetherWriteForm
+            key={isEditMode ? `edit-${editId}` : 'create'}
             onEventSelect={handleEventSelect}
             onLocationSearch={(q) => console.log("지역 검색:", q)}
             onFormChange={handleFormChange}
-            initialData={form}
+            initialData={isEditMode ? formInitialData : form}
           />
         </div>
 
@@ -210,7 +286,10 @@ export default function TogetherRecruitmentPage() {
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-gray-300 text-white cursor-not-allowed"
             }`}>
-            {isSubmitting ? "등록 중..." : "등록"}
+            {isSubmitting 
+              ? (isEditMode ? "수정 중..." : "등록 중...") 
+              : (isEditMode ? "수정" : "등록")
+            }
           </button>
         </div>
 
@@ -229,16 +308,16 @@ export default function TogetherRecruitmentPage() {
           variant="danger"
         />
 
-        {/* 등록 모달 */}
+        {/* 등록/수정 모달 */}
         <ConfirmModal
           open={showSuccessModal}
-          title="글을 등록하시겠습니까?"
+          title={isEditMode ? "글을 수정하시겠습니까?" : "글을 등록하시겠습니까?"}
           description={
             isSubmitting
-              ? "등록 중입니다. 잠시만 기다려주세요..."
-              : "등록 후 작성 글 페이지로 이동합니다."
+              ? (isEditMode ? "수정 중입니다. 잠시만 기다려주세요..." : "등록 중입니다. 잠시만 기다려주세요...")
+              : (isEditMode ? "수정 후 상세 페이지로 이동합니다." : "등록 후 작성 글 페이지로 이동합니다.")
           }
-          confirmText={isSubmitting ? "등록 중..." : "등록"}
+          confirmText={isSubmitting ? (isEditMode ? "수정 중..." : "등록 중...") : (isEditMode ? "수정" : "등록")}
           cancelText="아니오"
           onConfirm={handleConfirmSave}
           onClose={() => !isSubmitting && setShowSuccessModal(false)}

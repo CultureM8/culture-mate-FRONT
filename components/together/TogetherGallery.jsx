@@ -103,7 +103,7 @@ export default function TogetherGallery(props) {
 
       <Gallery
         title={title}
-        src={coverSrc}
+        src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={alt || eventName || title}
         href={href}>
         <div className="flex items-center gap-2">
