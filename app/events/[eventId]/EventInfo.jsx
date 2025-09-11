@@ -1,11 +1,14 @@
+// components/events/detail/EventInfo.jsx  ← 프로젝트 구조에 맞게 경로 사용
 "use client";
 
 import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
-import { useState } from "react";
-import StarScore from "@/lib/StarScore";
-import { useContext } from "react";
+import { useState, useContext } from "react";
+import StarRating from "@/lib/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
+
+// 통합된 eventApi 사용
+import { toggleEventInterest } from "@/lib/eventApi";
 
 export default function EventInfo({ eventData, score = 0 }) {
   const [interest, setInterest] = useState(false);
@@ -25,10 +28,10 @@ export default function EventInfo({ eventData, score = 0 }) {
 
     setIsSubmitting(true);
     try {
-      const { toggleEventInterest } = await import("@/lib/eventApi");
-      const result = await toggleEventInterest(eventData.eventId, user.id);
+      // toggleEventInterest API 호출 (eventId만 전달)
+      const result = await toggleEventInterest(eventData.eventId);
 
-      setInterest(!interest);
+      setInterest((prev) => !prev);
       console.log("관심 등록/해제 결과:", result);
     } catch (error) {
       console.error("관심 등록/해제 실패:", error);
@@ -73,39 +76,22 @@ export default function EventInfo({ eventData, score = 0 }) {
           <div className="px-2 py-6 flex justify-between">
             <div className="flex gap-6">
               <div className="flex gap-2 items-center">
-                {/* <Image 
-                  src={ICONS.STAR_FULL}
-                  alt="별점"
-                  width={24}
-                  height={24}
+                <StarRating
+                  rating={eventData.avgRating || eventData.score || score || 0}
+                  mode="average"
+                  showNumber={true}
+                  showStars={true}
                 />
-                {eventData.score} */}
-                {/* 백엔드에서 제공하는 평균 별점 표시 */}
-                <StarScore score={eventData.avgRating || eventData.score || 0} />
               </div>
-              {/* <div className="flex gap-2 items-center">
-                <button onClick={handleLike} className="hover:cursor-pointer">
-                  {like ? (
-                    <Image
-                      src={ICONS.THUMBSUP_FULL}
-                      alt="추천"
-                      width={24}
-                      height={24}
-                    />
-                  ) : (
-                    <Image
-                      src={ICONS.THUMBSUP_EMPTY}
-                      alt="추천"
-                      width={24}
-                      height={24}
-                    />
-                  )}
-                </button>
-                {eventData.likesCount}
-              </div> */}
             </div>
             <div className="flex gap-6">
-              <button onClick={handleInterest} className="hover:cursor-pointer">
+              <button
+                onClick={handleInterest}
+                className={`hover:cursor-pointer ${
+                  isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+                disabled={isSubmitting}
+                aria-disabled={isSubmitting}>
                 {interest ? (
                   <Image src={ICONS.HEART} alt="관심" width={28} height={28} />
                 ) : (
@@ -117,7 +103,7 @@ export default function EventInfo({ eventData, score = 0 }) {
                   />
                 )}
               </button>
-              <button>
+              <button onClick={handleLike}>
                 <Image src={ICONS.SHARE} alt="공유" width={24} height={24} />
               </button>
             </div>
@@ -152,7 +138,17 @@ export default function EventInfo({ eventData, score = 0 }) {
             </div>
             <div className="flex">
               <span className="w-25 font-medium">가격</span>
-              <span>{eventData.price}</span>
+              <div className="flex flex-col">
+                {eventData.priceList?.length > 0 ? (
+                  eventData.priceList.map((priceItem, index) => (
+                    <span key={index} className="mb-1">
+                      {priceItem.type} {priceItem.price}원
+                    </span>
+                  ))
+                ) : (
+                  <span>미정</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

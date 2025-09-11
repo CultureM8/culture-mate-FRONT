@@ -1,45 +1,66 @@
-'use client'
+"use client";
 
 import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-export default function Gallery({ src, alt = "이미지", title = "제목 없음", enableInterest=true, onClick, href = "", children }) {
-
-  // 추후에 매개변수로 넘겨받아서 처리
+export default function Gallery({
+  src,
+  alt = "이미지",
+  title = "제목 없음",
+  enableInterest = true,
+  onClick,
+  href = "",
+  children,
+}) {
   const [interest, setInterest] = useState(false);
 
-  // 이부분은 추후에 page에서 처리하는 방식으로 변경해야 할 듯
+  const initialSrc = useMemo(() => {
+    return typeof src === "string" && src.trim().length > 0
+      ? src.trim()
+      : IMAGES.GALLERY_DEFAULT_IMG; // /public/default_img.svg
+  }, [src]);
+
+  const [currentSrc, setCurrentSrc] = useState(initialSrc);
+
   const interestHandler = () => {
-    setInterest(prev => !prev);
-    if(typeof onClick == "function") onClick();
-  }
-  
+    setInterest((prev) => !prev);
+    if (typeof onClick === "function") onClick();
+  };
+
   return (
     <div className="bg-white w-[300px] relative" title={title}>
-      {enableInterest &&
-        <button className={`absolute top-0 right-0 mt-4 mr-4 ${interest ? "" : "opacity-30"} hover:cursor-pointer`}
-          onClick={interestHandler}
-        >
-          <Image 
+      {enableInterest && (
+        <button
+          className={`absolute top-0 right-0 mt-4 mr-4 ${
+            interest ? "" : "opacity-30"
+          } hover:cursor-pointer`}
+          onClick={interestHandler}>
+          <Image
             src={interest ? ICONS.HEART : ICONS.HEART_EMPTY}
             alt="관심"
             width={28}
             height={28}
           />
         </button>
-      }
-      <Link
-        href={href}
-      >
+      )}
+
+      <Link href={href}>
         <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400">
           <Image
-            src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
-            alt={alt}
+            src={currentSrc}
+            alt={alt || title || "이미지"}
             width={200}
             height={150}
             className="w-[280px] h-[200px] rounded-xl object-cover"
+            onError={() => {
+              // 무한 루프 방지: 이미 기본이미지면 그대로 유지
+              if (currentSrc !== IMAGES.GALLERY_DEFAULT_IMG) {
+                setCurrentSrc(IMAGES.GALLERY_DEFAULT_IMG);
+              }
+            }}
+            priority={false}
           />
           <div className="px-2">
             <div className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
