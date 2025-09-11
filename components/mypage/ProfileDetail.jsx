@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ICONS } from '@/constants/path';
+import { getMemberGalleryImages, uploadMemberGalleryImages, deleteMemberGalleryImage } from '@/lib/api/memberDetailApi';
 
 // ProfileSection 컴포넌트
 function ProfileSection() {
@@ -414,24 +415,64 @@ function GalleryContainer() {
   const [images, setImages] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
+  const [loading, setLoading] = useState(false);
+  
+  // 현재 로그인한 사용자 ID (실제로는 Context나 localStorage에서 가져와야 함)
+  const currentUserId = 1; // 임시로 하드코딩
 
-  const handleFileUpload = (event) => {
+  // 컴포넌트 마운트 시 갤러리 이미지 로드
+  useEffect(() => {
+    const loadGalleryImages = async () => {
+      try {
+        setLoading(true);
+        const galleryImages = await getMemberGalleryImages(currentUserId);
+        
+        // API 응답을 컴포넌트에서 사용할 형태로 변환
+        const formattedImages = galleryImages.map((imagePath, index) => ({
+          id: Date.now() + index, // 고유 ID 생성
+          src: imagePath,
+          name: `gallery-image-${index}`
+        }));
+        
+        setImages(formattedImages);
+      } catch (error) {
+        console.error('갤러리 이미지 로드 실패:', error);
+        // 에러 시 빈 배열 유지
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGalleryImages();
+  }, [currentUserId]);
+
+  const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files);
     
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const newId = Math.max(...images.map(img => img.id), 0) + Date.now();
-          setImages(prevImages => [...prevImages, { 
-            id: newId, 
-            src: e.target.result,
-            name: file.name 
-          }]);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
+    if (files.length === 0) return;
+    
+    try {
+      setLoading(true);
+      
+      // 백엔드에 이미지 업로드
+      await uploadMemberGalleryImages(currentUserId, files);
+      
+      // 업로드 성공 시 갤러리 이미지 목록을 다시 로드
+      const updatedImages = await getMemberGalleryImages(currentUserId);
+      const formattedImages = updatedImages.map((imagePath, index) => ({
+        id: Date.now() + index,
+        src: imagePath,
+        name: `gallery-image-${index}`
+      }));
+      
+      setImages(formattedImages);
+      
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+      alert('이미지 업로드에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
     
     // 파일 입력 초기화 (같은 파일을 다시 선택할 수 있도록)
     event.target.value = '';
@@ -442,8 +483,22 @@ function GalleryContainer() {
     document.getElementById('gallery-file-input').click();
   };
 
-  const removeImage = (idToRemove) => {
-    setImages(images.filter(img => img.id !== idToRemove));
+  const removeImage = async (imageToRemove) => {
+    try {
+      setLoading(true);
+      
+      // 백엔드에서 이미지 삭제 (이미지 경로를 사용)
+      await deleteMemberGalleryImage(currentUserId, imageToRemove.src);
+      
+      // 로컬 상태에서도 제거
+      setImages(images.filter(img => img.id !== imageToRemove.id));
+      
+    } catch (error) {
+      console.error('이미지 삭제 실패:', error);
+      alert('이미지 삭제에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleDropdown = () => {
@@ -528,7 +583,7 @@ function GalleryContainer() {
             e.target.style.scrollbarColor = 'transparent transparent';
           }}
         >
-          {images.length === 0 && (
+          {images.length === 0 && !loading && (
             <button
               onClick={addImage}
               className="box-border content-stretch flex flex-col gap-2.5 items-center justify-center p-[16px] hover:bg-[#f5f7f9] rounded-lg transition-colors duration-200"
@@ -543,6 +598,12 @@ function GalleryContainer() {
                 />
               </div>
             </button>
+          )}
+
+          {loading && (
+            <div className="box-border content-stretch flex flex-col gap-2.5 items-center justify-center p-[16px] text-gray-500">
+              로딩 중...
+            </div>
           )}
 
           {images.map((image) => (
@@ -562,7 +623,7 @@ function GalleryContainer() {
               {/* 삭제 버튼 */}
               <div 
                 className="absolute top-2 right-2 flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity duration-200" 
-                onClick={() => removeImage(image.id)}
+                onClick={() => removeImage(image)}
                 title="이미지 삭제"
               >
                 <div className="w-[16px] h-[16px]">
@@ -578,7 +639,7 @@ function GalleryContainer() {
             </div>
           ))}
           
-          {images.length > 0 && (
+          {images.length > 0 && !loading && (
             <button
               onClick={addImage}
               className="box-border content-stretch flex flex-col gap-2.5 items-center justify-center p-[16px] hover:bg-[#f5f7f9] rounded-lg transition-colors duration-200 shrink-0"

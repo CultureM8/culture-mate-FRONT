@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { IMAGES, ICONS } from "@/constants/path";
+import { getMemberDetail, updateMemberImage, memberDetailUtils } from "@/lib/api/memberDetailApi";
+import { getMemberById } from "@/lib/api/memberApi";
 
 // 수정 버튼 컴포넌트
 function EditButton() {
@@ -22,40 +24,113 @@ function EditButton() {
 
 // 메인 프로필 정보 컴포넌트
 export default function ProfileInfo() {
-  const [nickname, setNickname] = useState("사용자 별명");
-  const [score, setScore] = useState(50);
-  const [introduction, setIntroduction] = useState("한줄 자기 소개 작성 공간");
+  const [member, setMember] = useState(null);
+  const [memberDetail, setMemberDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [isHoveringBackground, setIsHoveringBackground] = useState(false);
   const [isHoveringProfile, setIsHoveringProfile] = useState(false);
+
+  // 현재 로그인한 사용자 ID (실제로는 Context나 localStorage에서 가져와야 함)
+  const currentUserId = 1; // 임시로 하드코딩
+
+  // 컴포넌트 마운트 시 사용자 데이터 로드
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+        
+        // 기본 회원 정보와 상세 정보를 동시에 가져오기
+        const [memberData, memberDetailData] = await Promise.all([
+          getMemberById(currentUserId),
+          getMemberDetail(currentUserId)
+        ]);
+
+        setMember(memberData);
+        setMemberDetail(memberDetailData);
+        
+        // 이미지 URL 설정
+        if (memberDetailData?.profileImageId) {
+          setProfileImage(memberDetailUtils.getProfileImageUrl(memberDetailData.profileImageId));
+        }
+        if (memberDetailData?.backgroundImageId) {
+          setBackgroundImage(memberDetailUtils.getBackgroundImageUrl(memberDetailData.backgroundImageId));
+        }
+
+      } catch (error) {
+        console.error('사용자 데이터 로드 실패:', error);
+        // 에러 발생 시 기본값 유지
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [currentUserId]);
 
   // 파일 입력 ref
   const backgroundFileRef = useRef(null);
   const profileFileRef = useRef(null);
 
   // 프로필 배경 이미지 업로드 핸들러
-  const handleBackgroundImageUpload = (event) => {
+  const handleBackgroundImageUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setBackgroundImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (file && currentUserId) {
+      try {
+        // 로컬에서 즉시 미리보기 표시
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setBackgroundImage(e.target.result);
+        };
+        reader.readAsDataURL(file);
+
+        // 백엔드에 업로드
+        await updateMemberImage(currentUserId, file, 'background');
+        
+        // 성공 시 업데이트된 데이터 다시 로드
+        const updatedMemberDetail = await getMemberDetail(currentUserId);
+        setMemberDetail(updatedMemberDetail);
+        
+        if (updatedMemberDetail?.backgroundImageId) {
+          setBackgroundImage(memberDetailUtils.getBackgroundImageUrl(updatedMemberDetail.backgroundImageId));
+        }
+
+      } catch (error) {
+        console.error('배경 이미지 업로드 실패:', error);
+        alert('배경 이미지 업로드에 실패했습니다.');
+      }
     }
     event.target.value = '';
   };
 
   // 프로필 이미지 업로드 핸들러
-  const handleProfileImageUpload = (event) => {
+  const handleProfileImageUpload = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
+    if (file && currentUserId) {
+      try {
+        // 로컬에서 즉시 미리보기 표시
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setProfileImage(e.target.result);
+        };
+        reader.readAsDataURL(file);
+
+        // 백엔드에 업로드
+        await updateMemberImage(currentUserId, file, 'profile');
+        
+        // 성공 시 업데이트된 데이터 다시 로드
+        const updatedMemberDetail = await getMemberDetail(currentUserId);
+        setMemberDetail(updatedMemberDetail);
+        
+        if (updatedMemberDetail?.profileImageId) {
+          setProfileImage(memberDetailUtils.getProfileImageUrl(updatedMemberDetail.profileImageId));
+        }
+
+      } catch (error) {
+        console.error('프로필 이미지 업로드 실패:', error);
+        alert('프로필 이미지 업로드에 실패했습니다.');
+      }
     }
     event.target.value = '';
   };
@@ -227,7 +302,9 @@ export default function ProfileInfo() {
           <div className="hidden xl:flex xl:flex-row xl:items-center w-full xl:gap-0">
             {/* 사용자 별명 - 데스크톱에서 왼쪽 정렬 */}
             <div className="flex flex-col font-semibold justify-center text-[#26282a] text-[28px] xl:text-left whitespace-nowrap">
-              <p className="leading-[1.28] whitespace-nowrap">{nickname}</p>
+              <p className="leading-[1.28] whitespace-nowrap">
+                {loading ? "로딩 중..." : (memberDetail?.userName || "사용자 별명")}
+              </p>
             </div>
             
             {/* 동행점수/바/버튼 영역 - 데스크톱에서 가로 배치, 가운데 정렬, 우측 고정 */}
@@ -243,18 +320,18 @@ export default function ProfileInfo() {
                   {/* 진행률 바 */}
                   <div 
                     className="h-2 bg-[#ffc37f] rounded-[5px] absolute top-0 left-0 transition-all duration-300"
-                    style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
+                    style={{ width: `${Math.min(Math.max(memberDetail?.togetherScore || 0, 0), 100)}%` }}
                   />
                   
                   {/* 점수 표시 */}
                   <div 
                     className="absolute -top-6 text-[#26282a] text-base transform -translate-x-1/2 transition-all duration-300"
                     style={{ 
-                      left: `${Math.min(Math.max(score, 0), 100)}%`,
+                      left: `${Math.min(Math.max(memberDetail?.togetherScore || 0, 0), 100)}%`,
                       minWidth: 'max-content'
                     }}
                   >
-                    <p className="leading-[1.5]">{score}점</p>
+                    <p className="leading-[1.5]">{memberDetail?.togetherScore || 0}점</p>
                   </div>
                 </div>
               </div>
@@ -270,7 +347,9 @@ export default function ProfileInfo() {
           <div className="flex xl:hidden flex-col w-full gap-4">
             {/* 사용자 별명 - 모바일에서 오른쪽 정렬 */}
             <div className="flex flex-col font-semibold justify-center text-[#26282a] text-xl sm:text-2xl text-right whitespace-nowrap self-end">
-              <p className="leading-[1.28] whitespace-nowrap">{nickname}</p>
+              <p className="leading-[1.28] whitespace-nowrap">
+                {loading ? "로딩 중..." : (memberDetail?.userName || "사용자 별명")}
+              </p>
             </div>
             
             {/* 동행 점수 텍스트 - 모바일에서 오른쪽 정렬 */}
@@ -285,18 +364,18 @@ export default function ProfileInfo() {
                 {/* 진행률 바 */}
                 <div 
                   className="h-2 bg-[#ffc37f] rounded-[5px] absolute top-0 left-0 transition-all duration-300"
-                  style={{ width: `${Math.min(Math.max(score, 0), 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(memberDetail?.togetherScore || 0, 0), 100)}%` }}
                 />
                 
                 {/* 점수 표시 */}
                 <div 
                   className="absolute -top-6 text-[#26282a] text-sm transform -translate-x-1/2 transition-all duration-300"
                   style={{ 
-                    left: `${Math.min(Math.max(score, 0), 100)}%`,
+                    left: `${Math.min(Math.max(memberDetail?.togetherScore || 0, 0), 100)}%`,
                     minWidth: 'max-content'
                   }}
                 >
-                  <p className="leading-[1.5]">{score}점</p>
+                  <p className="leading-[1.5]">{memberDetail?.togetherScore || 0}점</p>
                 </div>
               </div>
             </div>
@@ -309,7 +388,9 @@ export default function ProfileInfo() {
 
           {/* 한줄 자기소개 - 모든 화면에서 동일하게 표시 */}
           <div className="flex flex-col justify-center text-[#26282a] text-lg md:text-[20px] text-left w-full" style={{fontFamily: 'Inter, Noto Sans KR, sans-serif', fontWeight: 500, lineHeight: 1.4}}>
-            <p className="leading-[1.4]">{introduction}</p>
+            <p className="leading-[1.4]">
+              {loading ? "로딩 중..." : (memberDetail?.intro || "자기소개를 작성해주세요.")}
+            </p>
           </div>
         </div>
       </div>

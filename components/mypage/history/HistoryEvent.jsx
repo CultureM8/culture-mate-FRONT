@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState, useContext } from "react";
 import ReviewHistoryCard from "@/components/mypage/history/ReviewHistoryCard";
-import { getMyEventReviews } from "@/lib/eventReviewData";
-import { getEventById } from "@/lib/eventData";
+import { getMyEventReviews } from "@/lib/api/eventReviewApi";
+import { getEventById } from "@/lib/api/eventApi";
 import EditSetting from "@/components/global/EditSetting";
 import { LoginContext } from "@/components/auth/LoginProvider";
 

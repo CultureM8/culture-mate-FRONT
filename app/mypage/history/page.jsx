@@ -3,43 +3,68 @@
 import { useState, useEffect, useMemo } from "react";
 import HistoryEvent from "@/components/mypage/history/HistoryEvent";
 import HistoryWith from "@/components/mypage/history/HistoryWith";
-import { togetherData } from "@/lib/togetherData";
-import { getAllEvents } from "@/lib/eventData";
+import { togetherApi } from "@/lib/api/togetherApi";
+import { getEvents } from "@/lib/api/eventApi";
 
 export default function History() {
   const [activeTab, setActiveTab] = useState("event");
   const [eventData, setEventData] = useState([]);
+  const [guestApps, setGuestApps] = useState([]); // ✅ 내 신청 내역(게스트)
+
   const [editMode, setEditMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
 
-  // 데이터 로드
+  // 이벤트 탭 데이터 로드 (기존 유지)
   useEffect(() => {
     if (activeTab !== "event") return;
     let mounted = true;
     (async () => {
-      const list = await getAllEvents();
-      // id가 없으면 eventId를 href에서 추출하는 fallback
-      const normalized = (list ?? []).map((it) => ({
-        id:
-          it.id ??
-          it.eventId ??
-          (typeof it.href === "string" ? it.href.split("/").pop() : undefined),
-        ...it,
-      }));
-      if (mounted) setEventData(normalized);
+      try {
+        const list = await getEvents();
+        const normalized = (list ?? []).map((it) => ({
+          id:
+            it.id ??
+            it.eventId ??
+            (typeof it.href === "string"
+              ? it.href.split("/").pop()
+              : undefined),
+          ...it,
+        }));
+        if (mounted) setEventData(normalized);
+      } catch {
+        if (mounted) setEventData([]);
+      }
     })();
     return () => {
       mounted = false;
     };
   }, [activeTab]);
 
-  // 편집 모드 토글
+  // ✅ 동행 탭: 내 신청(게스트, 승인됨) 로드
+  useEffect(() => {
+    if (activeTab !== "together") return;
+    let mounted = true;
+    (async () => {
+      try {
+        const apps = await togetherApi.getMyApplications("APPROVED");
+        if (mounted) setGuestApps(Array.isArray(apps) ? apps : []);
+      } catch (e) {
+        if (mounted) setGuestApps([]);
+        console.warn("동행 게스트(내 신청) 로드 실패:", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab]);
+
+  // 편집 모드 토글 (이벤트 탭에서만 사용 — 기존 그대로)
   const onToggleEdit = () => {
     setEditMode((v) => !v);
     setSelectedIds(new Set()); // 모드 전환 시 선택 초기화
   };
 
-  // 카드 선택 토글
+  // 카드 선택 토글 (이벤트 탭 — 기존 그대로)
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -49,7 +74,7 @@ export default function History() {
     });
   };
 
-  // 선택 삭제
+  // 선택 삭제 (이벤트 탭 — 기존 그대로)
   const onDeleteSelected = () => {
     if (selectedIds.size === 0) return;
     if (!confirm("선택한 항목을 삭제하시겠습니까?")) return;
@@ -57,7 +82,7 @@ export default function History() {
     setSelectedIds(new Set());
   };
 
-  // ✅ 카드에 편집 관련 prop을 주입해서 내려보냄
+  // 이벤트 카드에 편집 prop 주입 (기존 그대로)
   const itemsWithEditProps = useMemo(
     () =>
       eventData.map((it) => ({
@@ -103,13 +128,12 @@ export default function History() {
         {activeTab === "event" ? (
           <div>
             <HistoryEvent />
-            {/* <GalleryLayout
-              Component={HistoryEvent}
-              items={itemsWithEditProps}
-            /> */}
+            {/* 이벤트 탭에서 itemsWithEditProps 사용 시 아래 주석 해제 */}
+            {/* <GalleryLayout Component={HistoryEvent} items={itemsWithEditProps} /> */}
           </div>
         ) : (
-          <HistoryWith togetherData={togetherData} />
+          //  게스트(내 신청) 목록을 HistoryWith로 전달
+          <HistoryWith togetherData={guestApps} />
         )}
       </div>
     </div>
