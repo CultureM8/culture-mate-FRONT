@@ -1,12 +1,12 @@
 "use client";
 
 import StarRating from "@/lib/StarRating";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import { IMAGES } from "@/constants/path";
 import { displayNameFromTriplet } from "@/lib/displayName";
 
-// 날짜 포맷 함수
+/** 날짜 포맷: YYYY.MM.DD */
 const formatDate = (dateString) => {
   if (!dateString) return "00.00.00";
   try {
@@ -19,15 +19,27 @@ const formatDate = (dateString) => {
       })
       .replace(/\. /g, ".")
       .replace(/\.$/, "");
-  } catch (e) {
+  } catch {
     return "00.00.00";
   }
 };
 
-// 백엔드 author 정보를 포함한 이벤트 후기 목록 항목 컴포넌트
-export default function EventReviewList(props) {
-  console.log("EventReviewList received props:", props);
+/** 상대 경로 → 절대 URL 보정 */
+const toAbsoluteUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+  return `${base}${url}`;
+};
 
+/** 별점 숫자 안전화 (0~5) */
+const toSafeRating = (val) => {
+  const n = Number(val);
+  if (Number.isNaN(n)) return 0;
+  return Math.min(5, Math.max(0, n));
+};
+
+export default function EventReviewList(props) {
   const {
     id,
     eventId,
@@ -36,19 +48,27 @@ export default function EventReviewList(props) {
     content = "이벤트 후기 내용",
     createdAt,
     updatedAt,
-    author, // 백엔드에서 제공하는 author 정보
+    author,
   } = props || {};
 
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
 
-  const extendReviewTab = () => {
-    setReviewTabExtend(!reviewTabExtend);
-  };
+  const extendReviewTab = useCallback(() => {
+    setReviewTabExtend((v) => !v);
+  }, []);
 
-  // 사용자 표시명 생성 (author 정보 활용)
+  const onKeyToggle = useCallback(
+    (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        extendReviewTab();
+      }
+    },
+    [extendReviewTab]
+  );
+
   const getUserDisplayName = () => {
     if (!author) return `#${memberId || "unknown"}`;
-
     return displayNameFromTriplet(
       author.nickname,
       author.loginId,
@@ -56,12 +76,12 @@ export default function EventReviewList(props) {
     );
   };
 
-  // 프로필 이미지 URL (author 정보 활용)
   const getProfileImageUrl = () => {
-    if (author?.profileImagePath && author.profileImagePath.trim() !== "") {
-      return author.profileImagePath;
-    }
-    return IMAGES.GALLERY_DEFAULT_IMG;
+    const raw =
+      (author?.profileImagePath && author.profileImagePath.trim()) ||
+      (author?.thumbnailImagePath && author.thumbnailImagePath.trim()) ||
+      "";
+    return raw ? toAbsoluteUrl(raw) : IMAGES.GALLERY_DEFAULT_IMG;
   };
 
   return (
@@ -70,8 +90,14 @@ export default function EventReviewList(props) {
         flex justify-between bg-white w-full min-w-[300px] relative 
         border border-gray-200 rounded-2xl p-4
         hover:cursor-pointer
-        mb-2"
-      onClick={extendReviewTab}>
+        mb-2
+      "
+      role="button"
+      tabIndex={0}
+      onClick={extendReviewTab}
+      onKeyDown={onKeyToggle}
+      aria-expanded={reviewTabExtend}
+      aria-label="후기 펼치기/접기">
       <div className="flex flex-col h-full min-w-0 gap-4">
         <div className="flex gap-4">
           <Image
@@ -83,10 +109,10 @@ export default function EventReviewList(props) {
           />
           <div className="flex flex-col flex-1 gap-2">
             <div className="text-gray-700">{getUserDisplayName()}</div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               {/* 별점 */}
-              <StarRating 
-                rating={rating} 
+              <StarRating
+                rating={toSafeRating(rating)}
                 mode="display"
                 showNumber={true}
                 showStars={true}
@@ -95,26 +121,24 @@ export default function EventReviewList(props) {
             </div>
           </div>
         </div>
+
         {/* 후기 내용 */}
         <div
-        className={`
-        text-gray-700 mt-2 leading-relaxed px-2 break-words
-        ${
-        !reviewTabExtend
-        ? "overflow-hidden"
-        : "whitespace-pre-line"
-        }
-        `}
-        style={{
-        display: "-webkit-box",
-        WebkitLineClamp: reviewTabExtend ? "none" : 1,
-        WebkitBoxOrient: "vertical",
-        overflow: reviewTabExtend ? "visible" : "hidden",
-        }}>
-        {content}
+          className={`
+            text-gray-700 mt-2 leading-relaxed px-2 break-words
+            ${!reviewTabExtend ? "overflow-hidden" : "whitespace-pre-line"}
+          `}
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: reviewTabExtend ? "none" : 1,
+            WebkitBoxOrient: "vertical",
+            overflow: reviewTabExtend ? "visible" : "hidden",
+          }}>
+          {content}
         </div>
       </div>
-      <div className="flex items-center gap-6 mb-1 flex-shrink-0"></div>
+
+      <div className="flex items-center gap-6 mb-1 flex-shrink-0" />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import Modal from "../../../global/Modal";
 import StarRating from "@/lib/StarRating";
-import { createEventReview } from "@/lib/eventApi";
+// 이벤트 리뷰 API 사용
+import { createEventReview } from "@/lib/eventReviewApi";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import { displayNameFromTriplet } from "@/lib/displayName";
 
@@ -20,6 +21,15 @@ export default function EventReviewModal({
 
   const { user, isLogined } = useContext(LoginContext);
 
+  // 모달이 열릴 때마다 입력 초기화 (선택적)
+  useEffect(() => {
+    if (isOpen) {
+      setContent("");
+      setRating(1);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
@@ -28,17 +38,16 @@ export default function EventReviewModal({
       return;
     }
 
-    if (rating < 1 || rating > 5) {
-      alert("별점은 1-5점 사이에서 선택해야 합니다.");
-      return;
-    }
+    // 1~5 범위로 고정
+    const safeRating = Math.min(5, Math.max(1, Number(rating) || 1));
 
     if (!content.trim()) {
       alert("후기 내용을 입력해 주세요.");
       return;
     }
 
-    if (!eventId) {
+    const eid = Number(eventId);
+    if (!eid || Number.isNaN(eid)) {
       alert("이벤트 아이디가 없습니다.");
       return;
     }
@@ -46,19 +55,22 @@ export default function EventReviewModal({
     setIsSubmitting(true);
 
     try {
-      // 백엔드 ReviewDto.Request에 맞는 구조
       const reviewData = {
-        eventId: parseInt(eventId),
-        rating: rating,
+        eventId: eid,
+        rating: safeRating,
         content: content.trim(),
-        // memberId는 백엔드에서 인증된 사용자 정보로 자동 설정됨
       };
 
       const savedReview = await createEventReview(reviewData);
 
-      // API 스키마에 맞는 형태로 반환
-      // 상위 컴포넌트에서 사용자 정보는 별도로 처리
       onReviewAdded?.(savedReview);
+
+      try {
+        const uid = user?.id ?? user?.user_id ?? user?.memberId;
+        if (typeof window !== "undefined" && uid != null) {
+          localStorage.setItem(`reviewed:${eid}:${uid}`, "1");
+        }
+      } catch {}
 
       alert("후기가 성공적으로 등록되었습니다!");
       setContent("");
@@ -66,11 +78,11 @@ export default function EventReviewModal({
       onClose();
     } catch (error) {
       console.error("리뷰 등록 중 오류:", error);
-      const errorMessage =
+      const msg =
         error?.response?.data?.message ||
         error?.message ||
         "리뷰 등록 중 오류가 발생했습니다.";
-      alert(errorMessage);
+      alert(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,8 +93,8 @@ export default function EventReviewModal({
     if (!user) return "사용자";
     return displayNameFromTriplet(
       user.nickname,
-      user.login_id,
-      user.id || user.user_id
+      user.loginId ?? user.login_id,
+      user.id ?? user.user_id
     );
   };
 
@@ -119,9 +131,9 @@ export default function EventReviewModal({
 
         <div className="mb-4 flex gap-2 items-center">
           <span>별점 :</span>
-          <StarRating 
-            rating={rating} 
-            onRatingChange={setRating} 
+          <StarRating
+            rating={rating}
+            onRatingChange={setRating}
             mode="input"
             showNumber={true}
           />

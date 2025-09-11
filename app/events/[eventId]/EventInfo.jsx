@@ -1,4 +1,4 @@
-// 👉 파일: (원본과 동일 경로) EventInfo.jsx
+// components/events/detail/EventInfo.jsx  ← 프로젝트 구조에 맞게 경로 사용
 "use client";
 
 import { ICONS, IMAGES } from "@/constants/path";
@@ -7,8 +7,11 @@ import { useState, useContext } from "react";
 import StarRating from "@/lib/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
 
+// 통합된 eventApi 사용
+import { toggleEventInterest } from "@/lib/eventApi";
+
 export default function EventInfo({ eventData, score = 0 }) {
-  const [interest, setInterest] = useState(!!eventData?.isInterested);
+  const [interest, setInterest] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 로그인 컨텍스트
@@ -25,24 +28,11 @@ export default function EventInfo({ eventData, score = 0 }) {
 
     setIsSubmitting(true);
     try {
-      const { toggleEventInterest } = await import("@/lib/eventApi");
-      // 토큰 기반: memberId 없이 호출
+      // toggleEventInterest API 호출 (eventId만 전달)
       const result = await toggleEventInterest(eventData.eventId);
 
-      // 서버 응답 우선 반영(불리언 제공 시), 없으면 토글
-      const next =
-        typeof result?.interested === "boolean" ? result.interested : !interest;
-      setInterest(next);
-      console.log("관심 등록/해제 결과:", result?.raw ?? result);
-
-      // 관심 변경 브로드캐스트 (관심 목록 페이지 갱신용)
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("interest:changed", {
-            detail: { eventId: eventData.eventId, interested: next },
-          })
-        );
-      }
+      setInterest((prev) => !prev);
+      console.log("관심 등록/해제 결과:", result);
     } catch (error) {
       console.error("관심 등록/해제 실패:", error);
       alert("관심 등록/해제에 실패했습니다.");
@@ -87,7 +77,7 @@ export default function EventInfo({ eventData, score = 0 }) {
             <div className="flex gap-6">
               <div className="flex gap-2 items-center">
                 <StarRating
-                  rating={eventData.avgRating || eventData.score || 0}
+                  rating={eventData.avgRating || eventData.score || score || 0}
                   mode="average"
                   showNumber={true}
                   showStars={true}
@@ -95,7 +85,13 @@ export default function EventInfo({ eventData, score = 0 }) {
               </div>
             </div>
             <div className="flex gap-6">
-              <button onClick={handleInterest} className="hover:cursor-pointer">
+              <button
+                onClick={handleInterest}
+                className={`hover:cursor-pointer ${
+                  isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+                disabled={isSubmitting}
+                aria-disabled={isSubmitting}>
                 {interest ? (
                   <Image src={ICONS.HEART} alt="관심" width={28} height={28} />
                 ) : (
@@ -107,7 +103,7 @@ export default function EventInfo({ eventData, score = 0 }) {
                   />
                 )}
               </button>
-              <button>
+              <button onClick={handleLike}>
                 <Image src={ICONS.SHARE} alt="공유" width={24} height={24} />
               </button>
             </div>
