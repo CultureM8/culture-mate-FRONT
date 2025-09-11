@@ -1,6 +1,6 @@
 "use client";
 
-import { getEventReviews } from "@/lib/eventReviewApi"; //  리뷰 API
+import { getEventReviews } from "@/lib/api/eventReviewApi"; //  리뷰 API (통합된 API)
 import EventDetail from "@/components/events/detail/EventDetail";
 import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -102,10 +102,17 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [eventData, setEventData] = useState(initialEventData);
   const [hasMyReview, setHasMyReview] = useState(false);
+  const [editingReview, setEditingReview] = useState(null); // 편집 중인 리뷰 데이터
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
-  const openReviewModal = () => setIsReviewModalOpen(true);
-  const closeReviewModal = () => setIsReviewModalOpen(false);
+  const openReviewModal = () => {
+    setEditingReview(null); // 생성 모드로 리셋
+    setIsReviewModalOpen(true);
+  };
+  const closeReviewModal = () => {
+    setEditingReview(null);
+    setIsReviewModalOpen(false);
+  };
   const reviewKey = (eid, uid) => `reviewed:${eid}:${uid}`;
 
   useEffect(() => {
@@ -147,7 +154,21 @@ export default function EventPageClient({ eventData: initialEventData }) {
     try {
       const reviewData = await getEventReviews(eventData.eventId);
       const list = Array.isArray(reviewData) ? reviewData : [];
-      setReviews(list);
+      
+      // 내 리뷰를 최상단으로 정렬
+      const sortedList = list.sort((a, b) => {
+        const aIsMine = isMineReview(a, currentUserId);
+        const bIsMine = isMineReview(b, currentUserId);
+        
+        // 내 리뷰가 있으면 맨 위로
+        if (aIsMine && !bIsMine) return -1;
+        if (!aIsMine && bIsMine) return 1;
+        
+        // 둘 다 내 리뷰이거나 둘 다 내 리뷰가 아니면 기존 순서 유지
+        return 0;
+      });
+      
+      setReviews(sortedList);
 
       if (currentUserId != null) {
         const mine = list.some((rv) => isMineReview(rv, currentUserId));
@@ -172,6 +193,24 @@ export default function EventPageClient({ eventData: initialEventData }) {
       localStorage.setItem(reviewKey(eventData.eventId, currentUserId), "1");
     }
     await loadReviews();
+    await updateEventData();
+  };
+
+  // 리뷰 편집 처리
+  const handleEditReview = (reviewData) => {
+    setEditingReview(reviewData);
+    setIsReviewModalOpen(true);
+  };
+
+  // 리뷰 수정 완룉 처리
+  const handleReviewUpdated = async (updatedReview) => {
+    setEditingReview(null);
+    await loadReviews();
+    await updateEventData();
+  };
+
+  // 이벤트 데이터 업데이트 (공통 로직)
+  const updateEventData = async () => {
     try {
       const raw = await getEventById(eventData.eventId);
       const updated = mapDetail(raw);
@@ -218,7 +257,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
                 <div>후기를 불러오는 중...</div>
               </div>
             ) : reviews.length > 0 ? (
-              <ListLayout Component={EventReviewList} items={reviews} />
+              <ListLayout 
+                Component={EventReviewList} 
+                items={reviews} 
+                commonProps={{ currentUserId, onEditReview: handleEditReview }}
+              />
             ) : (
               <div className="flex justify-center py-8 text-gray-500">
                 아직 작성된 후기가 없습니다.
@@ -230,6 +273,9 @@ export default function EventPageClient({ eventData: initialEventData }) {
               onClose={closeReviewModal}
               eventId={eventData.eventId}
               onReviewAdded={handleReviewAdded}
+              onReviewUpdated={handleReviewUpdated}
+              editMode={!!editingReview}
+              reviewData={editingReview}
               eventData={eventData}
             />
           </>
