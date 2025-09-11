@@ -79,6 +79,5 @@ export default function EventGallery({ eventData, ...props }) {
       </div>
     </Gallery>
   );
-  );
 }
 

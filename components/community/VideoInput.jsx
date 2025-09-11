@@ -74,11 +74,13 @@ export function VideoInput({ isOpen, onClose, onSubmit }) {
             <div className="space-y-4">
               {/* 미리보기 */}
               <div className="relative">
-                <video
-                  src={previewUrl}
-                  controls
-                  className="w-full h-64 object-cover rounded-lg border bg-black"
-                />
+                {previewUrl && (
+                  <video
+                    src={previewUrl}
+                    controls
+                    className="w-full h-64 object-cover rounded-lg border bg-black"
+                  />
+                )}
                 <button
                   onClick={() => {
                     setSelectedFile(null);

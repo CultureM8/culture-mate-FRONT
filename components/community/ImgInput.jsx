@@ -74,11 +74,13 @@ export function ImgInput({ isOpen, onClose, onSubmit }) {
             <div className="space-y-4">
               {/* 미리보기 */}
               <div className="relative">
-                <img
-                  src={previewUrl}
-                  alt="미리보기"
-                  className="w-full h-64 object-cover rounded-lg border"
-                />
+                {previewUrl && (
+                  <img
+                    src={previewUrl}
+                    alt="미리보기"
+                    className="w-full h-64 object-cover rounded-lg border"
+                  />
+                )}
                 <button
                   onClick={() => {
                     setSelectedFile(null);

@@ -100,7 +100,7 @@ export default function MainLanding() {
 function MainBanner() {
   const [currentPlaceholder, setCurrentPlaceholder] = useState("");
   const [currentTags, setCurrentTags] = useState([]);
-  const [currentVideoSrc, setCurrentVideoSrc] = useState("");
+  const [currentVideoSrc, setCurrentVideoSrc] = useState(VIDEO_SOURCES[0]);
   const [searchValue, setSearchValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
 
@@ -132,11 +132,13 @@ function MainBanner() {
   return (
     <section className="bg-[#C6C8CA] w-[100vw] h-[400px] relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden">
       {/* 배경 gif */}
-      <img 
-        src={currentVideoSrc}
-        alt="background animation"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
+      {currentVideoSrc && (
+        <img 
+          src={currentVideoSrc}
+          alt="background animation"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
       
       <div className="relative w-full h-full flex items-center justify-center z-10">
         {/* 검색창 배경 (블러 효과) - 포커스 시에만 표시 */}
