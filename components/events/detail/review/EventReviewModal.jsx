@@ -3,8 +3,8 @@
 import { useState, useContext, useEffect } from "react";
 import Modal from "../../../global/Modal";
 import StarRating from "@/lib/StarRating";
-// 이벤트 리뷰 API 사용
-import { createEventReview } from "@/lib/eventReviewApi";
+// 이벤트 리뷰 API 사용 (통합된 API)
+import { createEventReview } from "@/lib/api/eventReviewApi";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import { displayNameFromTriplet } from "@/lib/displayName";
 
@@ -64,8 +64,6 @@ export default function EventReviewModal({
         rating: safeRating,
         content: content.trim(),
       };
-
-      await submitReview(reviewData, user.token);
 
       const savedReview = await createEventReview(reviewData);
 

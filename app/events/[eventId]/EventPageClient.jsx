@@ -1,6 +1,6 @@
 "use client";
 
-import { getEventReviews } from "@/lib/eventReviewApi"; //  리뷰 API
+import { getEventReviews } from "@/lib/api/eventReviewApi"; //  리뷰 API (통합된 API)
 import EventDetail from "@/components/events/detail/EventDetail";
 import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -147,7 +147,21 @@ export default function EventPageClient({ eventData: initialEventData }) {
     try {
       const reviewData = await getEventReviews(eventData.eventId);
       const list = Array.isArray(reviewData) ? reviewData : [];
-      setReviews(list);
+      
+      // 내 리뷰를 최상단으로 정렬
+      const sortedList = list.sort((a, b) => {
+        const aIsMine = isMineReview(a, currentUserId);
+        const bIsMine = isMineReview(b, currentUserId);
+        
+        // 내 리뷰가 있으면 맨 위로
+        if (aIsMine && !bIsMine) return -1;
+        if (!aIsMine && bIsMine) return 1;
+        
+        // 둘 다 내 리뷰이거나 둘 다 내 리뷰가 아니면 기존 순서 유지
+        return 0;
+      });
+      
+      setReviews(sortedList);
 
       if (currentUserId != null) {
         const mine = list.some((rv) => isMineReview(rv, currentUserId));
@@ -218,7 +232,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
                 <div>후기를 불러오는 중...</div>
               </div>
             ) : reviews.length > 0 ? (
-              <ListLayout Component={EventReviewList} items={reviews} />
+              <ListLayout 
+                Component={EventReviewList} 
+                items={reviews} 
+                commonProps={{ currentUserId }}
+              />
             ) : (
               <div className="flex justify-center py-8 text-gray-500">
                 아직 작성된 후기가 없습니다.

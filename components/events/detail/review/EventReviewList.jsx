@@ -49,6 +49,7 @@ export default function EventReviewList(props) {
     createdAt,
     updatedAt,
     author,
+    currentUserId, // 현재 사용자 ID (새로 추가)
   } = props || {};
 
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
@@ -84,14 +85,33 @@ export default function EventReviewList(props) {
     return raw ? toAbsoluteUrl(raw) : IMAGES.GALLERY_DEFAULT_IMG;
   };
 
+  // 내 리뷰인지 판별하는 함수
+  const isMyReview = () => {
+    if (!currentUserId) return false;
+    const candidateIds = [
+      memberId,
+      author?.id,
+      author?.memberId,
+      author?.userId,
+    ].filter((id) => id !== undefined && id !== null);
+    
+    return candidateIds.some((id) => String(id) === String(currentUserId));
+  };
+
+  const isMyReviewFlag = isMyReview();
+
   return (
     <div
-      className="
-        flex justify-between bg-white w-full min-w-[300px] relative 
-        border border-gray-200 rounded-2xl p-4
+      className={`
+        flex justify-between w-full min-w-[300px] relative 
+        border rounded-2xl p-4
         hover:cursor-pointer
         mb-2
-      "
+        ${isMyReviewFlag 
+          ? 'bg-gray-50 border-blue-200' 
+          : 'bg-white border-gray-200'
+        }
+      `}
       role="button"
       tabIndex={0}
       onClick={extendReviewTab}
@@ -108,7 +128,14 @@ export default function EventReviewList(props) {
             className="w-[60px] h-[60px] rounded-full object-cover"
           />
           <div className="flex flex-col flex-1 gap-2">
-            <div className="text-gray-700">{getUserDisplayName()}</div>
+            <div className="flex items-center gap-2">
+              {isMyReviewFlag && (
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                  내 리뷰
+                </span>
+              )}
+              <div className="text-gray-700">{getUserDisplayName()}</div>
+            </div>
             <div className="flex gap-2 items-center">
               {/* 별점 */}
               <StarRating
