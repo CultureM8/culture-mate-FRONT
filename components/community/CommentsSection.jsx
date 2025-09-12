@@ -24,15 +24,28 @@ const labelFromUser = (u) => {
 /** 수정/삭제 권한: 로그인 사용자 id == 댓글 authorId */
 const isOwner = (user, comment) => {
   const uid = user?.id ?? user?.user_id;
-  const aid = comment?.authorId;
+  const aid = comment?.author?.id;
   return uid != null && aid != null && String(uid) === String(aid);
 };
 
 /** 날짜 포맷(백엔드: yyyy-MM-dd 형태여도 안전 처리) */
 const fmt = (iso) => {
   if (!iso) return "";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso; // 잘못된 날짜 형식일 경우 원본 반환
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+
+    return `${year}.${month}.${day} ${hours}:${minutes}:${seconds}`;
+  } catch (e) {
+    return iso; // 오류 발생 시 원본 문자열 반환
+  }
 };
 
 /** -------- API 클라이언트 -------- */
@@ -145,14 +158,26 @@ export default function CommentsSection({
 
   /** 댓글 작성자 표시 라벨 */
   const getAuthorLabel = (comment) => {
-    if (!comment?.authorId) return "#unknown";
-    const authorInfo = authorCache.get(comment.authorId);
-    if (!authorInfo) return `#${comment.authorId}`;
+    const author = comment?.author;
+    if (!author?.id) {
+      return "#unknown";
+    }
+
+    // 댓글의 author 객체에 이름 정보가 있으면 바로 사용
+    if (author.nickname || author.loginId) {
+      return displayNameFromTriplet(author.nickname, author.loginId, author.id);
+    }
+
+    // 없으면 캐시에서 찾기
+    const authorInfo = authorCache.get(author.id);
+    if (!authorInfo) {
+      return `#${author.id}`; // 캐시에도 없으면 ID 표시
+    }
 
     return displayNameFromTriplet(
       authorInfo.nickname,
       authorInfo.loginId,
-      comment.authorId
+      author.id
     );
   };
 
