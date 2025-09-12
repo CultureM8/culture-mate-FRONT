@@ -8,6 +8,7 @@ import EditSetting from "../../global/EditSetting";
 import useLogin from "@/hooks/useLogin";
 import { loadPosts, deletePost } from "@/lib/storage";
 import { getChatRequestsFromUser } from "@/lib/chatRequestUtils";
+import { togetherApi } from "@/lib/api/togetherApi";
 
 /**내 동행 게스트카드 숨김 저장소*/
 const hiddenKey = (userKey) => `history:hidden:together:${userKey}`;
@@ -50,37 +51,70 @@ export default function HistoryWith({ togetherData = [] }) {
     setHiddenIds(loadHiddenIds(userKey));
   }, [userKey]);
 
-  /* 스토리지에서 전체 together 글(프론트 더미용) */
-  const [rawPosts, setRawPosts] = useState([]);
+  /* 호스트 글: 백엔드 API 우선, 실패 시 로컬스토리지 fallback */
+  const [hostFromApi, setHostFromApi] = useState([]);
+  const [rawPosts, setRawPosts] = useState([]); // fallback
   useEffect(() => {
     const arr = loadPosts("together") || [];
     setRawPosts(arr);
   }, []);
+  useEffect(() => {
+    // 로그인 사용자가 있으면 내 호스트 글을 API로 로드
+    const myId = user?.id ?? user?.user_id ?? null; // loginId만 있는 경우엔 서버 스펙에 따라 변환 필요
+    if (!isLogined || !myId) {
+      setHostFromApi([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await togetherApi.getByHost(myId);
+        if (!cancelled) setHostFromApi(Array.isArray(list) ? list : []);
+      } catch (e) {
+        if (!cancelled) setHostFromApi([]);
+        console.warn("호스트 동행(API) 로드 실패, 로컬스토리지로 대체:", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isLogined, user]);
 
-  /* 내가 쓴 글(호스트) 판별 */
-  const isMyAuthor = useCallback(
-    (p) => {
-      const a = p?.author && typeof p.author === "object" ? p.author : {};
-      const authorCandidates = [
-        p?.author_login_id,
-        p?.authorLoginId,
-        p?.authorId,
-        p?.author_id,
-        a?.user_id,
-        a?.id,
-        a?.login_id,
-        a?.loginId,
-        typeof p?.author === "string" ? p.author : null,
-      ]
-        .map((v) => (v == null ? null : String(v).trim()))
-        .filter(Boolean);
-      return userIds.some((u) => authorCandidates.includes(u));
-    },
-    [userIds]
-  );
+  /* 내가 쓴 글(호스트) 정규화 — 백엔드 Together 엔티티 */
+  const normalizeHostApi = useCallback((t) => {
+    if (!t) return null;
+    const regionStr = t.region
+      ? [t.region.level1, t.region.level2, t.region.level3]
+          .filter(Boolean)
+          .join(" ")
+      : "";
+    const meeting = t.meetingDate
+      ? typeof t.meetingDate === "string"
+        ? t.meetingDate.replace(/-/g, ".")
+        : new Date(t.meetingDate).toLocaleDateString()
+      : "";
+    return {
+      source: "host",
+      isHost: true,
+      togetherId: t.id,
+      imgSrc:
+        t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
+      alt: t.event?.name || t.title || "",
+      title: t.title || "",
+      eventType: t.event?.eventType || "기타",
+      eventName: t.event?.name || "",
+      group: t.maxParticipants ?? 1,
+      date: meeting,
+      address: regionStr || t.meetingLocation || "",
+      authorNickname: t.host?.nickname ?? null,
+      authorLoginId: t.host?.loginId ?? null,
+      authorObj: t.host ?? null,
+      _createdAt: t.createdAt ?? null,
+    };
+  }, []);
 
-  /* 호스트동행글(내가 쓴 글) 정규화 */
-  const normalizeHost = useCallback((post) => {
+  /* 호스트 동행 정규화 — 레거시(로컬스토리지 더미) */
+  const normalizeHostLocal = useCallback((post) => {
     const a =
       post?.author && typeof post.author === "object" ? post.author : {};
     const imgSrc =
@@ -88,7 +122,6 @@ export default function HistoryWith({ togetherData = [] }) {
       post?.eventSnapshot?.imgSrc ||
       post?.eventSnapshot?.image ||
       "/img/default_img.svg";
-
     return {
       source: "host",
       isHost: true,
@@ -110,58 +143,102 @@ export default function HistoryWith({ togetherData = [] }) {
       authorLoginId: post.author_login_id ?? a?.login_id ?? null,
       authorObj: a,
       author: typeof post.author === "string" ? post.author : undefined,
-      // 정렬용
       _createdAt: post?.createdAt || null,
     };
   }, []);
 
-  /* 게스트(더미) 정규화 — props로 넘어온 더미 */
-  const normalizeGuestDummy = useCallback((d) => {
+  /* 게스트 정규화 — Participants / Together / Dummy 모두 수용 */
+  const normalizeGuestDummy = useCallback((raw) => {
+    if (!raw) return null;
+
+    // 1) Participants 응답 형태: { id, status, together: {...}, participant: {...} }
+    if (raw.together && typeof raw.together === "object") {
+      const t = raw.together;
+      const regionStr = t.region
+        ? [t.region.level1, t.region.level2, t.region.level3]
+            .filter(Boolean)
+            .join(" ")
+        : "";
+      const meeting = t.meetingDate
+        ? typeof t.meetingDate === "string"
+          ? t.meetingDate.replace(/-/g, ".")
+          : new Date(t.meetingDate).toLocaleDateString()
+        : "";
+      return {
+        source: "guest",
+        isHost: false,
+        togetherId: t.id,
+        imgSrc:
+          t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
+        alt: t.event?.name || t.title || "",
+        title: t.title || "모집글 제목",
+        eventType: t.event?.eventType || "이벤트유형",
+        eventName: t.event?.name || "",
+        group: t.maxParticipants ?? 1,
+        date: meeting,
+        address: regionStr || t.meetingLocation || "",
+        authorNickname: t.host?.nickname ?? null,
+        authorLoginId: t.host?.loginId ?? null,
+        authorObj: t.host ?? null,
+        _createdAt: t.createdAt ?? null,
+      };
+    }
+
+    // 2) Together 엔티티 직접 전달된 경우
+    if (raw.title && (raw.region || raw.meetingDate || raw.maxParticipants)) {
+      const t = raw;
+      const regionStr = t.region
+        ? [t.region.level1, t.region.level2, t.region.level3]
+            .filter(Boolean)
+            .join(" ")
+        : "";
+      const meeting = t.meetingDate
+        ? typeof t.meetingDate === "string"
+          ? t.meetingDate.replace(/-/g, ".")
+          : new Date(t.meetingDate).toLocaleDateString()
+        : "";
+      return {
+        source: "guest",
+        isHost: false,
+        togetherId: t.id,
+        imgSrc:
+          t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
+        alt: t.event?.name || t.title || "",
+        title: t.title || "모집글 제목",
+        eventType: t.event?.eventType || "이벤트유형",
+        eventName: t.event?.name || "",
+        group: t.maxParticipants ?? 1,
+        date: meeting,
+        address: regionStr || t.meetingLocation || "",
+        authorNickname: t.host?.nickname ?? null,
+        authorLoginId: t.host?.loginId ?? null,
+        authorObj: t.host ?? null,
+        _createdAt: t.createdAt ?? null,
+      };
+    }
+
+    // 3) 레거시 프론트 더미(이전 구조)
     return {
       source: "guest",
       isHost: false,
-      togetherId: d.togetherId ?? d.id ?? `dummy_${d.eventId ?? Math.random()}`,
-      imgSrc: d.imgSrc || "/img/default_img.svg",
-      alt: d.alt || d.eventName || d.title || "",
-      title: d.title || "모집글 제목",
-      eventType: d.eventType || "이벤트유형",
-      eventName: d.eventName || "",
-      group: d.group ?? d.maxPeople ?? 1,
-      date: d.date || "", // 더미는 작성일이 없으니 표시만
-      address: d.address || d.location || "",
-      authorNickname: d.authorNickname ?? null,
-      authorLoginId: d.authorLoginId ?? null,
-      authorObj: d.authorObj ?? null,
-      author: typeof d.author === "string" ? d.author : undefined,
-      _createdAt: null, // 정렬용 없음
+      togetherId:
+        raw.togetherId ?? raw.id ?? `dummy_${raw.eventId ?? Math.random()}`,
+      imgSrc: raw.imgSrc || raw.eventImage || "/img/default_img.svg",
+      alt: raw.alt || raw.eventName || raw.title || "",
+      title: raw.title || "모집글 제목",
+      eventType: raw.eventType || "이벤트유형",
+      eventName: raw.eventName || "",
+      group: raw.group ?? raw.maxParticipants ?? raw.maxPeople ?? 1,
+      date: raw.date || "",
+      address: raw.address || raw.location || "",
+      authorNickname: raw.authorNickname ?? raw?.author?.nickname ?? null,
+      authorLoginId: raw.authorLoginId ?? raw?.author?.loginId ?? null,
+      authorObj: raw.authorObj ?? raw.author ?? null,
+      _createdAt: raw.createdAt ?? null,
     };
   }, []);
 
-  /* 게스트(실데이터: 내가 보낸 신청 중 '수락') 정규화 */
-  const normalizeGuestRequest = useCallback((r) => {
-    return {
-      source: "guest",
-      isHost: false,
-      togetherId: r.postId ?? r.togetherId ?? `req_${r.id ?? Math.random()}`,
-      imgSrc: r.eventImage || r.imgSrc || "/img/default_img.svg",
-      alt: r.eventName || r.postTitle || "",
-      title: r.postTitle || "모집글 제목",
-      eventType: r.eventType || "이벤트유형",
-      eventName: r.eventName || "이벤트명",
-      group: r.group || "", // 서버 붙으면 참여인원으로 갱신 가능
-      date:
-        r.postDate ||
-        (r.createdAt
-          ? new Date(r.createdAt).toLocaleDateString()
-          : "0000.00.00"),
-      address: "",
-      authorNickname: r.toUserName ?? null, // 호스트 표시가 필요하면 사용
-      authorLoginId: r.toUserId || "", // 호스트 loginId(식별 용도)
-      _createdAt: r.createdAt || null,
-    };
-  }, []);
-
-  /* 채팅신청 기반 게스트 목록 로드 */
+  /* 채팅신청 기반 게스트 목록 로드 (기존 유지) */
   const [guestFromRequests, setGuestFromRequests] = useState([]);
   useEffect(() => {
     try {
@@ -180,30 +257,63 @@ export default function HistoryWith({ togetherData = [] }) {
         const tid = r.postId ?? r.togetherId;
         if (!tid || seen.has(String(tid))) continue;
         seen.add(String(tid));
-        mapped.push(normalizeGuestRequest(r));
+        mapped.push({
+          source: "guest",
+          isHost: false,
+          togetherId:
+            r.postId ?? r.togetherId ?? `req_${r.id ?? Math.random()}`,
+          imgSrc: r.eventImage || r.imgSrc || "/img/default_img.svg",
+          alt: r.eventName || r.postTitle || "",
+          title: r.postTitle || "모집글 제목",
+          eventType: r.eventType || "이벤트유형",
+          eventName: r.eventName || "이벤트명",
+          group: r.group || "",
+          date:
+            r.postDate ||
+            (r.createdAt
+              ? new Date(r.createdAt).toLocaleDateString()
+              : "0000.00.00"),
+          address: "",
+          authorNickname: r.toUserName ?? null,
+          authorLoginId: r.toUserId || "",
+          _createdAt: r.createdAt || null,
+        });
       }
       setGuestFromRequests(mapped);
     } catch (e) {
       console.warn("게스트 동행(실데이터) 로드 실패:", e);
       setGuestFromRequests([]);
     }
-  }, [userKey, normalizeGuestRequest]);
+  }, [userKey]);
 
-  /* 데이터 구성 */
+  /* 데이터 구성: 호스트 — API 우선, fallback 로컬 */
   const hostRecords = useMemo(() => {
-    const mine = rawPosts.filter(isMyAuthor);
+    if (hostFromApi.length > 0) {
+      const arr = hostFromApi
+        .slice()
+        .sort(
+          (x, y) =>
+            new Date(y?.createdAt || 0).getTime() -
+            new Date(x?.createdAt || 0).getTime()
+        );
+      return arr.map(normalizeHostApi).filter(Boolean);
+    }
+    // 로컬스토리지 폴백
+    const mine = rawPosts.filter((p) => true /* 이전 isMyAuthor 제거 */);
     mine.sort(
       (x, y) =>
         new Date(y?.createdAt || 0).getTime() -
         new Date(x?.createdAt || 0).getTime()
     );
-    return mine.map(normalizeHost);
-  }, [rawPosts, isMyAuthor, normalizeHost]);
+    return mine.map(normalizeHostLocal).filter(Boolean);
+  }, [hostFromApi, rawPosts, normalizeHostApi, normalizeHostLocal]);
 
-  // 게스트 최종: 실데이터 + 더미 합치고 togetherId로 dedupe
+  // 게스트 최종: props(=Participants 응답) + 채팅 요청 기반 더해 dedupe
   const guestRecords = useMemo(() => {
-    const fromDummy = (togetherData || []).map(normalizeGuestDummy);
-    const joined = [...guestFromRequests, ...fromDummy];
+    const fromProp = (togetherData || [])
+      .map(normalizeGuestDummy)
+      .filter(Boolean);
+    const joined = [...fromProp, ...guestFromRequests];
 
     const seen = new Set();
     return joined.filter((x) => {
@@ -232,36 +342,66 @@ export default function HistoryWith({ togetherData = [] }) {
     });
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     const count = selectedIds.size;
     if (count === 0) return;
     if (!confirm(`선택한 ${count}개 항목을 삭제할까요?`)) return;
 
-    // 호스트는 실제 삭제, 게스트(실데이터/더미)는 숨김 처리
     const nextHidden = new Set(hiddenIds);
 
-    // 호스트 집합/게스트 집합 만들어 구분 삭제
+    // 호스트/게스트 구분 집합
     const hostSet = new Set(hostRecords.map((x) => String(x.togetherId)));
     const guestSet = new Set(guestRecords.map((x) => String(x.togetherId)));
+    const useHostApi = hostFromApi.length > 0;
 
+    const ops = [];
     selectedIds.forEach((id) => {
       const key = String(id);
       if (hostSet.has(key)) {
-        deletePost("together", key, { purgeExtras: true });
+        if (useHostApi) {
+          ops.push(
+            togetherApi.delete(Number(key)).catch(() => {
+              // API 실패 시 숨김 처리로 폴백
+              nextHidden.add(key);
+            })
+          );
+        } else {
+          // 레거시 로컬스토리지 삭제
+          deletePost("together", key, { purgeExtras: true });
+        }
       } else if (guestSet.has(key)) {
-        nextHidden.add(key); // 내 히스토리에서만 숨김
+        // 게스트는 숨김 처리
+        nextHidden.add(key);
       } else {
         nextHidden.add(key);
       }
     });
 
+    if (ops.length) {
+      try {
+        await Promise.all(ops);
+      } catch (e) {
+        console.warn("일부 삭제 실패:", e);
+      }
+    }
+
     saveHiddenIds(userKey, nextHidden);
     setHiddenIds(nextHidden);
     setSelectedIds(new Set());
 
-    // 호스트 목록 갱신
-    const arr = loadPosts("together") || [];
-    setRawPosts(arr);
+    // 목록 갱신
+    if (hostFromApi.length > 0) {
+      try {
+        const myId = user?.id ?? user?.user_id ?? null;
+        if (myId) {
+          const list = await togetherApi.getByHost(myId);
+          setHostFromApi(Array.isArray(list) ? list : []);
+        }
+      } catch {}
+    } else {
+      const arr = loadPosts("together") || [];
+      setRawPosts(arr);
+    }
   };
 
   // 숨김 적용 + 탭 필터 + 합치기

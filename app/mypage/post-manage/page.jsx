@@ -17,17 +17,29 @@ const fmtDate = (dt) => {
   )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
+// Import the authenticated API instance
+import { api, unwrap } from '@/lib/apiBase';
+
 const fetchMyBoards = async (memberId) => {
-  const url = `/api/v1/board/author/${memberId}`;
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`GET ${url} ${res.status}`);
-  return res.json(); // BoardDto.Response[]
+  try {
+    return await unwrap(
+      api.get(`/v1/board/author/${memberId}`)
+    );
+  } catch (error) {
+    console.error('내 게시글 조회 실패:', error);
+    throw error;
+  }
 };
 
 const deleteBoard = async (boardId) => {
-  const url = `/api/v1/board/${boardId}`;
-  const res = await fetch(url, { method: "DELETE", credentials: "include" });
-  if (!res.ok) throw new Error(`DELETE ${url} ${res.status}`);
+  try {
+    return await unwrap(
+      api.delete(`/v1/board/${boardId}`)
+    );
+  } catch (error) {
+    console.error('게시글 삭제 실패:', error);
+    throw error;
+  }
 };
 
 export default function PostManage() {

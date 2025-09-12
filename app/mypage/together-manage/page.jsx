@@ -6,7 +6,7 @@ import TogetherMessage from "@/components/mypage/TogetherManagement/TogetherMess
 import MyTogether from "@/components/mypage/TogetherManagement/MyTogether";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import { loadPosts } from "@/lib/storage";
-import { listChatRooms, getChatRoom } from "@/lib/chatApi";
+import { listChatRooms, getChatRoom } from "@/lib/api/chatApi";
 
 export default function TogetherManagePage() {
   const [activeTab, setActiveTab] = useState("together");
