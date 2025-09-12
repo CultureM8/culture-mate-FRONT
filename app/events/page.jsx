@@ -7,7 +7,7 @@ import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 
-import { getEvents as getEventsRaw } from "@/lib/eventApi";
+import { getEvents as getEventsRaw, searchEvents } from "@/lib/api/eventApi";
 
 import { useState, useEffect } from "react";
 
@@ -46,7 +46,6 @@ const mapListItem = (event) => ({
   region: event.region || null,
   score: event.avgRating ? Number(event.avgRating) : 0,
   avgRating: event.avgRating ? Number(event.avgRating) : 0,
-  // 중복 제거를 위한 고유 키 추가
   _key: `${event.id}_${event.eventType}`,
 });
 
@@ -93,10 +92,110 @@ export default function Event() {
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [currentSearchKeyword, setCurrentSearchKeyword] = useState("");
-  const [sortOption, setSortOption] = useState("latest"); // 정렬 상태
+  const [sortOption, setSortOption] = useState("latest");
+  
+  // 필터 상태를 명확히 분리
+  const [appliedFilters, setAppliedFilters] = useState(null);
+  const [isFiltered, setIsFiltered] = useState(false);
 
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
+
+  // 필터 적용 핸들러 개선
+  const handleApplyFilters = async (filterData) => {
+    console.log("=== 필터 적용 ===");
+    console.log("적용된 필터:", filterData);
+    
+    try {
+      setIsFiltered(true); // 필터 상태 활성화
+      
+      // 백엔드 검색 파라미터 구성
+      const searchParams = {};
+      
+      // 날짜 필터
+      if (filterData.dateRange && filterData.dateRange[0] && filterData.dateRange[1]) {
+        searchParams.startDate = filterData.dateRange[0];
+        searchParams.endDate = filterData.dateRange[1];
+      }
+      
+      // 지역 필터 (첫 번째 선택된 지역 사용)
+      if (filterData.selectedRegions && filterData.selectedRegions.length > 0) {
+        const firstRegion = filterData.selectedRegions[0];
+        
+        if (firstRegion.location1 && firstRegion.location1 !== "전체") {
+          searchParams["region.level1"] = firstRegion.location1;
+        }
+        if (firstRegion.location2 && firstRegion.location2 !== "전체") {
+          searchParams["region.level2"] = firstRegion.location2;
+        }
+        if (firstRegion.location3 && firstRegion.location3 !== "전체") {
+          searchParams["region.level3"] = firstRegion.location3;
+        }
+      }
+      
+      // 이벤트 타입 필터
+      const backendTypes = mapUiLabelToBackendTypes(selectedType);
+      if (backendTypes.length === 1) {
+        searchParams.eventType = backendTypes[0];
+      }
+      
+      console.log("백엔드 검색 파라미터:", searchParams);
+      
+      // searchEvents API 호출
+      const raw = await searchEvents(searchParams);
+      console.log("백엔드 응답:", raw);
+      
+      let mapped = Array.isArray(raw) ? raw.map(mapListItem) : [];
+      
+      // 클라이언트 사이드 필터링 (백엔드에서 처리 불가능한 항목들만)
+      
+      // 가격 필터링 (백엔드에서 지원하지 않는 경우만)
+      if (filterData.priceRange && (filterData.priceRange[0] > 0 || filterData.priceRange[1] < 1000000)) {
+        mapped = mapped.filter(event => {
+          const eventPrice = event.price || 0;
+          return eventPrice >= filterData.priceRange[0] && eventPrice <= filterData.priceRange[1];
+        });
+      }
+      
+      // 다중 지역 필터링 (백엔드는 첫 번째 지역만 처리)
+      if (filterData.selectedRegions && filterData.selectedRegions.length > 1) {
+        mapped = mapped.filter(event => {
+          if (!event.region) return false;
+          
+          return filterData.selectedRegions.some(selectedRegion => {
+            if (selectedRegion.location2 === "전체") {
+              return event.region.level1 === selectedRegion.location1;
+            }
+            if (selectedRegion.location3 === "전체") {
+              return event.region.level1 === selectedRegion.location1 && 
+                    event.region.level2 === selectedRegion.location2;
+            }
+            return event.region.level1 === selectedRegion.location1 && 
+                  event.region.level2 === selectedRegion.location2 &&
+                  (event.region.level3 === selectedRegion.location3 || !selectedRegion.location3);
+          });
+        });
+      }
+      
+      const sortedEvents = sortEvents(mapped, sortOption);
+      setEventData(sortedEvents);
+      setAppliedFilters(filterData);
+      
+      console.log(`필터링 결과: ${mapped.length}개 이벤트`);
+      
+    } catch (error) {
+      console.error("필터 적용 실패:", error);
+      // 에러 시 빈 배열로 설정
+      setEventData([]);
+    }
+  };
+
+  // 필터 초기화 함수 추가
+  const handleClearFilters = () => {
+    setIsFiltered(false);
+    setAppliedFilters(null);
+    // 기본 데이터 다시 로드
+  };
 
   // 정렬 함수
   const sortEvents = (events, option) => {
@@ -134,36 +233,17 @@ export default function Event() {
     try {
       setIsSearchMode(true);
       setCurrentSearchKeyword(keyword);
+      setIsFiltered(false); // 검색 시 필터 해제
 
+      const searchParams = { keyword };
+
+      // 현재 선택된 타입 반영
       const backendTypes = mapUiLabelToBackendTypes(selectedType);
-
-      let raw = [];
-      if (backendTypes.length === 0 && selectedType !== "전체") {
-        // 매핑되지 않는 라벨이면 전체로 처리
-        raw = await getEventsRaw({ keyword });
-      } else if (backendTypes.length <= 1) {
-        // 단일 타입 검색
-        const params = { keyword };
-        if (backendTypes[0]) params.eventType = backendTypes[0];
-        raw = await getEventsRaw(params);
-      } else {
-        // 다중 타입(클래식/무용, 콘서트/페스티벌) → 병렬 호출 후 합치기
-        const results = await Promise.all(
-          backendTypes.map((t) => getEventsRaw({ keyword, eventType: t }))
-        );
-        raw = results.flat();
-        // 중복 제거 (id 기준)
-        const uniqueEvents = [];
-        const seenIds = new Set();
-        raw.forEach((event) => {
-          if (!seenIds.has(event.id)) {
-            seenIds.add(event.id);
-            uniqueEvents.push(event);
-          }
-        });
-        raw = uniqueEvents;
+      if (backendTypes.length === 1) {
+        searchParams.eventType = backendTypes[0];
       }
 
+      const raw = await searchEvents(searchParams);
       const mapped = Array.isArray(raw) ? raw.map(mapListItem) : [];
       const sortedResults = sortEvents(mapped, sortOption);
       setEventData(sortedResults);
@@ -181,9 +261,10 @@ export default function Event() {
     }
   }, [sortOption]);
 
-  // 일반 이벤트 로드 (검색 모드 아닐 때만)
+  // 일반 이벤트 로드 - 필터 상태 고려
   useEffect(() => {
-    if (isSearchMode) return;
+    // 검색 모드이거나 필터가 적용된 상태면 실행하지 않음
+    if (isSearchMode || isFiltered) return;
 
     const fetchEvents = async () => {
       try {
@@ -192,26 +273,13 @@ export default function Event() {
         if (selectedType === "전체") {
           raw = await getEventsRaw();
         } else {
+          // 타입 선택이 있는 경우
+          const searchParams = {};          
           const backendTypes = mapUiLabelToBackendTypes(selectedType);
-          if (backendTypes.length <= 1) {
-            const params = {};
-            if (backendTypes[0]) params.eventType = backendTypes[0];
-            raw = await getEventsRaw(params);
-          } else {
-            const results = await Promise.all(
-              backendTypes.map((t) => getEventsRaw({ eventType: t }))
-            );
-            raw = results.flat();
-            const uniqueEvents = [];
-            const seenIds = new Set();
-            raw.forEach((event) => {
-              if (!seenIds.has(event.id)) {
-                seenIds.add(event.id);
-                uniqueEvents.push(event);
-              }
-            });
-            raw = uniqueEvents;
+          if (backendTypes.length === 1) {
+            searchParams.eventType = backendTypes[0];
           }
+          raw = await searchEvents(searchParams);
         }
 
         const mapped = Array.isArray(raw) ? raw.map(mapListItem) : [];
@@ -224,11 +292,13 @@ export default function Event() {
     };
 
     fetchEvents();
-  }, [selectedType, isSearchMode]);
+  }, [selectedType, isSearchMode, isFiltered]); // appliedFilters 의존성 제거
 
+  // 타입 변경 시 상태 초기화
   useEffect(() => {
     setIsSearchMode(false);
-    setCurrentSearchKeyword("");
+    setIsFiltered(false);
+    setAppliedFilters(null);
   }, [selectedType]);
 
   // AI 추천 로드
@@ -249,6 +319,9 @@ export default function Event() {
   const getDisplayTitle = () => {
     if (isSearchMode && currentSearchKeyword) {
       return `"${currentSearchKeyword}" 검색 결과`;
+    }
+    if (isFiltered) {
+      return `${selectedType} (필터 적용됨)`;
     }
     return selectedType;
   };
@@ -273,7 +346,11 @@ export default function Event() {
 
       <GalleryLayout Component={EventGallery} items={eventData} />
 
-      <EventFilterModal isOpen={isFilterModalOpen} onClose={closeFilterModal} />
+      <EventFilterModal 
+        isOpen={isFilterModalOpen} 
+        onClose={closeFilterModal} 
+        onApplyFilters={handleApplyFilters}
+      />
     </>
   );
 }
