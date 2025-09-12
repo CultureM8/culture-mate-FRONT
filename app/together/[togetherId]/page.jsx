@@ -10,6 +10,7 @@ import ConfirmModal from "@/components/global/ConfirmModal";
 import { LoginContext } from "@/components/auth/LoginProvider";
 /* API */
 import togetherApi from "@/lib/api/togetherApi";
+import { transformEventCardData } from "@/lib/api/eventApi";
 
 /* storage 유틸 */
 import {
@@ -79,17 +80,24 @@ const buildHostKeyFromPost = (p) => {
   };
 };
 
-/** 이벤트 미니 카드 변환 */
-const toMiniCard = (ev = {}, registeredPosts = 0) => ({
-  eventImage: ev.eventImage ?? ev.image ?? ev.imgSrc ?? "/img/default_img.svg",
-  eventType: ev.eventType ?? ev.type ?? "기타",
-  eventName: ev.eventName ?? ev.name ?? ev.title ?? "이벤트",
-  description: ev.description ?? "",
-  likes: ev.likes ?? ev.liked ?? 0,
-  starScore: ev.starScore ?? ev.rating ?? ev.score ?? 0,
-  initialLiked: ev.initialLiked ?? ev.isLiked ?? false,
-  registeredPosts,
-});
+/** 이벤트 미니 카드 변환 - transformEventCardData 사용 */
+const toMiniCard = (eventData, registeredPosts = 0) => {
+  // eventData를 EventDto.ResponseCard 형태로 정규화
+  const normalizedEventCard = {
+    id: eventData?.id,
+    eventType: eventData?.eventType ?? eventData?.type,
+    title: eventData?.title ?? eventData?.name ?? eventData?.eventName,
+    description: eventData?.description ?? "",
+    thumbnailImagePath: eventData?.thumbnailImagePath ?? eventData?.eventImage ?? eventData?.image ?? eventData?.imgSrc,
+    avgRating: eventData?.avgRating ?? eventData?.rating ?? eventData?.score ?? eventData?.starScore,
+    interestCount: eventData?.interestCount ?? eventData?.likes ?? eventData?.liked ?? 0,
+    reviewCount: registeredPosts,
+    isInterested: eventData?.isInterested ?? eventData?.initialLiked ?? eventData?.isLiked ?? false,
+  };
+  
+  // transformEventCardData 사용해서 변환 (이미지 URL 처리 포함)
+  return transformEventCardData(normalizedEventCard);
+};
 
 /* Hydration 안전한 날짜 포맷 함수 */
 const formatDateSafe = (dateValue) => {
@@ -277,7 +285,7 @@ export default function TogetherDetailPage() {
 
   /* 이벤트 카드 데이터 */
   const card = post?.eventSnapshot
-    ? post.eventSnapshot
+    ? transformEventCardData(post.eventSnapshot)  // eventSnapshot도 transformEventCardData로 변환
     : eventData
     ? toMiniCard(eventData, 0)
     : null;

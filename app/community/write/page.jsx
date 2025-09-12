@@ -7,7 +7,7 @@ import ConfirmModal from "@/components/global/ConfirmModal";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import useLogin from "@/hooks/useLogin";
 import { normalizeEventSnapshot } from "@/lib/schema";
-import { createPost } from "@/lib/communityApi";
+import { createBoard } from "@/lib/api/boardApi";
 
 export default function CommunityWrite() {
   const router = useRouter();
@@ -125,35 +125,11 @@ export default function CommunityWrite() {
         description="등록 후 커뮤니티 목록으로 이동합니다."
         confirmText="등록"
         cancelText="아니오"
-        //프론트용
-        // onConfirm={async () => {
-        //   if (!title.trim() || !content.trim() || !isLogined) return;
-        //   setSubmitting(true);
-        //   try {
-        //     const ev = normalizeEventSnapshot(selectedEvent);
-        //     const post = makePost({
-        //       board: "community",
-        //       title,
-        //       content,
-        //       eventId: ev?.eventId ?? 0,
-        //       eventType: ev?.eventType ?? "ETC",
-        //       eventSnapshot: ev ?? null,
-        //       user,
-        //     });
-        //     addPost(post);
-        //     setOpenSubmit(false);
-        //     router.push(`/community/${post.id}`);
-        //   } finally {
-        //     setSubmitting(false);
-        //   }
-        // }}
-
-        //백엔드용
         onConfirm={async () => {
           if (!title.trim() || !content.trim() || !isLogined) return;
           setSubmitting(true);
           try {
-            const ev = normalizeEventSnapshot(selectedEvent);
+            const normalizedEvent = normalizeEventSnapshot(selectedEvent);
 
             // BoardRequestDto에 맞춘 payload
             const authorId = user?.id ?? user?.user_id;
@@ -162,15 +138,15 @@ export default function CommunityWrite() {
               return;
             }
 
-            const payload = {
+            const boardPayload = {
               title: title.trim(),
               content,
               authorId,
-              eventType: ev?.eventType ?? null, // 백엔드 EventType과 이름이 같을 때만 전달
-              eventId: ev?.eventId ?? null,
+              eventType: normalizedEvent?.eventType ?? null, // 백엔드 EventType과 이름이 같을 때만 전달
+              eventId: normalizedEvent?.eventId ?? null,
             };
 
-            const created = await createPost(payload); // POST /api/v1/board
+            const created = await createBoard(boardPayload); // POST /api/v1/board
             setOpenSubmit(false);
             // 목록으로 이동하면서 글 작성 성공 메시지 표시
             alert("글이 성공적으로 등록되었습니다.");
