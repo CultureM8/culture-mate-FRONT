@@ -75,7 +75,7 @@ const mapDetail = (data) => {
 };
 
 export default async function EventId({ params }) {
-  const { eventId } = params;
+  const { eventId } = await params;
 
   let eventData = null;
   try {

@@ -6,7 +6,8 @@ import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
-import { togetherData } from "@/lib/togetherData";
+import TogetherList from "@/components/together/TogetherList";
+import { togetherApi } from "@/lib/api/togetherApi";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/main/EventFilterModal";
 import ListLayout from "@/components/global/ListLayout";
@@ -103,6 +104,8 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const [eventData, setEventData] = useState(initialEventData);
   const [hasMyReview, setHasMyReview] = useState(false);
   const [editingReview, setEditingReview] = useState(null); // 편집 중인 리뷰 데이터
+  const [togetherData, setTogetherData] = useState([]); // 동행 데이터
+  const [togetherLoading, setTogetherLoading] = useState(false);
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => {
@@ -221,6 +224,31 @@ export default function EventPageClient({ eventData: initialEventData }) {
     }
   };
 
+  // 동행 데이터 로드 함수
+  const loadTogetherData = async () => {
+    if (!eventData?.eventId) return;
+    
+    setTogetherLoading(true);
+    try {
+      console.log("동행 데이터 로드 시작, eventId:", eventData.eventId);
+      const togetherList = await togetherApi.search({ eventId: eventData.eventId });
+      console.log("동행 데이터 로드 성공:", togetherList);
+      setTogetherData(Array.isArray(togetherList) ? togetherList : []);
+    } catch (error) {
+      console.error("동행 데이터 로드 실패:", error);
+      setTogetherData([]);
+    } finally {
+      setTogetherLoading(false);
+    }
+  };
+
+  // 모집중인 동행 탭으로 이동했을 때 데이터 로드
+  useEffect(() => {
+    if (currentMenu === "모집중인 동행") {
+      loadTogetherData();
+    }
+  }, [currentMenu, eventData?.eventId]);
+
   return (
     <>
       <EventInfo eventData={eventData} />
@@ -290,19 +318,19 @@ export default function EventPageClient({ eventData: initialEventData }) {
               setViewType={setTogetherViewType}
               filterAction={openFilterModal}
             />
-            {togetherViewType === "Gallery" ? (
+            {togetherLoading ? (
+              <div className="flex justify-center py-8">
+                <div>동행 데이터를 불러오는 중...</div>
+              </div>
+            ) : togetherViewType === "Gallery" ? (
               <GalleryLayout
                 Component={TogetherGallery}
-                items={togetherData.filter(
-                  (item) => item.eventId === eventData.eventId
-                )}
+                items={togetherData}
               />
             ) : (
               <ListLayout
                 Component={TogetherList}
-                items={togetherData.filter(
-                  (item) => item.eventId === eventData.eventId
-                )}
+                items={togetherData}
               />
             )}
             {/* 필터 모달창 => 동행용 필터로 추후 교체 예정 */}

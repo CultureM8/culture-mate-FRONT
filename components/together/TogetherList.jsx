@@ -68,7 +68,7 @@ export default function TogetherList(props) {
   })();
 
   const safeAddress =
-    address || rest.address || rest.eventSnapshot?.location || "주소 정보 없음";
+    address || rest.address || rest.eventSnapshot?.location || "모임 장소 정보 없음";
 
   // ✅ 호스트 표시
   const hostAsObj = typeof host === "object" && host ? host : hostObj;
@@ -85,12 +85,9 @@ export default function TogetherList(props) {
       .map((v) => (typeof v === "string" ? v.trim() : ""))
       .find(Boolean) || "-";
 
-  const defaultHref = togetherId
-    ? `/together/${encodeURIComponent(togetherId)}`
-    : "/together";
-
-  const clickable = !editMode && typeof onCardClick === "function";
-  const safeHref = clickable ? "" : editMode ? "#" : defaultHref;
+  // ✅ 식별자/링크 (Gallery와 동일한 패턴)
+  const id = rest.id ?? togetherId;
+  const href = id ? `/together/${encodeURIComponent(id)}` : "/together";
 
   return (
     <div className="relative">
@@ -130,16 +127,7 @@ export default function TogetherList(props) {
         src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={safeEventName || safeTitle}
         title={safeTitle}
-        href={safeHref}
-        onClick={
-          clickable
-            ? (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onCardClick();
-              }
-            : undefined
-        }>
+        href={editMode ? "#" : href}>
         <div className="flex flex-col justify-around h-full">
           <div className="flex gap-2">
             <span className="border border-b-2 rounded-4xl px-2 w-fit">
