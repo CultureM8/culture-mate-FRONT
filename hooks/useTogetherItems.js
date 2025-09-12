@@ -35,6 +35,8 @@ const fromServerResponse = (item = {}) => {
           .replace(/ /g, "")
       : "",
     address: item.eventSnapshot?.location || item.address || "",
+    meetingLocation: item.meetingLocation, // 추가
+    region: item.region, // 추가
     author:
       item.host?.nickname || item.host?.displayName || item.authorName || "-",
     views: item.viewCount || item.views || 0,

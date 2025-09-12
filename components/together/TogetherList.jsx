@@ -5,6 +5,7 @@ import ListComponent from "../global/ListComponent";
 
 export default function TogetherList(props) {
   const {
+    // 기본 프롭스
     togetherId,
     title,
     eventType,
@@ -12,34 +13,59 @@ export default function TogetherList(props) {
     date,
     group,
     address,
+
+    // 호스트 정보
     hostNickname,
     hostLoginId,
     hostObj,
     host,
+
+    // UI 상태
     isClosed = false,
     editMode = false,
     selected = false,
     onToggleSelect,
     onCardClick,
+
+    // 명시적으로 분해할 핵심 데이터 필드들
+    id,
+    imgSrc,
+    eventImage,
+    image,
+    img,
+    eventSnapshot,
+    postTitle,
+    togetherTitle,
+    meetingDate,
+    companionDate,
+    createdAt,
+    currentParticipants,
+    current,
+    maxParticipants,
+    maxPeople,
+    meetingLocation,
+    region,
+
+    // 나머지 프롭스 (미래 확장성)
     ...rest
   } = props;
 
   // ✅ 이미지 폴백(여러 키 지원)
   const coverSrc =
     [
-      rest.imgSrc,
-      rest.eventImage,
-      rest.image,
-      rest.img,
-      rest.eventSnapshot?.eventImage,
+      imgSrc,
+      eventImage,
+      image,
+      img,
+      eventSnapshot?.eventImage,
     ].find((v) => typeof v === "string" && v.trim()) || "/img/default_img.svg";
 
   // ✅ 제목 폴백(방이름(dm-...)이면 이벤트명/기본값 사용)
   const rawTitle =
     title ||
-    rest.postTitle ||
-    rest.togetherTitle ||
-    rest.eventSnapshot?.name ||
+    postTitle ||
+    togetherTitle ||
+    eventSnapshot?.name ||
     eventName ||
     "모집글 제목";
 
@@ -48,12 +74,12 @@ export default function TogetherList(props) {
     : rawTitle;
 
   // ✅ 이벤트/날짜/인원/주소 폴백
-  const safeEventType = eventType || rest.eventSnapshot?.eventType || "이벤트";
+  const safeEventType = eventType || eventSnapshot?.eventType || "이벤트";
   const safeEventName =
-    eventName || rest.eventSnapshot?.name || rest.eventName || "이벤트명";
+    eventName || eventSnapshot?.name || eventName || "이벤트명";
 
   const safeDate = (() => {
-    const d = rest.meetingDate || rest.companionDate || date || rest.createdAt;
+    const d = meetingDate || companionDate || date || createdAt;
     if (!d) return "0000.00.00";
     const t = new Date(d);
     return Number.isNaN(t.getTime())
@@ -62,13 +88,29 @@ export default function TogetherList(props) {
   })();
 
   const safeGroup = (() => {
-    const cur = rest.currentParticipants ?? rest.current ?? 1;
-    const max = rest.maxParticipants ?? rest.maxPeople ?? 1;
+    const cur = currentParticipants ?? current ?? 1;
+    const max = maxParticipants ?? maxPeople ?? 1;
     return `${cur}/${max}`;
   })();
 
-  const safeAddress =
-    address || rest.address || rest.eventSnapshot?.location || "모임 장소 정보 없음";
+  const safeAddress = (() => {
+    const regionString = region
+      ? `${region.level1 || ""} ${region.level2 || ""} ${
+          region.level3 || ""
+        }`.trim()
+      : null;
+
+    const parts = [];
+    if (regionString) parts.push(regionString);
+    if (meetingLocation) parts.push(meetingLocation);
+
+    if (parts.length > 0) {
+      return parts.join(" | ");
+    }
+
+    // Fallback to old logic if new fields are not present
+    return address || eventSnapshot?.location || "모임 장소 정보 없음";
+  })();
 
   // ✅ 호스트 표시
   const hostAsObj = typeof host === "object" && host ? host : hostObj;
@@ -86,8 +128,8 @@ export default function TogetherList(props) {
       .find(Boolean) || "-";
 
   // ✅ 식별자/링크 (Gallery와 동일한 패턴)
-  const id = rest.id ?? togetherId;
-  const href = id ? `/together/${encodeURIComponent(id)}` : "/together";
+  const componentId = id ?? togetherId;
+  const href = componentId ? `/together/${encodeURIComponent(componentId)}` : "/together";
 
   return (
     <div className="relative">
@@ -113,7 +155,8 @@ export default function TogetherList(props) {
                 selected
                   ? "bg-blue-500 text-white border-blue-500"
                   : "bg-white/90 text-gray-600 border-gray-300"
-              }`}>
+              }`}
+            >
               {selected ? "✓" : ""}
             </div>
           </div>
