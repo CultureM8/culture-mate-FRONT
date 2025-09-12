@@ -5,14 +5,13 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
-import { toCard } from "@/lib/schema";
 import CommentsSection from "@/components/community/CommentsSection";
 import { ICONS } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
 
 /* 백엔드 */
-import { fetchPost, deletePostApi, toggleBoardLike } from "@/lib/communityApi";
-import { getEventById } from "@/lib/eventApi";
+import { getBoardDetail, deleteBoard, toggleBoardLike, transformBoardData } from "@/lib/api/boardApi";
+import { transformEventCardData } from "@/lib/api/eventApi";
 
 /** 권한 키 */
 function userKey(u) {
@@ -37,15 +36,6 @@ const saveRecSet = (postId, set) => {
   } catch {}
 };
 
-/** 작성자 표시명 */
-function displayAuthorOf(post) {
-  return (
-    post?.author_display_name ||
-    post?.authorLoginId ||
-    String(post?.authorId || "") ||
-    "익명"
-  );
-}
 
 export default function CommunityDetailPage() {
   const { postId } = useParams();
@@ -59,7 +49,7 @@ export default function CommunityDetailPage() {
   const [commentCount, setCommentCount] = useState(0);
   const [deleting, setDeleting] = useState(false);
 
-  /** 이벤트 미니카드용 데이터 (백엔드 연동) */
+  /** 이벤트 미니카드용 데이터 (백엔드에서 eventCard 필드로 제공) */
   const [eventCard, setEventCard] = useState(null);
 
   /* 글 로드 */
@@ -67,10 +57,21 @@ export default function CommunityDetailPage() {
     let stop = false;
     (async () => {
       try {
-        const p = await fetchPost(postId); // GET /api/v1/board/{postId}
+        const post = await getBoardDetail(postId); // GET /api/v1/board/{postId}
         if (stop) return;
 
-        setPost(p || null);
+        // 디버깅: 백엔드 응답 구조 확인
+        console.log("Backend response:", post);
+        console.log("Author data:", post?.author);
+
+        // 데이터 변환 적용
+        const transformedPost = transformBoardData(post);
+        console.log("Transformed post:", transformedPost);
+        setPost(transformedPost || null);
+        
+        // 백엔드에서 제공하는 eventCard를 변환해서 사용
+        const transformedEventCard = transformEventCardData(post?.eventCard);
+        setEventCard(transformedEventCard);
 
         // 댓글 수(루트만) – 서버 응답에 없으니 기존 로컬 계산 유지
         try {
@@ -101,63 +102,6 @@ export default function CommunityDetailPage() {
     setRecommended(user ? set.has(userKey(user)) : false);
   }, [post, user, postId]);
 
-  // 이벤트 카드 로딩(백엔드): post.eventSnapshot 우선, 없고 eventId 있으면 조회
-  useEffect(() => {
-    let stop = false;
-
-    const makeCardFromEvent = (ev) => {
-      // eventApi.getEventById 스키마를 toCard 입력 포맷으로 변환
-      const img =
-        ev?.imgSrc && typeof ev.imgSrc === "string" && ev.imgSrc.trim()
-          ? ev.imgSrc
-          : "/img/default_img.svg";
-
-      return toCard({
-        id: ev?.eventId ?? ev?.id,
-        name: ev?.title,
-        eventName: ev?.title,
-        eventType: ev?.eventType,
-        type: ev?.eventType,
-        image: img,
-        description: ev?.title,
-        rating: ev?.score ?? 0,
-        likes: ev?.likesCount ?? 0,
-        postsCount: 0,
-        isLiked: false,
-      });
-    };
-
-    (async () => {
-      if (!post) {
-        setEventCard(null);
-        return;
-      }
-
-      // 1) 스냅샷이 있으면 그대로 사용
-      if (post.eventSnapshot) {
-        setEventCard(post.eventSnapshot);
-        return;
-      }
-
-      // 2) 스냅샷 없고 이벤트 ID가 있으면 BE에서 조회
-      if (post.eventId) {
-        try {
-          const ev = await getEventById(post.eventId);
-          if (그만) return;
-          setEventCard(makeCardFromEvent(ev));
-        } catch (err) {
-          console.warn("이벤트 조회 실패, 기본 카드 생략:", err);
-          setEventCard(null);
-        }
-      } else {
-        setEventCard(null);
-      }
-    })();
-
-    return () => {
-      stop = true;
-    };
-  }, [post]);
 
   if (!post) {
     return (
@@ -180,13 +124,12 @@ export default function CommunityDetailPage() {
   }
 
   const currentKey = userKey(user);
-  const ownerKey =
-    post._ownerKey || String(post.authorId || post.authorLoginId || "");
+  const ownerKey = String(post?.authorId || "");
   const canDelete = !!currentKey && currentKey === String(ownerKey);
 
-  const views = post?._views ?? 0;
-  const recommends = post?.recommendCount ?? 0;
-  const authorName = displayAuthorOf(post);
+  const views = post?.views ?? 0;
+  const recommends = post?.recommendations ?? 0;
+  const authorName = post?.author || "익명";
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -246,15 +189,20 @@ export default function CommunityDetailPage() {
                 const liked = await toggleBoardLike(postId, memberId);
 
                 // 최신 데이터 재조회
-                const latest = await fetchPost(postId);
-                setPost(latest || null);
+                const latestPost = await getBoardDetail(postId);
+                const transformedLatest = transformBoardData(latestPost);
+                setPost(transformedLatest || null);
+                
+                // 이벤트 카드도 업데이트
+                const updatedEventCard = transformEventCardData(latestPost?.eventCard);
+                setEventCard(updatedEventCard);
 
                 // 로컬 추천기록도 업데이트(초기상태 표시에 사용)
-                const k = userKey(user);
-                const set = loadRecSet(postId);
-                if (liked) set.add(k);
-                else set.delete(k);
-                saveRecSet(postId, set);
+                const currentUserKey = userKey(user);
+                const recommendationSet = loadRecSet(postId);
+                if (liked) recommendationSet.add(currentUserKey);
+                else recommendationSet.delete(currentUserKey);
+                saveRecSet(postId, recommendationSet);
 
                 setRecommended(!!liked);
               } catch (e) {
@@ -278,7 +226,7 @@ export default function CommunityDetailPage() {
               />
             )}
             <span className="text-xs text-gray-400">
-              {post?.recommendCount ?? 0}
+              {post?.recommendations ?? 0}
             </span>
           </button>
 
@@ -344,7 +292,7 @@ export default function CommunityDetailPage() {
           }
           setDeleting(true);
           try {
-            await deletePostApi(postId);
+            await deleteBoard(postId);
             setOpenDelete(false);
             router.push("/community");
           } finally {

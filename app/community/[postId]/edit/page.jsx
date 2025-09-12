@@ -7,7 +7,7 @@ import ConfirmModal from "@/components/global/ConfirmModal";
 import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import { normalizeEventSnapshot } from "@/lib/schema";
-import { fetchPost, updatePostApi } from "@/lib/communityApi";
+import { getBoardDetail, updateBoard } from "@/lib/api/boardApi";
 
 export default function CommunityEditPage() {
   const params = useParams();
@@ -32,17 +32,17 @@ export default function CommunityEditPage() {
     let alive = true;
     (async () => {
       try {
-        const data = await fetchPost(postId);
+        const post = await getBoardDetail(postId);
         if (!alive) return;
-        setPost(data || null);
-        if (data) {
-          setTitle(data.title || "");
-          setContent(data.content || "");
+        setPost(post || null);
+        if (post) {
+          setTitle(post.title || "");
+          setContent(post.content || "");
           // 이벤트 스펙이 응답에 어떻게 오는지 명확치 않으므로, 선택 시에만 보냄
           setSelectedEvent(null);
         }
       } catch (e) {
-        console.error("edit: fetchPost failed", e);
+        console.error("edit: getBoardDetail failed", e);
         setPost(null);
       }
     })();
@@ -86,18 +86,20 @@ export default function CommunityEditPage() {
         alert("작성자 정보를 확인할 수 없습니다.");
         return;
       }
-      const updated = await updatePostApi(postId, {
+      const updatePayload = {
         title: title.trim(),
         content,
         authorId,
         // 선택 값(백엔드가 쓰지 않으면 null로 보내도 무해)
         eventType: null,
         eventId: null,
-      });
+      };
+      
+      const updated = await updateBoard(postId, updatePayload);
       setOpenSubmit(false);
       router.replace(`/community/${updated?.id ?? postId}`);
     } catch (e) {
-      console.error("updatePostApi failed", e);
+      console.error("updateBoard failed", e);
       alert(`수정에 실패했습니다.\n${e?.message ?? ""}`);
     } finally {
       setSaving(false);

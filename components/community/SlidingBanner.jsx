@@ -126,9 +126,6 @@ const SlidingBanner = () => {
                 className="w-full h-full object-cover block"
                 loading={index === 0 ? "eager" : "lazy"}
                 onError={() => handleImageError(index)}
-                onLoad={() =>
-                  console.log(`Image ${index + 1} loaded successfully`)
-                }
               />
               {/* 가장자리 페이드 효과 */}
               <div

@@ -1,27 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
 import useLogin from "@/hooks/useLogin";
 import { ICONS } from "@/constants/path";
 import SlidingBanner from "@/components/community/SlidingBanner";
-import { fetchPosts, searchPosts } from "@/lib/communityApi";
 import SearchBar from "@/components/global/SearchBar";
+import ListLayout from "@/components/global/ListLayout";
+import CommunityList from "@/components/community/CommunityList";
+import CommunityTableHeader from "@/components/community/CommunityTableHeader";
+import * as boardApi from "@/lib/api/boardApi";
+
+const { getBoardList, searchBoards, transformBoardList } = boardApi;
 
 const PAGE_SIZE = 30;
-
-function fmtDate(iso) {
-  if (!iso) return "0000-00-00 00:00:00";
-  const d = new Date(iso);
-  if (Number.isNaN(+d)) return "0000-00-00 00:00:00";
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
 
 export default function CommunityListTablePage() {
   const [title, intro] = ["커뮤니티", "자유게시판"];
@@ -30,15 +24,13 @@ export default function CommunityListTablePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [rows, setRows] = useState([]);
+  const [boardPosts, setBoardPosts] = useState([]);
   const [query, setQuery] = useState("");
   const [sortOption, setSortOption] = useState("createdAt_desc");
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [initialized, setInitialized] = useState(false);
 
-  // 중복 요청 방지를 위한 ref
   const loadingRef = useRef(false);
   const abortControllerRef = useRef(null);
 
@@ -46,10 +38,12 @@ export default function CommunityListTablePage() {
 
   const handleWriteClick = () => router.push("/community/write");
 
-  // 데이터 로딩 함수 - useCallback으로 최적화
-  // 커뮤니티 페이지의 loadPosts 함수를 이렇게 수정하세요
-
   const loadPosts = useCallback(async (searchQuery = "") => {
+    // 이미 로딩 중이면 대기
+    if (loadingRef.current) {
+      return;
+    }
+
     // 이전 요청 취소
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -58,109 +52,73 @@ export default function CommunityListTablePage() {
     // 새로운 AbortController 생성
     abortControllerRef.current = new AbortController();
 
-    // 이미 로딩 중이면 대기
-    if (loadingRef.current) {
-      return;
-    }
-
     loadingRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
-      const kw = searchQuery.trim();
-      console.log("API 호출:", { keyword: kw || "(전체)" });
-
+      const keyword = searchQuery.trim();
       let posts = [];
 
-      if (kw) {
-        // 검색 모드 - 서버 에러 시 빈 결과 반환
+      if (keyword) {
         try {
-          posts = await searchPosts({ keyword: kw });
-          console.log("검색 결과:", posts?.length || 0, "건");
+          posts = await searchBoards({ keyword });
         } catch (searchError) {
           console.error("검색 API 에러:", searchError);
-          // 검색 실패 시 빈 배열 반환하고 사용자에게 알림
           setError(`검색 중 오류가 발생했습니다. 서버 상태를 확인해주세요.`);
-          setRows([]);
+          setBoardPosts([]);
           return;
         }
       } else {
-        // 전체 목록 모드
-        posts = await fetchPosts();
-        console.log("전체 목록:", posts?.length || 0, "건");
+        posts = await getBoardList();
       }
 
-      // 요청이 취소되었으면 무시
       if (abortControllerRef.current?.signal.aborted) {
         return;
       }
 
-      const mapped = (Array.isArray(posts) ? posts : []).map((p) => ({
-        id: p.id,
-        title: p.title || "제목",
-        author:
-          p.author_display_name ||
-          p.authorLoginId ||
-          String(p.authorId || "") ||
-          "익명",
-        createdAt: p.createdAt,
-        views: p._views ?? 0,
-        recommendations: p.recommendCount ?? 0,
-        comments: p.commentsCount ?? 0,
-      }));
-
-      setRows(mapped);
+      const mapped = transformBoardList(posts);
+      setBoardPosts(mapped);
     } catch (e) {
       if (e.name === "AbortError") {
-        console.log("요청 취소됨");
         return;
       }
       console.error("API 에러:", e);
       setError("데이터를 불러올 수 없습니다. 서버 연결을 확인해주세요.");
-      setRows([]);
+      setBoardPosts([]);
     } finally {
       setLoading(false);
       loadingRef.current = false;
     }
   }, []);
 
-  // 초기화 - URL 파라미터 읽기 및 첫 로드
   useEffect(() => {
     if (initialized) return;
 
-    const q = "";
-    const s = searchParams.get("sort") || "createdAt_desc";
-    const p = Math.max(1, parseInt(searchParams.get("p") || "1", 10));
+    const sortFromUrl = searchParams.get("sort") || "createdAt_desc";
 
-    setQuery(q);
-    setSortOption(s);
-    setPage(p);
+    setQuery("");
+    setSortOption(sortFromUrl);
     setInitialized(true);
 
-    // 초기 데이터 로드
-    loadPosts(q);
+    loadPosts("");
   }, [searchParams, loadPosts, initialized]);
 
-  // 검색어 변경 시 디바운스 처리
   useEffect(() => {
     if (!initialized) return;
 
     const timeoutId = setTimeout(() => {
       loadPosts(query);
-      setPage(1); // 검색 시 첫 페이지로
     }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [query, loadPosts, initialized]);
 
-  // URL 업데이트
   useEffect(() => {
     if (!initialized) return;
 
     const params = new URLSearchParams();
     if (sortOption !== "createdAt_desc") params.set("sort", sortOption);
-    if (page > 1) params.set("p", String(page));
 
     const newUrl = params.toString()
       ? `${pathname}?${params.toString()}`
@@ -169,17 +127,15 @@ export default function CommunityListTablePage() {
     if (window.location.pathname + window.location.search !== newUrl) {
       router.replace(newUrl, { scroll: false });
     }
-  }, [sortOption, page, pathname, router, initialized]);
+  }, [sortOption, pathname, router, initialized]);
 
-  // 클라이언트 정렬 및 페이지네이션
-  const { paged, totalPages, safePage } = useMemo(() => {
-    if (!Array.isArray(rows)) return { paged: [], totalPages: 1, safePage: 1 };
+  const sortedBoardPosts = useMemo(() => {
+    if (!Array.isArray(boardPosts)) return [];
 
-    // 정렬
     const [sortKey, sortDir] = sortOption.split("_");
     const dir = sortDir === "asc" ? 1 : -1;
 
-    const sorted = [...rows].sort((a, b) => {
+    return [...boardPosts].sort((a, b) => {
       if (sortKey === "createdAt") {
         return (
           (new Date(a.createdAt || 0).getTime() -
@@ -189,66 +145,19 @@ export default function CommunityListTablePage() {
       }
       return ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)) * dir;
     });
+  }, [boardPosts, sortOption]);
 
-    // 페이지네이션
-    const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-    const safePage = Math.min(Math.max(1, page), totalPages);
-    const start = (safePage - 1) * PAGE_SIZE;
-    const paged = sorted.slice(start, start + PAGE_SIZE);
-
-    return { paged, totalPages, safePage };
-  }, [rows, sortOption, page]);
-
-  // 페이지 이동
-  const goPage = useCallback(
-    (newPage) => {
-      const targetPage = Math.min(Math.max(1, newPage), totalPages);
-      setPage(targetPage);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [totalPages]
-  );
-
-  // 검색 핸들러
   const handleSearch = useCallback(
     (searchQuery) => {
       setQuery(searchQuery);
-      setPage(1);
       loadPosts(searchQuery);
-
-      // 검색 후 검색어 초기화
-      setTimeout(() => {
-        setQuery("");
-      }, 100);
     },
     [loadPosts]
   );
 
-  // 정렬 변경 핸들러
   const handleSortChange = useCallback((newSort) => {
     setSortOption(newSort);
-    setPage(1);
   }, []);
-
-  // 페이지 버튼 생성
-  const pageButtons = useMemo(() => {
-    const buttons = [];
-    const maxVisible = 10;
-    const half = Math.floor(maxVisible / 2);
-
-    let start = Math.max(1, safePage - half);
-    let end = Math.min(totalPages, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      buttons.push(i);
-    }
-
-    return buttons;
-  }, [safePage, totalPages]);
 
   return (
     <>
@@ -310,17 +219,7 @@ export default function CommunityListTablePage() {
 
       <div className="overflow-hidden">
         <div className="w-full mb-6 mt-10 space-y-1">
-          {/* 테이블 헤더 */}
-          <div
-            className="grid border-b-2 border-gray-200 mb-4 text-sm py-3 px-4 text-center bg-gray-50 font-semibold"
-            style={{ gridTemplateColumns: "140px 1fr 60px 60px 60px 200px" }}>
-            <div className="text-left">작성자명</div>
-            <div className="text-left">제목</div>
-            <div className="text-center">댓글수</div>
-            <div className="text-center">추천수</div>
-            <div className="text-center">조회수</div>
-            <div className="text-center">작성일</div>
-          </div>
+          <CommunityTableHeader />
 
           {/* 로딩 */}
           {loading && (
@@ -333,7 +232,7 @@ export default function CommunityListTablePage() {
           )}
 
           {/* 빈 결과 */}
-          {!loading && paged.length === 0 && (
+          {!loading && sortedBoardPosts.length === 0 && (
             <div className="py-16 text-center text-gray-500">
               {query ? (
                 <div>
@@ -348,92 +247,13 @@ export default function CommunityListTablePage() {
             </div>
           )}
 
-          {/* 게시글 목록 */}
-          {!loading &&
-            paged.map((post) => (
-              <div
-                key={post.id}
-                className="grid hover:bg-gray-50 bg-white py-3 px-4 border-b border-gray-300 transition-colors duration-150"
-                style={{
-                  gridTemplateColumns: "140px 1fr 60px 60px 60px 200px",
-                }}>
-                <div
-                  className="text-sm text-gray-800 text-left truncate"
-                  title={post.author}>
-                  {post.author}
-                </div>
-                <div className="min-w-0">
-                  <Link
-                    href={`/community/${post.id}`}
-                    className="text-left text-sm text-gray-800 hover:text-blue-600 hover:underline line-clamp-1 transition-colors"
-                    title={post.title}>
-                    {post.title}
-                  </Link>
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {post.comments}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {post.recommendations}
-                </div>
-                <div className="text-center text-sm text-gray-600">
-                  {post.views}
-                </div>
-                <div className="text-center text-xs text-gray-400">
-                  {fmtDate(post.createdAt)}
-                </div>
-              </div>
-            ))}
-
-          {/* 페이지네이션 */}
-          {!loading && totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2">
-              {/* 첫 페이지, 이전 */}
-              {safePage > 1 && (
-                <>
-                  <button
-                    onClick={() => goPage(1)}
-                    className="px-3 py-2 rounded border text-gray-700 border-gray-300 hover:bg-gray-50 transition-colors">
-                    ≪
-                  </button>
-                  <button
-                    onClick={() => goPage(safePage - 1)}
-                    className="px-3 py-2 rounded border text-gray-700 border-gray-300 hover:bg-gray-50 transition-colors">
-                    이전
-                  </button>
-                </>
-              )}
-
-              {/* 페이지 번호들 */}
-              {pageButtons.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => goPage(n)}
-                  className={`min-w-[36px] px-3 py-2 rounded border transition-colors ${
-                    n === safePage
-                      ? "bg-blue-500 text-white border-blue-500"
-                      : "text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}>
-                  {n}
-                </button>
-              ))}
-
-              {/* 다음, 마지막 페이지 */}
-              {safePage < totalPages && (
-                <>
-                  <button
-                    onClick={() => goPage(safePage + 1)}
-                    className="px-3 py-2 rounded border text-gray-700 border-gray-300 hover:bg-gray-50 transition-colors">
-                    다음
-                  </button>
-                  <button
-                    onClick={() => goPage(totalPages)}
-                    className="px-3 py-2 rounded border text-gray-700 border-gray-300 hover:bg-gray-50 transition-colors">
-                    ≫
-                  </button>
-                </>
-              )}
-            </div>
+          {/* 게시글 목록 with ListLayout */}
+          {!loading && sortedBoardPosts.length > 0 && (
+            <ListLayout
+              Component={CommunityList}
+              items={sortedBoardPosts}
+              itemsPerPage={PAGE_SIZE}
+            />
           )}
         </div>
       </div>
