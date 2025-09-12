@@ -33,6 +33,22 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+
+  // 이미지 호스트 설정
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/images/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**', // 모든 HTTPS 호스트 허용 (프로덕션용)
+      },
+    ],
+  },
 };
 
 module.exports = nextConfig;
