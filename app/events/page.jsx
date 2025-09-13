@@ -158,6 +158,9 @@ export default function Event() {
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
 
+
+  // 필터 적용 핸들러 - selectedRegion으로 변경
+
   const handleApplyFilters = async (filterData) => {
     console.log("적용된 필터:", filterData);
     try {
@@ -172,18 +175,22 @@ export default function Event() {
         searchParams.startDate = filterData.dateRange[0];
         searchParams.endDate = filterData.dateRange[1];
       }
-      // 지역 필터 (첫 번째 선택된 지역 사용)
-      if (filterData.selectedRegions && filterData.selectedRegions.length > 0) {
-        const firstRegion = filterData.selectedRegions[0];
 
-        if (firstRegion.location1 && firstRegion.location1 !== "전체") {
-          searchParams["region.level1"] = firstRegion.location1;
+      
+      // 지역 필터 - 단일 지역 객체로 처리
+      if (filterData.selectedRegion) {
+        const region = filterData.selectedRegion;
+        
+        if (region.location1 && region.location1 !== "전체") {
+          searchParams["region.level1"] = region.location1;
+
+  
         }
-        if (firstRegion.location2 && firstRegion.location2 !== "전체") {
-          searchParams["region.level2"] = firstRegion.location2;
+        if (region.location2 && region.location2 !== "전체") {
+          searchParams["region.level2"] = region.location2;
         }
-        if (firstRegion.location3 && firstRegion.location3 !== "전체") {
-          searchParams["region.level3"] = firstRegion.location3;
+        if (region.location3 && region.location3 !== "전체") {
+          searchParams["region.level3"] = region.location3;
         }
       }
       // 이벤트 타입(복수 가능) 처리
@@ -196,41 +203,31 @@ export default function Event() {
       const raw = await fetchEventsByTypes(backendTypes, searchParams);
 
       let mapped = Array.isArray(raw) ? raw.map(mapListItem) : [];
-      if (
-        filterData.priceRange &&
-        (filterData.priceRange[0] > 0 || filterData.priceRange[1] < 1000000)
-      ) {
-        mapped = mapped.filter((event) => {
-          const eventPrice = event.price || 0;
-          return (
-            eventPrice >= filterData.priceRange[0] &&
-            eventPrice <= filterData.priceRange[1]
-          );
-        });
-      }
 
-      // 다중 지역 필터링
-      if (filterData.selectedRegions && filterData.selectedRegions.length > 1) {
-        mapped = mapped.filter((event) => {
+      
+      // 클라이언트 사이드 지역 필터링도 단일 객체로 수정
+      if (filterData.selectedRegion) {
+        const selectedRegion = filterData.selectedRegion;
+        mapped = mapped.filter(event => {
           if (!event.region) return false;
+          
+          // level1 체크
+          if (selectedRegion.location1 && selectedRegion.location1 !== "전체") {
+            if (event.region.level1 !== selectedRegion.location1) return false;
+          }
+          
+          // level2 체크
+          if (selectedRegion.location2 && selectedRegion.location2 !== "전체") {
+            if (event.region.level2 !== selectedRegion.location2) return false;
+          }
+          
+          // level3 체크
+          if (selectedRegion.location3 && selectedRegion.location3 !== "전체") {
+            if (event.region.level3 !== selectedRegion.location3) return false;
+          }
+          
+          return true;
 
-          return filterData.selectedRegions.some((selectedRegion) => {
-            if (selectedRegion.location2 === "전체") {
-              return event.region.level1 === selectedRegion.location1;
-            }
-            if (selectedRegion.location3 === "전체") {
-              return (
-                event.region.level1 === selectedRegion.location1 &&
-                event.region.level2 === selectedRegion.location2
-              );
-            }
-            return (
-              event.region.level1 === selectedRegion.location1 &&
-              event.region.level2 === selectedRegion.location2 &&
-              (event.region.level3 === selectedRegion.location3 ||
-                !selectedRegion.location3)
-            );
-          });
         });
       }
 
@@ -384,6 +381,8 @@ export default function Event() {
       <AISuggestion suggestionList={aiSuggestionData || []} />
 
       <EventSelector selected={selectedType} setSelected={setSelectedType} />
+
+
 
       <SearchFilterSort
         enableTitle

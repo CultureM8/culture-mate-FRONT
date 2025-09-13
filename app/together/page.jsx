@@ -36,6 +36,10 @@ export default function TogetherPage() {
   const [selectedEventType, setSelectedEventType] = useState("전체");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // 필터 상태 추가
+  const [appliedFilters, setAppliedFilters] = useState(null);
+  const [isFiltered, setIsFiltered] = useState(false);
+
   // hook: 서버/스토리지에서 가져온 원본 목록
   const { items, loading, error, refetch } = useTogetherItems(
     selectedEventType,
@@ -63,29 +67,92 @@ export default function TogetherPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, sortOption, viewType]);
 
-  // 검색어로 클라이언트 필터링 (hook이 정렬/타입 필터는 수행한다고 가정)
+  // 검색어 + 필터로 클라이언트 필터링 - 단순화
   const filtered = useMemo(() => {
+    let result = items || [];
+    
+    console.log("=== Together 필터링 시작 ===");
+    console.log("원본 데이터 개수:", result.length);
+    console.log("샘플 데이터:", result[0]);
+    console.log("appliedFilters:", appliedFilters);
+    console.log("isFiltered:", isFiltered);
+    
+    // 검색어 필터링
     const q = query.trim().toLowerCase();
-    if (!q) return items || [];
-    const safe = (v) => (v == null ? "" : String(v));
-    return (items || []).filter((it) => {
-      // 안전한 멀티 필드 매칭: title / content / 작성자명 / 이벤트명 / 설명 등
-      const hay = [
-        safe(it.title),
-        safe(it.content),
-        safe(it.authorName),
-        safe(it.authorNickname),
-        safe(it.nickname),
-        safe(it.loginId),
-        safe(it.eventName),
-        safe(it.name),
-        safe(it.description),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, query]);
+    if (q) {
+      const safe = (v) => (v == null ? "" : String(v));
+      result = result.filter((it) => {
+        const hay = [
+          safe(it.title),
+          safe(it.content),
+          safe(it.authorName),
+          safe(it.authorNickname),
+          safe(it.nickname),
+          safe(it.loginId),
+          safe(it.eventName),
+          safe(it.name),
+          safe(it.description),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    
+    // 필터 적용 - 단순한 로직으로 변경
+    if (isFiltered && appliedFilters?.selectedRegion) {
+      const selectedRegion = appliedFilters.selectedRegion;
+      console.log("지역 필터 적용:", selectedRegion);
+      
+      result = result.filter(item => {
+        console.log("아이템 체크:", item.title, item.region || item.location);
+        
+        // 지역 정보가 없는 아이템은 제외
+        const itemRegion = item.region || item.location;
+        if (!itemRegion) return false;
+        
+        // "전체"가 아닌 경우만 체크
+        if (selectedRegion.location1 && selectedRegion.location1 !== "전체") {
+          if (itemRegion.level1 !== selectedRegion.location1 && 
+              itemRegion.city !== selectedRegion.location1 && 
+              itemRegion.location1 !== selectedRegion.location1) {
+            return false;
+          }
+        }
+        
+        if (selectedRegion.location2 && selectedRegion.location2 !== "전체") {
+          if (itemRegion.level2 !== selectedRegion.location2 && 
+              itemRegion.district !== selectedRegion.location2 && 
+              itemRegion.location2 !== selectedRegion.location2) {
+            return false;
+          }
+        }
+        
+        if (selectedRegion.location3 && selectedRegion.location3 !== "전체") {
+          if (itemRegion.level3 !== selectedRegion.location3 && 
+              itemRegion.dong !== selectedRegion.location3 && 
+              itemRegion.location3 !== selectedRegion.location3) {
+            return false;
+          }
+        }
+        
+        return true;
+      });
+      
+      console.log("필터링 후 결과:", result.length);
+    }
+    
+    return result;
+  }, [items, query, isFiltered, appliedFilters]);
+
+  // 필터 적용 핸들러
+  const handleApplyFilters = (filterData) => {
+    console.log("=== 동행모집 필터 적용 ===");
+    console.log("필터 데이터:", filterData);
+    
+    setIsFiltered(true);
+    setAppliedFilters(filterData);
+  };
 
   const handleWrite = () => {
     if (!ready) return;
@@ -149,7 +216,6 @@ export default function TogetherPage() {
 
         {/* 우측: 검색/필터/정렬/글쓰기 */}
         <div className="flex items-center gap-2">
-          {/* ✅ SearchBar는 value/onChange/onSearch를 지원 (없어도 동작하지만, 지원하면 더 좋음) */}
           <SearchBar
             value={query}
             onChange={setQuery}
@@ -227,7 +293,10 @@ export default function TogetherPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="p-6 text-gray-500 text-center">
-          {query.trim() ? "검색 결과가 없습니다." : "등록된 모임이 없습니다."}
+          {query.trim() || isFiltered ? 
+            "조건에 맞는 모임이 없습니다." : 
+            "등록된 모임이 없습니다."
+          }
         </div>
       ) : viewType === "Gallery" ? (
         <GalleryLayout Component={TogetherGallery} items={filtered} />
@@ -239,9 +308,11 @@ export default function TogetherPage() {
         </div>
       )}
 
+      {/* TogetherFilterModal에 올바른 props 전달 확인 */}
       <TogetherFilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
+        onApplyFilters={handleApplyFilters}
       />
     </>
   );
