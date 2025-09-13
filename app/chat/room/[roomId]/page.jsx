@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import GroupChat from "@/components/mypage/TogetherManagement/GroupChat";
 
 export default async function ChatRoomPage({ params }) {
-  const { roomId } = params;
+  const { roomId } = await params;
 
   // 같은 호스트로 API 호출을 만들기 위한 base URL 계산
   const host = headers().get("host");
