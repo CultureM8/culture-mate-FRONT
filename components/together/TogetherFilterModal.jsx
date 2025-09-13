@@ -4,7 +4,7 @@ import Modal from "../global/Modal";
 import LocationSelector from "../global/LocationSelector";
 import { useState } from "react";
 
-export default function TogetherFilterModal({ isOpen, onClose }) {
+export default function TogetherFilterModal({ isOpen, onClose, onApplyFilters }) {
   // 기본 날짜 설정: 오늘부터 다음주까지
   const getDefaultDateRange = () => {
     const today = new Date();
@@ -19,7 +19,7 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
 
   // State for filter options
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
-  const [selectedRegions, setSelectedRegions] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState(null); // 선택된 지역 (1개만)
 
   const handleStartDateChange = (e) => {
     setDateRange([e.target.value, dateRange[1]]);
@@ -29,11 +29,34 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
     setDateRange([dateRange[0], e.target.value]);
   };
 
+  // 지역 선택 핸들러
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+  };
+
   const handleApply = () => {
-    console.log("Applying filters:", {
+    const filterData = {
       dateRange,
-      selectedRegions,
-    });
+      selectedRegion,
+    };
+    
+    // 더 자세한 로그 출력으로 디버깅
+    console.log("=== TogetherFilterModal 적용하기 클릭 ===");
+    console.log("날짜 범위:", filterData.dateRange);
+    console.log("선택된 지역:", filterData.selectedRegion);
+    console.log("필터 데이터 전체:", filterData);
+    console.log("onApplyFilters 함수 존재?", typeof onApplyFilters);
+    
+    // onApplyFilters prop 확인 및 호출
+    if (typeof onApplyFilters === "function") {
+      console.log("onApplyFilters 함수 호출 시작");
+      onApplyFilters(filterData);
+      console.log("onApplyFilters 함수 호출 완료");
+    } else {
+      console.error("ERROR: onApplyFilters 함수가 정의되지 않았습니다!");
+      console.error("받은 props:", { onClose, onApplyFilters });
+    }
+    
     onClose();
   };
 
@@ -73,11 +96,11 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
 
         {/* 지역 */}
         <div className="mb-6">
-          <h3 className="font-semibold mb-2">지역 선택 (최대 5개)</h3>
+          <h3 className="font-semibold mb-2">지역 선택</h3>
           <LocationSelector
-            onRegionSelect={setSelectedRegions}
-            selectedRegions={selectedRegions}
-            maxSelections={5}
+            onRegionSelect={handleRegionSelect}
+            selectedRegion={selectedRegion}
+            singleSelection={true}
           />
         </div>
 

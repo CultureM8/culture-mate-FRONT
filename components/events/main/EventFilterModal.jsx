@@ -20,7 +20,7 @@ export default function EventFilterModal({ isOpen, onClose, onApplyFilters }) {
 
   // 필터 옵션 상태 관리
   const [dateRange, setDateRange] = useState(getDefaultDateRange()); // 날짜 범위
-  const [selectedRegions, setSelectedRegions] = useState([]); // 선택된 지역
+  const [selectedRegion, setSelectedRegion] = useState(null); // 선택된 지역 (1개만)
 
   // 시작 날짜 변경 핸들러
   const handleStartDateChange = (e) => {
@@ -32,11 +32,16 @@ export default function EventFilterModal({ isOpen, onClose, onApplyFilters }) {
     setDateRange([dateRange[0], e.target.value]);
   };
 
+  // 지역 선택 핸들러
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+  };
+
   // 필터 적용 핸들러
   const handleApply = () => {
     const filterData = {
       dateRange,
-      selectedRegions,
+      selectedRegion,
     };
     
     console.log("Applying filters:", filterData);
@@ -85,11 +90,11 @@ export default function EventFilterModal({ isOpen, onClose, onApplyFilters }) {
 
         {/* 지역 */}
         <div className="mb-6">
-          <h3 className="font-semibold mb-2">지역 선택 (최대 5개)</h3>
+          <h3 className="font-semibold mb-2">지역 선택</h3>
           <LocationSelector
-            onRegionSelect={setSelectedRegions}
-            selectedRegions={selectedRegions}
-            maxSelections={5}
+            onRegionSelect={handleRegionSelect}
+            selectedRegion={selectedRegion}
+            singleSelection={true}
           />
         </div>
 

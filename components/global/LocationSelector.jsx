@@ -5,7 +5,9 @@ import regionApi from "@/lib/api/regionApi";
 
 export default function LocationSelector({
   onRegionSelect,
-  selectedRegions = [], 
+  selectedRegions = [], // 기존 방식 (다중 선택)
+  selectedRegion = null, // 새로 추가: 단일 선택용
+  singleSelection = false, // 새로 추가: 단일 선택 모드 여부
   maxSelections = 5,
   className = "" 
 }) {
@@ -17,6 +19,15 @@ export default function LocationSelector({
   const [locations2, setLocations2] = useState([]);
   const [locations3, setLocations3] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // 단일 선택 모드에서 기존 선택된 지역 복원
+  useEffect(() => {
+    if (singleSelection && selectedRegion) {
+      setSelectedLocation1(selectedRegion.location1 || "");
+      setSelectedLocation2(selectedRegion.location2 || "");
+      setSelectedLocation3(selectedRegion.location3 || "");
+    }
+  }, [singleSelection, selectedRegion]);
 
   // 컴포넌트 마운트 시 1차 지역 로드
   useEffect(() => {
@@ -105,6 +116,50 @@ export default function LocationSelector({
     if (level === 1) setSelectedLocation1(value);
     else if (level === 2) setSelectedLocation2(value);
     else setSelectedLocation3(value);
+
+    // 단일 선택 모드에서는 선택 시 바로 부모에게 전달
+    if (singleSelection) {
+      // 선택이 완료되면 바로 부모에게 알림
+      const newRegion = createRegionObjectForLevel(level, value);
+      onRegionSelect(newRegion);
+    }
+  };
+
+  // 레벨별로 지역 객체 생성하는 헬퍼 함수
+  const createRegionObjectForLevel = (level, value) => {
+    let location1 = selectedLocation1;
+    let location2 = selectedLocation2;
+    let location3 = selectedLocation3;
+
+    if (level === 1) location1 = value;
+    else if (level === 2) location2 = value;
+    else location3 = value;
+
+    if (location1 === "전체") {
+      return { location1: "전체", location2: "", location3: "", fullAddress: "전체" };
+    }
+    if (location2 === "전체") {
+      return { 
+        location1, 
+        location2: "전체", 
+        location3: "", 
+        fullAddress: `${location1} 전체` 
+      };
+    }
+    if (location3 === "전체") {
+      return { 
+        location1, 
+        location2, 
+        location3: "전체", 
+        fullAddress: `${location1} ${location2} 전체` 
+      };
+    }
+    return { 
+      location1, 
+      location2, 
+      location3, 
+      fullAddress: `${location1} ${location2} ${location3}` 
+    };
   };
 
   // 지역 객체 생성 헬퍼 함수
@@ -178,6 +233,90 @@ export default function LocationSelector({
     return isDuplicateRegion(createRegionObject());
   };
 
+  // 단일 선택 모드에서는 다른 렌더링
+  if (singleSelection) {
+    return (
+      <div className={`${className}`}>
+        {/* 3단계 선택 박스 */}
+        <div className="h-60 grid grid-cols-3 gap-2 mb-4 grid-rows-1">
+          <div className="flex flex-col h-full min-h-0">
+            <label className="text-sm text-gray-600 mb-1 flex-shrink-0">시/도</label>
+            <div className="flex-1 border rounded overflow-y-auto bg-white min-h-0">
+              {loading && locations1.length === 0 ? (
+                <div className="p-2 text-sm text-gray-400">로딩 중...</div>
+              ) : (
+                locations1.map((location1) => (
+                  <button
+                    key={location1}
+                    onClick={() => handleLocationSelect(1, location1)}
+                    className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
+                      selectedLocation1 === location1 ? 'bg-blue-100 text-blue-800 font-medium' : ''
+                    }`}
+                  >
+                    {location1}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col h-full min-h-0">
+            <label className="text-sm text-gray-600 mb-1 flex-shrink-0">시/군/구</label>
+            <div className={`flex-1 border rounded overflow-y-auto min-h-0 ${!selectedLocation1 ? 'bg-gray-50' : 'bg-white'}`}>
+              {!selectedLocation1 ? (
+                <div className="p-2 text-sm text-gray-400">"시/도"를 먼저 선택하세요</div>
+              ) : (
+                locations2.map((location2) => (
+                  <button
+                    key={location2}
+                    onClick={() => handleLocationSelect(2, location2)}
+                    className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
+                      selectedLocation2 === location2 ? 'bg-blue-100 text-blue-800 font-medium' : ''
+                    }`}
+                  >
+                    {location2}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col h-full min-h-0">
+            <label className="text-sm text-gray-600 mb-1 flex-shrink-0">읍/면/동</label>
+            <div className={`flex-1 border rounded overflow-y-auto min-h-0 ${!selectedLocation2 ? 'bg-gray-50' : 'bg-white'}`}>
+              {!selectedLocation2 ? (
+                <div className="p-2 text-sm text-gray-400">"시/군/구"를 먼저 선택하세요</div>
+              ) : (
+                locations3.map((location3) => (
+                  <button
+                    key={location3}
+                    onClick={() => handleLocationSelect(3, location3)}
+                    className={`w-full text-left px-2 py-1 text-sm hover:bg-gray-100 ${
+                      selectedLocation3 === location3 ? 'bg-blue-100 text-blue-800 font-medium' : ''
+                    }`}
+                  >
+                    {location3}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 단일 선택 모드에서는 선택된 지역 표시만 */}
+        {selectedRegion && (
+          <div className="mt-4">
+            <h4 className="font-medium text-gray-700 mb-2">선택된 지역</h4>
+            <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-sm">
+              {selectedRegion.fullAddress}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 기존 다중 선택 모드 (원래 코드 그대로)
   return (
     <div className={`${className}`}>
       {/* 3단계 선택 박스 */}
