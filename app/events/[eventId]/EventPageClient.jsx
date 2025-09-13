@@ -7,7 +7,7 @@ import GalleryLayout from "@/components/global/GalleryLayout";
 import HorizontalTab from "@/components/global/HorizontalTab";
 import TogetherGallery from "@/components/together/TogetherGallery";
 import TogetherList from "@/components/together/TogetherList";
-import { togetherApi } from "@/lib/api/togetherApi";
+import togetherApi from "@/lib/api/togetherApi";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import EventFilterModal from "@/components/events/main/EventFilterModal";
 import ListLayout from "@/components/global/ListLayout";
@@ -16,27 +16,42 @@ import EventReviewModal from "@/components/events/detail/review/EventReviewModal
 import { getEventById } from "@/lib/api/eventApi";
 import { useState, useEffect, useContext } from "react";
 import { LoginContext } from "@/components/auth/LoginProvider";
-
-const toImg = (url) => {
-  if (!url) return "/img/default_img.svg";
-  if (url.startsWith("http")) return url;
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
-  return `${base}${url}`;
-};
+import {
+  getEventMainImageUrl,
+  getEventContentImageUrls,
+} from "@/lib/utils/imageUtils";
+import { useRouter } from "next/navigation";
 
 /** region → location 문자열(undef-safe) */
 const toLocation = (obj) => {
+  // 백엔드 RegionDto.Response 구조 (level1, level2, level3)
+  const level1 =
+    typeof obj?.region?.level1 === "string" ? obj.region.level1.trim() : "";
+  const level2 =
+    typeof obj?.region?.level2 === "string" ? obj.region.level2.trim() : "";
+  const level3 =
+    typeof obj?.region?.level3 === "string" ? obj.region.level3.trim() : "";
+
+  // 기존 구조 호환성 (city, district)
   const city =
     typeof obj?.region?.city === "string" ? obj.region.city.trim() : "";
   const district =
     typeof obj?.region?.district === "string" ? obj.region.district.trim() : "";
-  const parts = [city, district].filter(Boolean);
+
+  // level 구조를 우선 사용, 없으면 기존 구조 사용
+  const parts =
+    level1 || level2 || level3
+      ? [level1, level2, level3].filter(Boolean)
+      : [city, district].filter(Boolean);
+
   return parts.length > 0
     ? parts.join(" ")
     : (obj?.eventLocation && String(obj.eventLocation).trim()) || "미정";
 };
 
 const mapDetail = (data) => {
+  console.log("mapDetail - input data:", data);
+
   const priceList = Array.isArray(data?.ticketPrices)
     ? data.ticketPrices.map((p) => ({
         type: p.ticketType,
@@ -49,23 +64,22 @@ const mapDetail = (data) => {
       ? data.ticketPrices.map((p) => p.ticketType).join(", ")
       : "미정";
 
-  const country =
-    typeof data?.region?.country === "string" ? data.region.country.trim() : "";
-  const city2 =
-    typeof data?.region?.city === "string" ? data.region.city.trim() : "";
-  const district2 =
-    typeof data?.region?.district === "string"
-      ? data.region.district.trim()
-      : "";
-  const fullAddr = [country, city2, district2].filter(Boolean).join(" ");
+  // 백엔드 RegionDto.Response 구조에 맞게 수정
+  const regionLevel1 = data?.region?.level1 || "";
+  const regionLevel2 = data?.region?.level2 || "";
+  const regionLevel3 = data?.region?.level3 || "";
+  const fullAddr = [regionLevel1, regionLevel2, regionLevel3]
+    .filter(Boolean)
+    .join(" ");
 
-  return {
+  const result = {
     eventId: data.id,
     title: data.title,
     content: data.description || data.content || "",
     location: toLocation(data),
     eventLocation: data.eventLocation || "미정",
-    address: fullAddr,
+    address: data.address || fullAddr,
+    addressDetail: data.addressDetail || "",
     startDate: data.startDate,
     endDate: data.endDate,
     viewTime: data.durationMin ? `${data.durationMin}분` : "미정",
@@ -77,7 +91,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: toImg(data.mainImageUrl),
+    imgSrc: getEventMainImageUrl(data, true), // EventInfo용이므로 고화질 사용
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,
@@ -85,14 +99,21 @@ const mapDetail = (data) => {
     reviewCount: data.reviewCount || 0,
     likesCount: data.interestCount || 0,
     viewCount: data.viewCount || 0,
-    contentImageUrls: data.contentImageUrls || [],
+    contentImageUrls: getEventContentImageUrls(data),
     ticketPrices: data.ticketPrices || [],
     region: data.region || null,
   };
+
+  console.log("mapDetail - output result:", result);
+  return result;
 };
 
 export default function EventPageClient({ eventData: initialEventData }) {
-  const { user } = useContext(LoginContext) || {};
+  const router = useRouter();
+  const loginContext = useContext(LoginContext);
+  const user = loginContext?.user || null;
+  const isLogined = loginContext?.isLogined || false;
+  const ready = loginContext?.ready || false;
   const currentUserId = user?.id ?? user?.user_id ?? user?.memberId ?? null;
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
@@ -103,13 +124,13 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [eventData, setEventData] = useState(initialEventData);
   const [hasMyReview, setHasMyReview] = useState(false);
-  const [editingReview, setEditingReview] = useState(null); // 편집 중인 리뷰 데이터
-  const [togetherData, setTogetherData] = useState([]); // 동행 데이터
+  const [editingReview, setEditingReview] = useState(null);
+  const [togetherData, setTogetherData] = useState([]);
   const [togetherLoading, setTogetherLoading] = useState(false);
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => {
-    setEditingReview(null); // 생성 모드로 리셋
+    setEditingReview(null);
     setIsReviewModalOpen(true);
   };
   const closeReviewModal = () => {
@@ -157,20 +178,20 @@ export default function EventPageClient({ eventData: initialEventData }) {
     try {
       const reviewData = await getEventReviews(eventData.eventId);
       const list = Array.isArray(reviewData) ? reviewData : [];
-      
+
       // 내 리뷰를 최상단으로 정렬
       const sortedList = list.sort((a, b) => {
         const aIsMine = isMineReview(a, currentUserId);
         const bIsMine = isMineReview(b, currentUserId);
-        
+
         // 내 리뷰가 있으면 맨 위로
         if (aIsMine && !bIsMine) return -1;
         if (!aIsMine && bIsMine) return 1;
-        
+
         // 둘 다 내 리뷰이거나 둘 다 내 리뷰가 아니면 기존 순서 유지
         return 0;
       });
-      
+
       setReviews(sortedList);
 
       if (currentUserId != null) {
@@ -212,6 +233,28 @@ export default function EventPageClient({ eventData: initialEventData }) {
     await updateEventData();
   };
 
+  // 모집중인 동행 > 글쓰기 버튼 동작 (TogetherPage와 동일 경로/가드)
+  const handleWriteTogether = () => {
+    console.log("handleWriteTogether 호출됨");
+    console.log("현재 로그인 상태:", { ready, isLogined, user, currentUserId });
+
+    const eid = eventData?.eventId || eventData?.id;
+    console.log("이벤트 ID:", eid);
+
+    const qs = eid ? `?eventId=${encodeURIComponent(String(eid))}` : "";
+    const targetUrl = `/together/write${qs}`;
+
+    console.log("이동할 URL:", targetUrl);
+
+    if (ready && isLogined && currentUserId != null) {
+      console.log("로그인된 상태로 이동");
+      router.push(targetUrl);
+    } else {
+      console.log("비로그인 상태로 로그인 페이지로 이동");
+      router.push(`/login?next=${encodeURIComponent(targetUrl)}`);
+    }
+  };
+
   // 이벤트 데이터 업데이트 (공통 로직)
   const updateEventData = async () => {
     try {
@@ -226,19 +269,33 @@ export default function EventPageClient({ eventData: initialEventData }) {
 
   // 동행 데이터 로드 함수
   const loadTogetherData = async () => {
-    if (!eventData?.eventId) return;
-    
+    console.log("loadTogetherData 함수 실행됨");
+
+    if (!eventData?.eventId) {
+      console.log("eventId가 없어서 동행 데이터 로드 건너뜀");
+      return;
+    }
+
     setTogetherLoading(true);
     try {
       console.log("동행 데이터 로드 시작, eventId:", eventData.eventId);
-      const togetherList = await togetherApi.search({ eventId: eventData.eventId });
+      console.log("togetherApi.search 호출 전");
+
+      const togetherList = await togetherApi.search({
+        eventId: eventData.eventId,
+      });
+
       console.log("동행 데이터 로드 성공:", togetherList);
-      setTogetherData(Array.isArray(togetherList) ? togetherList : []);
+      const safeList = Array.isArray(togetherList) ? togetherList : [];
+      console.log("설정할 데이터:", safeList);
+      setTogetherData(safeList);
     } catch (error) {
       console.error("동행 데이터 로드 실패:", error);
+      console.error("Error details:", error.message, error.stack);
       setTogetherData([]);
     } finally {
       setTogetherLoading(false);
+      console.log("동행 데이터 로드 완료");
     }
   };
 
@@ -285,9 +342,9 @@ export default function EventPageClient({ eventData: initialEventData }) {
                 <div>후기를 불러오는 중...</div>
               </div>
             ) : reviews.length > 0 ? (
-              <ListLayout 
-                Component={EventReviewList} 
-                items={reviews} 
+              <ListLayout
+                Component={EventReviewList}
+                items={reviews}
                 commonProps={{ currentUserId, onEditReview: handleEditReview }}
               />
             ) : (
@@ -312,26 +369,46 @@ export default function EventPageClient({ eventData: initialEventData }) {
         {currentMenu === menuList[2] && (
           // 모집중인 동행
           <>
-            <SearchFilterSort
-              enableViewType
-              viewType={togetherViewType}
-              setViewType={setTogetherViewType}
-              filterAction={openFilterModal}
-            />
+            <div className="flex items-center justify-between">
+              <SearchFilterSort
+                enableViewType
+                viewType={togetherViewType}
+                setViewType={setTogetherViewType}
+                filterAction={openFilterModal}
+              />
+              <button
+                onClick={(e) => {
+                  try {
+                    console.log("글쓰기 버튼 클릭됨");
+                    handleWriteTogether();
+                  } catch (error) {
+                    console.error("글쓰기 버튼 클릭 에러:", error);
+                    alert("오류가 발생했습니다: " + error.message);
+                  }
+                }}
+                className="h-10 px-4 rounded bg-blue-600 text-white hover:bg-blue-500"
+                title="동행 글쓰기">
+                글쓰기
+              </button>
+            </div>
+
             {togetherLoading ? (
               <div className="flex justify-center py-8">
                 <div>동행 데이터를 불러오는 중...</div>
               </div>
-            ) : togetherViewType === "Gallery" ? (
-              <GalleryLayout
-                Component={TogetherGallery}
-                items={togetherData}
-              />
+            ) : togetherData && togetherData.length > 0 ? (
+              togetherViewType === "Gallery" ? (
+                <GalleryLayout
+                  Component={TogetherGallery}
+                  items={togetherData}
+                />
+              ) : (
+                <ListLayout Component={TogetherList} items={togetherData} />
+              )
             ) : (
-              <ListLayout
-                Component={TogetherList}
-                items={togetherData}
-              />
+              <div className="flex justify-center py-8 text-gray-500">
+                모집중인 동행이 없습니다.
+              </div>
             )}
             {/* 필터 모달창 => 동행용 필터로 추후 교체 예정 */}
             <EventFilterModal

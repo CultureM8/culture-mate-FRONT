@@ -1,37 +1,77 @@
-// components/events/detail/EventInfo.jsx  ← 프로젝트 구조에 맞게 경로 사용
 "use client";
 
 import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import StarRating from "@/lib/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
-
-// 통합된 eventApi 사용
+import { getEventMainImageUrl, handleImageError } from "@/lib/utils/imageUtils";
 import { toggleEventInterest } from "@/lib/api/eventApi";
 
 export default function EventInfo({ eventData, score = 0 }) {
-  const [interest, setInterest] = useState(false);
+  const [interest, setInterest] = useState(Boolean(eventData?.isInterested));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 로그인 컨텍스트
   const { user, isLogined } = useContext(LoginContext);
   const [like, setLike] = useState(false);
 
+  // 이벤트 진입 시 localStorage 값이 있으면 우선 적용(상세↔목록 일관성)
+  useEffect(() => {
+    const id = eventData?.eventId;
+    if (!id) return;
+    const saved =
+      typeof window !== "undefined"
+        ? localStorage.getItem(`interest:${id}`)
+        : null;
+    if (saved === "1" || saved === "0") {
+      setInterest(saved === "1");
+    } else {
+      setInterest(Boolean(eventData?.isInterested));
+    }
+  }, [eventData?.eventId, eventData?.isInterested]);
+
   const handleInterest = async () => {
+    console.log("🔍 EventInfo handleInterest 호출됨");
+    console.log("🔍 로그인 상태:", {
+      isLogined,
+      user,
+      eventId: eventData?.eventId,
+    });
+    console.log("🔍 토큰 확인:", localStorage.getItem("accessToken"));
+
     if (!isLogined || !user) {
+      console.log(" 로그인 필요");
       alert("로그인이 필요합니다.");
       return;
     }
 
-    if (isSubmitting) return;
+    if (isSubmitting) {
+      console.log("⏳ 이미 처리 중...");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      // toggleEventInterest API 호출 (eventId만 전달)
       const result = await toggleEventInterest(eventData.eventId);
+      setInterest((prev) => {
+        const next = !prev;
 
-      setInterest((prev) => !prev);
+        try {
+          localStorage.setItem(
+            `interest:${eventData.eventId}`,
+            next ? "1" : "0"
+          );
+        } catch {}
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("interest-changed", {
+              detail: { eventId: String(eventData.eventId), interested: next },
+            })
+          );
+        }
+        return next;
+      });
       console.log("관심 등록/해제 결과:", result);
     } catch (error) {
       console.error("관심 등록/해제 실패:", error);
@@ -63,14 +103,11 @@ export default function EventInfo({ eventData, score = 0 }) {
         <div className="p-4">
           <div className="relative w-[400px] h-[500px] overflow-hidden rounded-lg">
             <Image
-              src={
-                eventData.imgSrc && eventData.imgSrc.trim() !== ""
-                  ? eventData.imgSrc
-                  : IMAGES.GALLERY_DEFAULT_IMG
-              }
-              alt={eventData.alt}
+              src={getEventMainImageUrl(eventData, true)} // 고화질 이미지 사용
+              alt={eventData.alt || eventData.title || "이벤트 이미지"}
               fill
               className="object-cover"
+              onError={handleImageError}
             />
           </div>
           <div className="px-2 py-6 flex justify-between">
