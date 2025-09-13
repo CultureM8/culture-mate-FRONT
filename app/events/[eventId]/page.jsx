@@ -1,5 +1,5 @@
 import EventPageClient from "./EventPageClient";
-import { getEventById } from "@/lib/eventApi";
+import { getEventById } from "@/lib/api/eventApi";
 
 const toImg = (url) => {
   if (!url) return "/img/default_img.svg";

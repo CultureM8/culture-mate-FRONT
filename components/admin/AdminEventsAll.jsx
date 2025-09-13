@@ -5,7 +5,9 @@ import Image from "next/image";
 import Link from "next/link"; // Link 컴포넌트 import 추가
 import { ICONS } from "@/constants/path";
 import Calendar from "@/components/global/Calendar";
-import { DUMMY_EVENTS } from "@/lib/eventData";
+// DUMMY_EVENTS는 존재하지 않으므로 임시 빈 배열 사용
+// TODO: 실제 API 연동 필요
+const DUMMY_EVENTS = [];
 
 export default function AdminEventsAll() {
   // 필터 상태 관리

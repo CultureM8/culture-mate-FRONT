@@ -13,7 +13,7 @@ import EventFilterModal from "@/components/events/main/EventFilterModal";
 import ListLayout from "@/components/global/ListLayout";
 import EventReviewList from "@/components/events/detail/review/EventReviewList";
 import EventReviewModal from "@/components/events/detail/review/EventReviewModal";
-import { getEventById } from "@/lib/eventApi";
+import { getEventById } from "@/lib/api/eventApi";
 import { useState, useEffect, useContext } from "react";
 import { LoginContext } from "@/components/auth/LoginProvider";
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import { toCard } from "@/lib/schema";
-import { searchEvents } from "@/lib/eventApi"; // ✅ 백엔드 연동
+import { searchEvents } from "@/lib/api/eventApi"; // ✅ 백엔드 연동
 import EventTile from "./EventTile";
 
 export default function SearchToWrite({ onSelect = () => {} }) {
