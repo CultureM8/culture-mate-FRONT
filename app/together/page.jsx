@@ -154,6 +154,12 @@ export default function TogetherPage() {
     setAppliedFilters(filterData);
   };
 
+  // 필터 초기화 함수 추가
+  const handleClearFilters = () => {
+    setIsFiltered(false);
+    setAppliedFilters(null);
+  };
+
   const handleWrite = () => {
     if (!ready) return;
     if (isLogined) return router.push("/together/write");
@@ -180,6 +186,32 @@ export default function TogetherPage() {
         selected={selectedEventType}
         setSelected={setSelectedEventType}
       />
+
+      {/* 필터 적용된 상태 표시 */}
+      {appliedFilters && (
+        <div className="px-6 mb-4 p-3 bg-blue-50 rounded flex justify-between items-center">
+          <div>
+            <span className="text-sm font-medium text-blue-800">필터 적용됨: </span>
+            {appliedFilters.selectedRegion && (
+              <span className="text-sm text-blue-700">
+                {appliedFilters.selectedRegion.fullAddress}
+              </span>
+            )}
+            {appliedFilters.dateRange && (
+              <span className="text-sm text-blue-700 ml-2">
+                ({appliedFilters.dateRange[0]} ~ {appliedFilters.dateRange[1]})
+              </span>
+            )}
+          </div>
+          <button 
+            onClick={handleClearFilters}
+            className="text-sm text-red-500 hover:text-red-700"
+          >
+            필터 해제
+          </button>
+        </div>
+      )}
+
       <div className="px-2.5 h-16 flex items-center justify-between">
         {/* 좌측: 뷰 토글 */}
         <div className="flex items-center gap-2">
