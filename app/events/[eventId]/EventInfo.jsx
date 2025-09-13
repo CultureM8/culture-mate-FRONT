@@ -8,7 +8,7 @@ import StarRating from "@/lib/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
 
 // 통합된 eventApi 사용
-import { toggleEventInterest } from "@/lib/eventApi";
+import { toggleEventInterest } from "@/lib/api/eventApi";
 
 export default function EventInfo({ eventData, score = 0 }) {
   const [interest, setInterest] = useState(false);

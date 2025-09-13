@@ -20,7 +20,6 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
   // State for filter options
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
   const [selectedRegions, setSelectedRegions] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, 1000000]);
 
   const handleStartDateChange = (e) => {
     setDateRange([e.target.value, dateRange[1]]);
@@ -30,21 +29,10 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
     setDateRange([dateRange[0], e.target.value]);
   };
 
-  const handleMinPriceChange = (e) => {
-    const value = parseInt(e.target.value) || 0;
-    setPriceRange([value, priceRange[1]]);
-  };
-
-  const handleMaxPriceChange = (e) => {
-    const value = parseInt(e.target.value) || 0;
-    setPriceRange([priceRange[0], value]);
-  };
-
   const handleApply = () => {
     console.log("Applying filters:", {
       dateRange,
       selectedRegions,
-      priceRange,
     });
     onClose();
   };
@@ -84,51 +72,13 @@ export default function TogetherFilterModal({ isOpen, onClose }) {
         </div>
 
         {/* 지역 */}
-        <div className="mb-4">
+        <div className="mb-6">
           <h3 className="font-semibold mb-2">지역 선택 (최대 5개)</h3>
           <LocationSelector
             onRegionSelect={setSelectedRegions}
             selectedRegions={selectedRegions}
             maxSelections={5}
           />
-        </div>
-
-        {/* 가격 */}
-        <div className="mb-6">
-          <h3 className="font-semibold mb-2">가격</h3>
-          <div className="flex gap-2 items-center w-full">
-            <div className="flex-1">
-              <label className="block text-sm text-gray-600 mb-1">최소 금액</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className="border p-2 rounded w-full pr-8"
-                  onChange={handleMinPriceChange}
-                  value={priceRange[0]}
-                  min="0"
-                  placeholder="0"
-                />
-                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">원</span>
-              </div>
-            </div>
-            <div className="pt-6">
-              ~
-            </div>
-            <div className="flex-1">
-              <label className="block text-sm text-gray-600 mb-1">최대 금액</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className="border p-2 rounded w-full pr-8"
-                  onChange={handleMaxPriceChange}
-                  value={priceRange[1]}
-                  min={priceRange[0]}
-                  placeholder="1000000"
-                />
-                <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">원</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* 적용하기 버튼 */}
