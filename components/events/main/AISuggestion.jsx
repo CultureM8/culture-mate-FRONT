@@ -4,6 +4,10 @@ import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import {
+  getAISuggestionImageUrl,
+  handleImageError,
+} from "@/lib/utils/imageUtils";
 
 function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
   const cardContent = (
@@ -18,10 +22,11 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
         className="relative rounded-xl overflow-hidden shadow-2xl transition-all duration-700"
         style={{ width: "172px", height: "240px" }}>
         <Image
-          src={imgSrc && imgSrc.trim() !== "" ? imgSrc : "/img/default_img.svg"}
-          alt={alt}
+          src={getAISuggestionImageUrl({ imgSrc })}
+          alt={alt || title || "이벤트 이미지"}
           fill
           className="object-cover"
+          onError={handleImageError}
         />
         {!isCenter && (
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/40" />
@@ -49,8 +54,6 @@ function EventCard({ imgSrc, alt, title, date, isCenter, onClick, link }) {
   if (isCenter && link) {
     return <Link href={link}>{cardContent}</Link>;
   }
-
-  // 주변 카드이거나 링크가 없으면 그냥 반환
   return cardContent;
 }
 
@@ -116,15 +119,15 @@ export default function AISuggestion({ suggestionList = [] }) {
       <div className="absolute left-1/2 top-[112px] -translate-x-1/2 w-screen h-[370px] z-0">
         <div className="w-full h-full bg-black opacity-20" />
         <Image
-          src={
-            suggestionList[currentIndex].imgSrc &&
-            suggestionList[currentIndex].imgSrc.trim() !== ""
-              ? suggestionList[currentIndex].imgSrc
-              : "/img/default_img.svg"
+          src={getAISuggestionImageUrl(suggestionList[currentIndex])}
+          alt={
+            suggestionList[currentIndex].alt ||
+            suggestionList[currentIndex].title ||
+            "배경 이미지"
           }
-          alt={suggestionList[currentIndex].alt}
           fill
           className="object-cover opacity-50 blur-xs"
+          onError={handleImageError}
         />
       </div>
 
