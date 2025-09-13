@@ -1,11 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import InterestEvent from "./InterestEvent";
 import InterestWith from "./InterestWith";
 
-export default function InterestTab({ eventData }) {
+export default function InterestTab({ eventData, onRefreshData }) {
   const [activeTab, setActiveTab] = useState("InterEventTab");
+
+  // 관심 상태 변경 시 데이터 새로고침
+  useEffect(() => {
+    const handleInterestChanged = (event) => {
+      const { eventId, interested } = event.detail;
+
+      // 관심 해제 시에만 데이터 새로고침 (추가는 이미 다른 페이지에서 처리)
+      if (!interested && typeof onRefreshData === "function") {
+        onRefreshData();
+      }
+    };
+
+    window.addEventListener("interest-changed", handleInterestChanged);
+    return () =>
+      window.removeEventListener("interest-changed", handleInterestChanged);
+  }, [onRefreshData]);
 
   return (
     <div className="mt-1">
@@ -16,8 +32,7 @@ export default function InterestTab({ eventData }) {
             activeTab === "InterEventTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
-          }`}
-        >
+          }`}>
           관심 이벤트
         </button>
         <button
@@ -26,17 +41,15 @@ export default function InterestTab({ eventData }) {
             activeTab === "InterWithTab"
               ? "border-b-2 border-black text-black"
               : "text-gray-500"
-          }`}
-        >
+          }`}>
           관심 동행
         </button>
       </div>
       <div className="mt-8">
-        {/* 이전페이지(interest/page.jsx)쪽에서 끌고 온 이벤트데이터를 관심목록의 관심이벤트로 끌고갑니다 */}
         {activeTab === "InterEventTab" && (
           <InterestEvent eventData={eventData} />
         )}
-        {/* 이전페이지(interest/page.jsx)쪽에서 끌고 온 이벤트데이터를 관심목록의 관심동행으로 끌고갑니다 */}
+        {/* 관심 동행은 아직 구현되지 않음 */}
         {activeTab === "InterWithTab" && <InterestWith eventData={eventData} />}
       </div>
     </div>
