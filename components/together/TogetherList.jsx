@@ -210,7 +210,8 @@ export default function TogetherList(props) {
         src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={safeEventName || safeTitle}
         title={safeTitle}
-        href={editMode ? "#" : href}
+        onClick={onCardClick}
+        href={onCardClick ? undefined : (editMode ? "#" : href)}
         enableInterest={!editMode}
         isInterested={isInterested}
         onInterestClick={handleInterestClick}>

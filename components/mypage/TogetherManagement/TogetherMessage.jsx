@@ -6,12 +6,8 @@ import ChatRequestCard from "@/components/mypage/TogetherManagement/ChatRequestC
 import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
 import { LoginContext } from "@/components/auth/LoginProvider";
 
-import {
-  getChatRequestsForUser,
-  getChatRequestsFromUser,
-  getUnreadChatRequestsCount,
-  updateChatRequestStatus,
-} from "@/lib/chatRequestUtils";
+import { togetherApi } from "@/lib/api/togetherApi";
+import CacheManager from "@/lib/api/cacheManager";
 
 import { listChatRooms, createChatRoom, joinRoom } from "@/lib/chatApi";
 
@@ -58,24 +54,75 @@ export default function TogetherMessage() {
     return () => window.removeEventListener("open-group-chat", onOpen);
   }, []);
 
-  // 목록/카운트 로더
+  // 목록/카운트 로더 - 백엔드 데이터만 사용
   const loadAll = useMemo(() => {
-    return () => {
+    return async () => {
       if (!currentUserId) return;
 
-      const list =
-        activeTab === "received"
-          ? getChatRequestsForUser(currentUserId)
-          : getChatRequestsFromUser(currentUserId);
+      const cacheKey = `together_applications_${activeTab}_${currentUserId}`;
 
-      list.sort((a, b) => {
-        const av = new Date(a.createdAt || 0).getTime();
-        const bv = new Date(b.createdAt || 0).getTime();
-        return bv - av;
-      });
+      try {
+        let list = [];
 
-      setChatRequests(list);
-      setUnreadCount(getUnreadChatRequestsCount(currentUserId));
+        // 캐시 확인 (5초 이내 데이터는 재사용)
+        const cached = CacheManager.get(cacheKey);
+        if (cached) {
+          setChatRequests(cached);
+          return;
+        }
+
+        if (activeTab === "received") {
+          // 받은 신청: 백엔드 API 사용
+          const receivedApps = await togetherApi.getReceivedApplications();
+          list = receivedApps.map(app => ({
+            requestId: app.requestId,
+            fromUserId: app.applicantId,
+            fromUserName: app.applicantName,
+            fromUserProfileImage: app.applicantProfileImage,
+            toUserId: app.hostId,
+            toUserName: app.hostName,
+            togetherId: app.togetherId,
+            postId: app.togetherId,
+            postTitle: app.togetherTitle,
+            postDate: app.meetingDate,
+            message: app.message || "동행 신청 메시지",
+            status: app.status.toUpperCase(), // PENDING, APPROVED, REJECTED
+            eventName: app.eventName,
+            eventType: app.eventType,
+            eventImage: app.eventImage,
+            createdAt: app.createdAt,
+            isBackendData: true
+          }));
+        } else {
+          // 보낸 신청: 백엔드 API 호출 (TODO: API 엔드포인트 추가 필요)
+          // 임시로 빈 배열 반환
+          list = [];
+          console.log("보낸 신청 API는 아직 구현되지 않았습니다.");
+        }
+
+        list.sort((a, b) => {
+          const av = new Date(a.createdAt || 0).getTime();
+          const bv = new Date(b.createdAt || 0).getTime();
+          return bv - av;
+        });
+
+        // 캐시 저장 (5초 TTL)
+        CacheManager.set(cacheKey, list, 5000);
+
+        setChatRequests(list);
+        setUnreadCount(0); // 백엔드에서 unread count API 구현 필요
+      } catch (error) {
+        console.error("동행 신청 목록 로드 실패:", error);
+
+        // API 실패 시 빈 배열로 설정
+        setChatRequests([]);
+        setUnreadCount(0);
+
+        // 에러 메시지 표시
+        if (error.message?.includes('401') || error.message?.includes('403')) {
+          console.log("인증이 필요합니다. 다시 로그인해주세요.");
+        }
+      }
     };
   }, [activeTab, currentUserId]);
 
@@ -249,14 +296,29 @@ export default function TogetherMessage() {
   // ------- 액션 -------
   const handleAcceptRequest = async (requestId) => {
     try {
-      await updateChatRequestStatus(requestId, "accepted");
+      const selectedReq = chatRequests.find(r => r.requestId === requestId);
 
-      if (currentUserId) {
-        const list = getChatRequestsForUser(currentUserId);
-        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setChatRequests(list);
-        setUnreadCount(getUnreadChatRequestsCount(currentUserId));
+      if (!selectedReq?.isBackendData) {
+        console.warn("백엔드 데이터가 아닙니다. 처리할 수 없습니다.");
+        return;
       }
+
+      const togetherId = selectedReq.togetherId;
+      const participantId = selectedReq.fromUserId;
+
+      // 백엔드 API 호출
+      const response = await togetherApi.approveParticipation(togetherId, participantId);
+
+      // API 응답 검증
+      if (!response || response.error) {
+        throw new Error(response?.error || "승인 처리 중 오류가 발생했습니다.");
+      }
+
+      // 캐시 무효화 및 목록 새로고침
+      CacheManager.clearPattern(`together_applications_${activeTab}_${currentUserId}`);
+      await loadAll();
+
+      alert("동행 신청을 수락했습니다!");
 
       const req =
         selectedRequest?.requestId === requestId
@@ -353,12 +415,32 @@ export default function TogetherMessage() {
 
   const handleRejectRequest = async (requestId) => {
     try {
-      await updateChatRequestStatus(requestId, "rejected");
-      loadAll();
+      const selectedReq = chatRequests.find(r => r.requestId === requestId);
+
+      if (!selectedReq?.isBackendData) {
+        console.warn("백엔드 데이터가 아닙니다. 처리할 수 없습니다.");
+        return;
+      }
+
+      const togetherId = selectedReq.togetherId;
+      const participantId = selectedReq.fromUserId;
+
+      // 백엔드 API 호출
+      const response = await togetherApi.rejectParticipation(togetherId, participantId);
+
+      // API 응답 검증
+      if (!response || response.error) {
+        throw new Error(response?.error || "거절 처리 중 오류가 발생했습니다.");
+      }
+
+      // 캐시 무효화 및 목록 새로고침
+      CacheManager.clearPattern(`together_applications_${activeTab}_${currentUserId}`);
+      await loadAll();
+
       alert("동행 신청을 거절했습니다.");
     } catch (e) {
-      console.error(e);
-      alert("신청 처리에 실패했습니다.");
+      console.error("거절 처리 실패:", e);
+      alert(`신청 처리에 실패했습니다: ${e.message}`);
     }
   };
 

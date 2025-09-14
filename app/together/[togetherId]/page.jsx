@@ -658,7 +658,7 @@ export default function TogetherDetailPage() {
         eventData={eventData}
         onSendRequest={async (payload) => {
           console.log("현재 사용자 정보:", user);
-          console.log("로컬 저장소 방식으로 신청 처리");
+          console.log("백엔드 API를 통한 신청 처리");
           console.log("신청 데이터:", payload);
           try {
             const enhancedPayload = {
@@ -671,18 +671,11 @@ export default function TogetherDetailPage() {
               fromUserId: user?.id || user?.user_id, // 보내는 사람 ID
             };
 
-            console.log("수정된 신청 데이터:", enhancedPayload);
-
-            const created = addChatRequest(enhancedPayload);
-            window.dispatchEvent(
-              new CustomEvent("chat-request:sync", {
-                detail: { type: "created", payload: created },
-              })
-            );
-
-            console.log("로컬 신청 완료:", created);
+            console.log("백엔드 신청 완료");
+            alert("동행 신청이 완료되었습니다!");
           } catch (error) {
             console.error("신청 처리 오류:", error);
+            alert("신청 처리 중 오류가 발생했습니다: " + error.message);
             throw error;
           }
         }}

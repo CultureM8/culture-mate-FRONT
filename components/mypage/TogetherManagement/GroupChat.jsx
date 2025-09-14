@@ -59,6 +59,11 @@ export default function GroupChat({
   const msgSigsRef = useRef(new Set()); // ★ 내용+보낸이+시간 서명 중복 방지
   const messagesEndRef = useRef(null);
 
+  // 메시지 추가시 자동 스크롤
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const participantsMap = useMemo(() => {
     const m = new Map();
     for (const p of participants) m.set(String(p.id), p);
@@ -359,7 +364,7 @@ export default function GroupChat({
 
       {/* 메시지 */}
       <div
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-visible"
         style={{ height: "100%", scrollBehavior: "smooth" }}>
         {messages.map((msg) => {
           const sid = String(msg.sender);
@@ -374,7 +379,7 @@ export default function GroupChat({
             <div
               key={msg.id}
               className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className="max-w-xs lg:max-w-md">
+              <div className="max-w-[70%] sm:max-w-xs lg:max-w-md">
                 <div
                   className={`flex items-center mb-1 ${
                     mine ? "justify-end" : "justify-start"
