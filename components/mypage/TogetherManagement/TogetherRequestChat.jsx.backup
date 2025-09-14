@@ -6,12 +6,6 @@ import SockJS from "sockjs-client";
 import { Client as StompClient } from "@stomp/stompjs";
 import { listChatRooms, joinRoom } from "@/lib/chatApi";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
-import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
-
-// 개발 환경에서 WebSocket 테스트 도구 로드
-if (process.env.NODE_ENV === 'development') {
-  import("@/lib/websocket-test-utils");
-}
 
 /** 비어있지 않은 첫 문자열을 반환(숫자-only도 허용) */
 function preferName(...cands) {
@@ -182,98 +176,70 @@ export default function TogetherRequestChat({
     if (roomIdProp && roomIdProp !== roomId) setRoomId(roomIdProp);
   }, [roomIdProp, roomId]);
 
-  /* ---------- JWT 인증 WebSocket 연결 ---------- */
+  /* ---------- STOMP ---------- */
   useEffect(() => {
     if (!roomId) return;
 
-    const initializeAuthenticatedWebSocket = async () => {
-      try {
-        console.log('=== JWT 인증 WebSocket 초기화 ===');
-        console.log('roomId:', roomId, 'myId:', myId);
-
-        // JWT 인증된 STOMP 클라이언트 생성
-        const client = createAuthenticatedStompClient(WS_ENDPOINT);
-
-        // 연결 성공 핸들러 오버라이드
-        client.onConnect = () => {
-          console.log('✅ JWT 인증 WebSocket 연결 성공!', roomId);
-
-          // 실시간 메시지 구독
-          client.subscribe(subDestination(roomId), (frame) => {
-            try {
-              const body = JSON.parse(frame.body);
-              const senderId = String(body.senderId ?? "unknown");
-
-              console.log('새 메시지 수신:', body);
-
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: `srv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                  sender: senderId,
-                  senderName: senderId === myId ? myDisplayName : otherUser.name,
-                  message: String(body.content ?? ""),
-                  timestamp: new Date(),
-                },
-              ]);
-            } catch (e) {
-              console.error("메시지 파싱 오류:", e);
-            }
-          });
-
-          // 최초 1회: 신청 본문을 실제 방으로 전송 (동행 신청 수락 후에만)
-          // 초기 메시지는 UI에서만 표시하고, 실제 DB 전송은 하지 않음
-          console.log('초기 메시지는 UI에서만 표시, DB 전송 안함');
-          sentInitialRef.current = true;
-        };
-
-        // JWT 관련 오류 핸들러
-        client.onStompError = (frame) => {
-          console.error('❌ STOMP 연결 오류:', frame);
-          if (frame.headers.message?.includes('JWT') ||
-              frame.headers.message?.includes('토큰') ||
-              frame.headers.message?.includes('인증')) {
-            console.error('JWT 인증 오류 - 로그인 상태 확인 필요');
-            alert('인증이 만료되었습니다. 다시 로그인해주세요.');
-            // 로그인 페이지로 리다이렉트 가능
+    const sock = new SockJS(WS_ENDPOINT);
+    const client = new StompClient({
+      webSocketFactory: () => sock,
+      reconnectDelay: 2000,
+      debug: (msg) => console.log('[WebSocket Debug]', msg), // 디버그 활성화
+      onConnect: () => {
+        console.log('✅ WebSocket 연결 성공!', roomId);
+        client.subscribe(subDestination(roomId), (frame) => {
+          try {
+            const body = JSON.parse(frame.body);
+            const senderId = String(body.senderId ?? "unknown");
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `srv-${Date.now()}-${Math.random()
+                  .toString(36)
+                  .slice(2, 6)}`,
+                sender: senderId,
+                senderName: senderId === myId ? myDisplayName : otherUser.name,
+                message: String(body.content ?? ""),
+                timestamp: new Date(),
+              },
+            ]);
+          } catch (e) {
+            console.error("메시지 파싱 오류:", e);
           }
-        };
+        });
 
-        client.onWebSocketError = (event) => {
-          console.error('❌ WebSocket 연결 오류:', event);
-        };
-
-        // STOMP 클라이언트 저장
-        stompRef.current = client;
-
-        // 연결 시작
-        client.activate();
-
-        console.log('JWT 인증 WebSocket 연결 시도 중...');
-
-      } catch (error) {
-        console.error('WebSocket 초기화 실패:', error);
-        if (error.message?.includes('JWT') || error.message?.includes('토큰')) {
-          alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
-          // window.location.href = '/login';
+        // 최초 1회: 신청 본문을 실제 방으로 전송 (있을 때만)
+        if (!sentInitialRef.current && chatRequestData?.message && myId) {
+          client.publish({
+            destination: pubDestination(),
+            body: JSON.stringify({
+              roomId: Number(roomId),
+              senderId: Number(myMemberIdRaw),
+              content: chatRequestData.message,
+            }),
+          });
+          sentInitialRef.current = true;
         }
-      }
-    };
+      },
+    });
 
-    initializeAuthenticatedWebSocket();
+    client.activate();
+    stompRef.current = client;
 
     return () => {
-      if (stompRef.current) {
-        console.log('🔌 JWT 인증 WebSocket 연결 정리 중...');
-        try {
-          stompRef.current.deactivate();
-        } catch (e) {
-          console.error('WebSocket 정리 중 오류:', e);
-        }
-        stompRef.current = null;
-      }
+      try {
+        client.deactivate();
+      } catch {}
+      stompRef.current = null;
     };
-  }, [roomId, myId]); // 의존성 최소화로 중복 연결 방지
+  }, [
+    roomId,
+    chatRequestData,
+    myId,
+    myDisplayName,
+    otherUser?.name,
+    myMemberIdRaw,
+  ]);
 
   /* ---------- 수락 ---------- */
   const handleAccept = async () => {
@@ -376,20 +342,29 @@ export default function TogetherRequestChat({
     }
     if (stompRef.current && stompRef.current.connected) {
       stompRef.current.publish({
-        destination: pubDestination(roomId),
+        destination: pubDestination(),
         body: JSON.stringify({
           roomId: Number(roomId),
           senderId: Number(myMemberIdRaw),
           content: msg,
         }),
       });
-
-      // 낙관적 업데이트 제거: 서버 응답을 통한 실시간 구독으로만 메시지 표시
-      console.log('메시지 전송 완료, 서버 응답 대기 중...');
     } else {
       alert("채팅 서버 연결이 끊어졌습니다. 새로고침 후 다시 시도해주세요.");
       return;
     }
+
+    // 낙관적 반영
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `local-${Date.now()}`,
+        sender: String(myMemberIdRaw),
+        senderName: myDisplayName,
+        message: msg,
+        timestamp: new Date(),
+      },
+    ]);
     setNewMessage("");
   };
 
