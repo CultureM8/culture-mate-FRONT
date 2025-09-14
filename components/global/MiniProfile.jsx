@@ -8,7 +8,7 @@ import { ROUTES, ICONS } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
 import { api, unwrap } from "@/lib/apiBase";
 
-export default function MiniProfile() {
+export default function MiniProfile({ onClose }) {
   const { logout, loading, displayName, user } = useLogin();
   const router = useRouter();
 
@@ -48,12 +48,10 @@ export default function MiniProfile() {
 
   const nameToShow = nameFromBackend || displayName || "사용자";
 
+  // NavigationBar의 handleLogout과 동일한 방식으로 변경
   const onLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      router.replace(ROUTES.HOME || "/");
-    }
+    await logout();
+    if (onClose) onClose();
   };
 
   const menuItems = [
@@ -83,23 +81,45 @@ export default function MiniProfile() {
       </div>
 
       {menuItems.map((item, idx) => (
-        <Link
+        <div
           key={idx}
-          href={item.path}
-          className="px-1 py-0 flex items-center justify-end h-6 w-full text-[#a6a6a6] text-base font-normal hover:text-[#26282a] transition-colors">
+          onMouseDown={(e) => {
+            e.preventDefault(); // 기본 동작 방지
+            e.stopPropagation(); // 이벤트 전파 방지
+            
+            setTimeout(() => {
+              router.push(item.path);
+              if (onClose) onClose();
+            }, 0);
+          }}
+          className="px-1 py-0 flex items-center justify-end h-6 w-full text-[#a6a6a6] text-base font-normal hover:text-[#26282a] transition-colors cursor-pointer">
           {item.label}
-        </Link>
+        </div>
       ))}
 
       <div className="flex flex-row gap-4 items-center justify-end w-full">
         <button
-          onClick={onLogout}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => {
+              window.location.href = "/logout";
+              if (onClose) onClose();
+            }, 0);
+          }}
           disabled={loading}
           className="px-1 py-0 flex items-center justify-start h-6 text-[#a6a6a6] text-base font-normal hover:text-[#26282a] transition-colors disabled:opacity-60">
           {loading ? "로그아웃 중…" : "로그아웃"}
         </button>
         <button
-          onClick={onLogout}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setTimeout(() => {
+              window.location.href = "/logout";
+              if (onClose) onClose();
+            }, 0);
+          }}
           disabled={loading}
           aria-label="로그아웃"
           className="disabled:opacity-60">
