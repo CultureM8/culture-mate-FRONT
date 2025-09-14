@@ -52,9 +52,6 @@ export default function TogetherGallery(props) {
     eventSnapshot?.thumbnailImagePath ||
     null;
 
-  console.log("🖼️ TogetherGallery - rawImagePath:", rawImagePath);
-  console.log("🖼️ TogetherGallery - eventSnapshot:", eventSnapshot);
-
   const coverSrc = toAbsoluteImageUrl(rawImagePath);
 
   /* 타이틀/라벨 */
@@ -68,7 +65,25 @@ export default function TogetherGallery(props) {
     eventNameProp ||
     "이벤트명";
 
-  /* 날짜 포맷/판정 */
+  /* 날짜 유틸 & 판정 */
+
+  // "YYYY-MM-DD"면 로컬 그 날 23:59:59.999까지 유효
+  const isPastDay = (raw) => {
+    if (!raw) return false;
+    if (typeof raw === "string" && raw.length === 10 && raw[4] === "-") {
+      const y = Number(raw.slice(0, 4));
+      const m = Number(raw.slice(5, 7)) - 1;
+      const d = Number(raw.slice(8, 10));
+      const end = new Date(y, m, d, 23, 59, 59, 999);
+      return end.getTime() < Date.now();
+    }
+    const t = new Date(raw);
+    return Number.isFinite(t.getTime()) ? t.getTime() < Date.now() : false;
+  };
+
+  // 기간지남(오늘은 포함 X)
+  const isExpired = isPastDay(meetingDate ?? dateProp ?? rest.createdAt);
+
   const parseDate = (d) => {
     if (!d) return null;
     const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
@@ -90,10 +105,6 @@ export default function TogetherGallery(props) {
     : rest.createdAt
     ? fmtDate(rest.createdAt)
     : "0000.00.00";
-
-  const eventDt = parseDate(meetingDate || dateProp || rest.createdAt);
-  const now = new Date();
-  const isPast = eventDt ? eventDt < now : false;
 
   /* 인원 */
   const groupStr = (() => {
@@ -137,8 +148,9 @@ export default function TogetherGallery(props) {
   };
 
   return (
-    <div className={`relative ${isPast ? "grayscale" : ""}`}>
-      {!isPast && showClosedBadge && (
+    <div className={`relative ${isExpired ? "grayscale" : ""}`}>
+      {/* 기간 안 지났고, 마감/정원초과면 배지 노출 */}
+      {!isExpired && showClosedBadge && (
         <div className="absolute top-2 left-2 z-30">
           <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
             모집마감
