@@ -15,20 +15,111 @@ export default function EventInfo({ eventData, score = 0 }) {
   const { user, isLogined } = useContext(LoginContext);
   const [like, setLike] = useState(false);
 
-  // 이벤트 진입 시 localStorage 값이 있으면 우선 적용(상세↔목록 일관성)
+  // 백엔드 데이터로 관심 상태 초기화 및 실시간 동기화
   useEffect(() => {
-    const id = eventData?.eventId;
-    if (!id) return;
-    const saved =
-      typeof window !== "undefined"
-        ? localStorage.getItem(`interest:${id}`)
-        : null;
-    if (saved === "1" || saved === "0") {
-      setInterest(saved === "1");
-    } else {
-      setInterest(Boolean(eventData?.isInterested));
-    }
+    if (!eventData?.eventId) return;
+
+    console.log("EventInfo - 초기화:", {
+      eventId: eventData.eventId,
+      isInterested: eventData?.isInterested
+    });
+
+    // 초기 상태 설정
+    setInterest(Boolean(eventData?.isInterested));
+
+    const handleInterestChanged = (event) => {
+      const { eventId: changedEventId, interested } = event.detail;
+
+      console.log("EventInfo - event-interest-changed 이벤트 수신:", {
+        changedEventId,
+        currentEventId: eventData.eventId,
+        interested
+      });
+
+      if (String(changedEventId) === String(eventData.eventId)) {
+        console.log("EventInfo - 관심 상태 업데이트:", interested);
+
+        // 즉시 상태 업데이트 (이벤트 리스너 내부이므로 안전)
+        setInterest(Boolean(interested));
+      }
+    };
+
+    window.addEventListener("event-interest-changed", handleInterestChanged);
+    return () => window.removeEventListener("event-interest-changed", handleInterestChanged);
   }, [eventData?.eventId, eventData?.isInterested]);
+
+  // 페이지 포커스 시 백엔드에서 최신 관심 상태 동기화
+  useEffect(() => {
+    if (!eventData?.eventId) return;
+
+    const syncInterestState = async () => {
+      try {
+        const { getEventById } = await import("@/lib/api/eventApi");
+        const latestData = await getEventById(eventData.eventId);
+        console.log("EventInfo - 최신 관심 상태 동기화:", latestData?.isInterested);
+        setInterest(Boolean(latestData?.isInterested));
+      } catch (error) {
+        console.error("관심 상태 동기화 실패:", error);
+      }
+    };
+
+    const handleFocus = () => {
+      console.log("페이지 포커스 - 관심 상태 동기화");
+      syncInterestState();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("페이지 가시성 변경 - 관심 상태 동기화");
+        syncInterestState();
+      }
+    };
+
+    // localStorage 변경 감지 (크로스 페이지 동기화)
+    const handleStorageChange = (e) => {
+      console.log("📨 EventInfo - storage 이벤트 수신:", {
+        key: e.key,
+        newValue: e.newValue,
+        eventId: eventData.eventId
+      });
+
+      if (!e.key || !e.key.startsWith('event_interest_')) {
+        console.log("❌ EventInfo - event_interest_ 키가 아님, 무시");
+        return;
+      }
+
+      try {
+        const storageData = JSON.parse(e.newValue || '{}');
+        const storageEventId = storageData.eventId;
+
+        console.log("📊 EventInfo - storage 데이터 파싱:", {
+          storageEventId,
+          currentEventId: eventData.eventId,
+          interested: storageData.interested
+        });
+
+        if (String(storageEventId) === String(eventData.eventId)) {
+          console.log("✅ EventInfo - localStorage 관심 상태 변경 감지:", storageData.interested);
+          setInterest(Boolean(storageData.interested));
+        } else {
+          console.log("❌ EventInfo - 다른 이벤트의 관심 상태 변경, 무시");
+        }
+      } catch (error) {
+        console.error("❌ localStorage 관심 상태 파싱 실패:", error);
+      }
+    };
+
+    // 페이지 포커스와 가시성 변경 이벤트 리스너
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [eventData?.eventId]);
 
   const handleInterest = async () => {
     console.log("🔍 EventInfo handleInterest 호출됨");
@@ -56,19 +147,31 @@ export default function EventInfo({ eventData, score = 0 }) {
       setInterest((prev) => {
         const next = !prev;
 
-        try {
-          localStorage.setItem(
-            `interest:${eventData.eventId}`,
-            next ? "1" : "0"
-          );
-        } catch {}
-
+        // 같은 페이지 내 다른 컴포넌트들에게 브로드캐스트 (마이크로태스크로 빠른 실행)
         if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("interest-changed", {
-              detail: { eventId: String(eventData.eventId), interested: next },
-            })
-          );
+          Promise.resolve().then(() => {
+            window.dispatchEvent(
+              new CustomEvent("event-interest-changed", {
+                detail: { eventId: String(eventData.eventId), interested: next },
+              })
+            );
+          });
+
+          // 크로스 페이지 동기화를 위한 localStorage 저장
+          const storageKey = `event_interest_${eventData.eventId}`;
+          const storageData = {
+            eventId: String(eventData.eventId),
+            interested: next,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(storageKey, JSON.stringify(storageData));
+
+          // 다른 탭/창에 알리기 위한 storage 이벤트 트리거
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: storageKey,
+            newValue: JSON.stringify(storageData),
+            storageArea: localStorage
+          }));
         }
         return next;
       });

@@ -12,6 +12,8 @@ import {
   validateTogetherForm,
 } from "@/lib/togetherWriteUtils";
 import togetherApi from "@/lib/api/togetherApi";
+import { getEventById } from "@/lib/api/eventApi";
+import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 
 export default function TogetherRecruitmentPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -29,60 +31,126 @@ export default function TogetherRecruitmentPage() {
   const searchParams = useSearchParams();
   const { ready, isLogined, user } = useLogin();
 
-  // 작성 훅: 이벤트 정규화 + 폼 상태
+  // 작성 훅: 이벤트 정규화  폼 상태
   const { selectedEvent, handleEventSelect, form, handleFormChange } =
     useTogetherWriteState();
 
+  // 쿼리의 eventId가 있으면 자동 선택 (편집모드가 아닐 때만)
+  useEffect(() => {
+    const eid = searchParams.get("eventId");
+    if (!eid || isEditMode) return;
+    let stop = false;
+    (async () => {
+      try {
+        const raw = await getEventById(eid);
+        if (stop) return;
+
+        console.log("TogetherWrite - 백엔드에서 받은 이벤트 데이터:", raw);
+
+        // community/write와 동일한 변환 로직 적용
+        const transformed = {
+          id: String(raw.id || raw.eventId || ""),
+          name: raw.title || "",
+          eventName: raw.title || "",
+          eventType: raw.eventType || "이벤트",
+          type: raw.eventType || "이벤트",
+          eventImage: raw.mainImageUrl || "/img/default_img.svg",
+          image: raw.mainImageUrl || "/img/default_img.svg",
+          description: raw.description || raw.title || "",
+          rating: raw.avgRating ? Number(raw.avgRating) : 0,
+          starScore: raw.avgRating ? Number(raw.avgRating) : 0,
+          likes: raw.interestCount || 0,
+          recommendations: raw.interestCount || 0,
+          postsCount: raw.togetherCount || 0,
+          registeredPosts: raw.togetherCount || 0,
+          isLiked: raw.isInterested || false,
+          initialLiked: raw.isInterested || false,
+          startDate: raw.startDate,
+          endDate: raw.endDate,
+          location: raw.location,
+          eventId: raw.id || raw.eventId,
+          // 추가 백엔드 필드들
+          content: raw.content,
+          address: raw.address,
+          addressDetail: raw.addressDetail,
+          viewTime: raw.durationMin ? `${raw.durationMin}분` : "미정",
+          ageLimit: raw.minAge ? `${raw.minAge}세 이상` : "전체관람가",
+          ticketPrices: raw.ticketPrices || [],
+          region: raw.region || null,
+        };
+
+        console.log("TogetherWrite - 변환된 이벤트 데이터:", transformed);
+
+        // useTogetherWriteState의 handleEventSelect에 전달 (내부에서 toCard 추가 적용)
+        handleEventSelect(transformed);
+        setLockEventFromQuery(true); // 이벤트 선택 UI 숨김
+      } catch (e) {
+        console.error("이벤트 자동 선택 실패:", e);
+      }
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [searchParams, isEditMode, handleEventSelect]);
   // 편집 모드 확인 및 데이터 로드
   useEffect(() => {
-    const editParam = searchParams.get('edit');
+    const editParam = searchParams.get("edit");
     if (editParam) {
       setIsEditMode(true);
       setEditId(editParam);
-      
+
       // 기존 데이터 로드
       const loadEditData = async () => {
         try {
           const postData = await togetherApi.getById(editParam);
-          
+
           setTitle(postData.title || "");
           setContent(postData.content || "");
-          
+
           // 이벤트 정보 설정
           if (postData.event) {
             handleEventSelect(postData.event);
           }
-          
+
           // TogetherWriteForm 컴포넌트용 초기 데이터 설정
           const formInitialData = {
             companionDate: postData.meetingDate || "",
             maxParticipants: postData.maxParticipants || 2,
             meetingLocation: postData.meetingLocation || "",
-            meetingRegion: postData.region || { level1: "", level2: "", level3: "" },
+            meetingRegion: postData.region || {
+              level1: "",
+              level2: "",
+              level3: "",
+            },
           };
-          
+
           setFormInitialData(formInitialData);
-          
+
           // useTogetherWriteState용 데이터도 별도로 설정
           const stateFormData = {
             companionDate: postData.meetingDate || "",
-            companionCount: postData.maxParticipants ? `${postData.maxParticipants}명` : "",
-            minAge: "제한없음", // 백엔드에서 나이 제한 데이터가 없으면 기본값
+            companionCount: postData.maxParticipants
+              ? `${postData.maxParticipants}명`
+              : "",
+            minAge: "제한없음",
             maxAge: "제한없음",
             locationQuery: postData.meetingLocation || "",
-            meetingRegion: postData.region || { level1: "", level2: "", level3: "" },
+            meetingRegion: postData.region || {
+              level1: "",
+              level2: "",
+              level3: "",
+            },
             meetingLocation: postData.meetingLocation || "",
           };
-          
+
           // 폼 상태 업데이트 (useTogetherWriteState의 handleFormChange 사용)
           handleFormChange(stateFormData);
-          
         } catch (error) {
           console.error("편집 데이터 로드 실패:", error);
           setSubmitError("편집할 데이터를 불러올 수 없습니다.");
         }
       };
-      
+
       loadEditData();
     }
   }, [searchParams]);
@@ -91,7 +159,9 @@ export default function TogetherRecruitmentPage() {
   useEffect(() => {
     if (!ready) return;
     if (!isLogined) {
-      const next = encodeURIComponent("/together/write");
+      const next = encodeURIComponent(
+        window.location.pathname + window.location.search
+      );
       router.replace(`/login?next=${next}`);
     }
   }, [ready, isLogined, router]);
@@ -111,11 +181,11 @@ export default function TogetherRecruitmentPage() {
 
   const handleSubmit = () => {
     if (!validation.isValid) {
-      alert(validation.errors[0]); // 첫 번째 오류 메시지 표시
+      alert(validation.errors[0]);
       return;
     }
 
-    setSubmitError(""); // 이전 에러 클리어
+    setSubmitError("");
     setShowSuccessModal(true);
   };
 
@@ -130,18 +200,26 @@ export default function TogetherRecruitmentPage() {
 
     try {
       let response;
-      
+
       if (isEditMode && editId) {
-        // 편집 모드: PUT 요청
+        const authorId = user?.id ?? user?.user_id;
+        const eventId = selectedEvent?.eventId ?? selectedEvent?.id;
+
         response = await togetherApi.update(editId, {
-          title,
-          content,
-          selectedEvent,
-          form,
-          user,
+          eventId,
+          hostId: Number(authorId),
+          title: title.trim(),
+          region: {
+            level1: form?.meetingRegion?.level1 || "",
+            level2: form?.meetingRegion?.level2 || "",
+            level3: form?.meetingRegion?.level3 || "",
+          },
+          meetingLocation: form?.meetingLocation || "",
+          meetingDate: form?.companionDate || "",
+          maxParticipants: Number(form?.maxParticipants ?? 2),
+          content: content || "",
         });
       } else {
-        // 작성 모드: POST 요청
         response = await submitTogetherPost({
           title,
           content,
@@ -163,21 +241,24 @@ export default function TogetherRecruitmentPage() {
       }
     } catch (error) {
       console.error("모임 작성 실패:", error);
-      
+
       // 인증 에러 처리
       if (error?.status === 401 || error?.status === 403) {
         console.log("인증 만료 - 로그인 페이지로 이동");
-        const currentPath = encodeURIComponent(window.location.pathname + window.location.search);
+        const currentPath = encodeURIComponent(
+          window.location.pathname + window.location.search
+        );
         router.push(`/login?next=${currentPath}`);
         return;
       }
-      
+
       setSubmitError(error.message || "모임 글 작성에 실패했습니다.");
       setShowSuccessModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
+  const [lockEventFromQuery, setLockEventFromQuery] = useState(false);
 
   return (
     <div className="w-full min-h-screen bg-white">
@@ -195,46 +276,35 @@ export default function TogetherRecruitmentPage() {
           </div>
         )}
 
-        {/* 유효성 검사 에러 표시 */}
-        {!validation.isValid && validation.errors.length > 0 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-700 text-sm font-medium mb-2">
-              입력 확인 필요:
-            </p>
-            <ul className="text-yellow-700 text-sm list-disc list-inside space-y-1">
-              {validation.errors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* 선택된 이벤트 표시 - 이벤트 검색 영역 바로 위에 배치 */}
+        {/* 선택된 이벤트 표시 */}
         {selectedEvent && (
           <div className="mb-6 relative">
             <h3 className="text-lg font-medium text-gray-700 mb-2">
               선택된 이벤트
             </h3>
-            <button
-              onClick={() =>
-                window.confirm("이벤트 선택을 삭제하시겠습니까?") &&
-                handleEventSelect(null)
-              }
-              className="absolute top-12 right-2 w-6 h-6 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white text-sm z-10 transition-all"
-              aria-label="이벤트 선택 해제">
-              ×
-            </button>
+            {!lockEventFromQuery && (
+              <button
+                onClick={() =>
+                  window.confirm("이벤트 선택을 삭제하시겠습니까?") &&
+                  handleEventSelect(null)
+                }
+                className="absolute top-12 right-2 w-6 h-6 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white text-sm z-10 transition-all"
+                aria-label="이벤트 선택 해제">
+                ×
+              </button>
+            )}
             <PostEventMiniCard {...selectedEvent} />
           </div>
         )}
 
         <div className="mb-6">
           <TogetherWriteForm
-            key={isEditMode ? `edit-${editId}` : 'create'}
+            key={isEditMode ? `edit-${editId}` : "create"}
             onEventSelect={handleEventSelect}
             onLocationSearch={(q) => console.log("지역 검색:", q)}
             onFormChange={handleFormChange}
             initialData={isEditMode ? formInitialData : form}
+            hideEventPicker={isEditMode}
           />
         </div>
 
@@ -286,10 +356,13 @@ export default function TogetherRecruitmentPage() {
                 ? "bg-blue-500 text-white hover:bg-blue-600"
                 : "bg-gray-300 text-white cursor-not-allowed"
             }`}>
-            {isSubmitting 
-              ? (isEditMode ? "수정 중..." : "등록 중...") 
-              : (isEditMode ? "수정" : "등록")
-            }
+            {isSubmitting
+              ? isEditMode
+                ? "수정 중..."
+                : "등록 중..."
+              : isEditMode
+              ? "수정"
+              : "등록"}
           </button>
         </div>
 
@@ -311,13 +384,27 @@ export default function TogetherRecruitmentPage() {
         {/* 등록/수정 모달 */}
         <ConfirmModal
           open={showSuccessModal}
-          title={isEditMode ? "글을 수정하시겠습니까?" : "글을 등록하시겠습니까?"}
+          title={
+            isEditMode ? "글을 수정하시겠습니까?" : "글을 등록하시겠습니까?"
+          }
           description={
             isSubmitting
-              ? (isEditMode ? "수정 중입니다. 잠시만 기다려주세요..." : "등록 중입니다. 잠시만 기다려주세요...")
-              : (isEditMode ? "수정 후 상세 페이지로 이동합니다." : "등록 후 작성 글 페이지로 이동합니다.")
+              ? isEditMode
+                ? "수정 중입니다. 잠시만 기다려주세요..."
+                : "등록 중입니다. 잠시만 기다려주세요..."
+              : isEditMode
+              ? "수정 후 상세 페이지로 이동합니다."
+              : "등록 후 작성 글 페이지로 이동합니다."
           }
-          confirmText={isSubmitting ? (isEditMode ? "수정 중..." : "등록 중...") : (isEditMode ? "수정" : "등록")}
+          confirmText={
+            isSubmitting
+              ? isEditMode
+                ? "수정 중..."
+                : "등록 중..."
+              : isEditMode
+              ? "수정"
+              : "등록"
+          }
           cancelText="아니오"
           onConfirm={handleConfirmSave}
           onClose={() => !isSubmitting && setShowSuccessModal(false)}
@@ -327,4 +414,3 @@ export default function TogetherRecruitmentPage() {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import SearchToWrite from "@/components/community/SearchToWrite";
@@ -12,103 +12,142 @@ export default function TogetherWriteForm({
   onLocationSearch,
   onFormChange,
   initialData = {},
+  hideEventPicker = false,
 }) {
+  // 내부 폼 상태
   const [formData, setFormData] = useState({
-    companionDate: initialData.companionDate || "",
-    maxParticipants: initialData.maxParticipants || 2,
-    // minAge: initialData.minAge || "제한없음", // 백엔드 미지원으로 주석처리
-    // maxAge: initialData.maxAge || "제한없음", // 백엔드 미지원으로 주석처리
-    // 모임장소 관련 필드
-    meetingRegion: initialData.meetingRegion || { level1: "", level2: "", level3: "" },
-    meetingLocation: initialData.meetingLocation || "", // 간단한 모임장소 (카페명, 지하철역 등)
-    ...initialData,
+    companionDate: "",
+    maxParticipants: 2,
+    meetingRegion: { level1: "", level2: "", level3: "" },
+    meetingLocation: "",
   });
 
   const [selectedDates, setSelectedDates] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
 
-  // initialData가 변경될 때 formData와 selectedDates 업데이트
+  // 초기 데이터 1회만 주입
+  const appliedInitialRef = useRef(false);
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0) {
-      // formData 업데이트
-      setFormData(prevFormData => ({
-        ...prevFormData,
-        ...initialData,
-      }));
+    if (appliedInitialRef.current) return;
+    if (!initialData) return;
 
-      // 캘린더 날짜 초기화 (companionDate가 있는 경우)
-      if (initialData.companionDate) {
-        try {
-          const dateObj = new Date(initialData.companionDate + 'T00:00:00');
-          if (!isNaN(dateObj.getTime())) {
-            setSelectedDates([dateObj]);
+    const safeRegion =
+      initialData?.meetingRegion &&
+      typeof initialData.meetingRegion === "object"
+        ? {
+            level1: initialData.meetingRegion.level1 || "",
+            level2: initialData.meetingRegion.level2 || "",
+            level3: initialData.meetingRegion.level3 || "",
           }
-        } catch (error) {
-          console.error("날짜 파싱 실패:", error);
-        }
-      }
-    }
-  }, [initialData]);
+        : { level1: "", level2: "", level3: "" };
 
-  // 폼 데이터 변경 핸들러
+    const hasAny =
+      !!initialData.companionDate ||
+      !!initialData.meetingLocation ||
+      !!safeRegion.level1 ||
+      !!safeRegion.level2 ||
+      !!safeRegion.level3 ||
+      initialData.maxParticipants !== undefined;
+
+    if (!hasAny) return;
+
+    const next = {
+      companionDate: initialData.companionDate || "",
+      maxParticipants: Number.isFinite(Number(initialData.maxParticipants))
+        ? Number(initialData.maxParticipants)
+        : 2,
+      meetingRegion: safeRegion,
+      meetingLocation: initialData.meetingLocation || "",
+      ...initialData,
+    };
+
+    setFormData(next);
+
+    if (next.companionDate) {
+      const d = new Date(`${next.companionDate}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) setSelectedDates([d]);
+    }
+
+    onFormChange?.(next);
+    appliedInitialRef.current = true;
+  }, [initialData, onFormChange]);
+
+  const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+  // 입력 변경
   const handleInputChange = (field, value) => {
-    const newFormData = {
-      ...formData,
-      [field]: value,
-    };
-    setFormData(newFormData);
-
-    // 부모 컴포넌트에 변경사항 전달
-    if (onFormChange) {
-      onFormChange(newFormData);
+    let v = value;
+    if (field === "maxParticipants") {
+      const num = Number.isFinite(Number(v)) ? Number(v) : 2;
+      v = clamp(num, 2, 100);
     }
+    const next = { ...formData, [field]: v };
+    setFormData(next);
+    onFormChange?.(next);
   };
 
-  // 이벤트 선택 핸들러
+  // 이벤트 선택(작성 전용)
   const handleEventSelect = (eventCard) => {
-    if (onEventSelect) {
-      onEventSelect(eventCard);
-    }
+    onEventSelect?.(eventCard);
   };
 
-  // 모임장소 지역 선택 핸들러
+  // 지역 변경
   const handleRegionChange = (region) => {
-    const newFormData = {
-      ...formData,
-      meetingRegion: region,
+    const safe = {
+      level1: region?.level1 || "",
+      level2: region?.level2 || "",
+      level3: region?.level3 || "",
     };
-    setFormData(newFormData);
-
-    // 부모 컴포넌트에 변경사항 전달
-    if (onFormChange) {
-      onFormChange(newFormData);
-    }
+    const next = { ...formData, meetingRegion: safe };
+    setFormData(next);
+    onFormChange?.(next);
   };
 
-  // 날짜 변경 핸들러
+  // 날짜 변경
   const handleDatesChange = (dates) => {
     setSelectedDates(dates);
     setShowCalendar(false);
     if (dates.length > 0) {
-      const dateStr = `${dates[0].getFullYear()}-${String(
-        dates[0].getMonth() + 1
-      ).padStart(2, "0")}-${String(dates[0].getDate()).padStart(2, "0")}`;
-      handleInputChange("companionDate", dateStr);
+      const y = dates[0].getFullYear();
+      const m = String(dates[0].getMonth() + 1).padStart(2, "0");
+      const d = String(dates[0].getDate()).padStart(2, "0");
+      handleInputChange("companionDate", `${y}-${m}-${d}`);
     }
+  };
+
+  // 표시용 날짜
+  const displayDate = (() => {
+    if (selectedDates.length > 0) {
+      const y = selectedDates[0].getFullYear();
+      const m = String(selectedDates[0].getMonth() + 1).padStart(2, "0");
+      const d = String(selectedDates[0].getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    return formData.companionDate || "";
+  })();
+
+  const openCalendar = () => {
+    if (selectedDates.length === 0 && formData.companionDate) {
+      const d = new Date(`${formData.companionDate}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) setSelectedDates([d]);
+    }
+    setShowCalendar((prev) => !prev);
   };
 
   return (
     <div className="border border-gray-300 rounded-lg p-6 bg-white relative overflow-visible">
       <div className="space-y-4">
-        {/* 이벤트 선택/추가 */}
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-gray-700 w-32 flex-shrink-0">
-            이벤트 선택/추가
-          </label>
-          <div className="w-1/3">
-            <SearchToWrite onSelect={handleEventSelect} />
+        {/* 이벤트 선택/추가 (필요 시 숨김) */}
+        {!hideEventPicker && (
+          <div className="flex items-center gap-4">
+            <label className="text-sm text-gray-700 w-32 flex-shrink-0">
+              이벤트 선택/추가
+            </label>
+            <div className="w-1/3">
+              <SearchToWrite onSelect={handleEventSelect} />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 동행 날짜 */}
         <div className="flex items-center gap-4">
@@ -117,15 +156,9 @@ export default function TogetherWriteForm({
           </label>
           <div className="relative w-1/4">
             <button
-              onClick={() => setShowCalendar(!showCalendar)}
+              onClick={openCalendar}
               className="w-full h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 focus:outline-none focus:border-blue-500 text-left">
-              {selectedDates.length > 0
-                ? `${selectedDates[0].getFullYear()}-${String(
-                    selectedDates[0].getMonth() + 1
-                  ).padStart(2, "0")}-${String(
-                    selectedDates[0].getDate()
-                  ).padStart(2, "0")}`
-                : "연도 - 월 - 일"}
+              {displayDate || "연도 - 월 - 일"}
             </button>
             <Image
               src={ICONS.CALENDAR}
@@ -147,7 +180,7 @@ export default function TogetherWriteForm({
               type="number"
               value={formData.maxParticipants}
               onChange={(e) =>
-                handleInputChange("maxParticipants", parseInt(e.target.value, 10) || 2)
+                handleInputChange("maxParticipants", e.target.value)
               }
               min="2"
               max="100"
@@ -157,73 +190,6 @@ export default function TogetherWriteForm({
           </div>
         </div>
 
-        {/* 나이 제한 - 백엔드 미지원으로 임시 주석처리 */}
-        {/* <div className="flex items-center gap-4">
-          <label className="text-sm text-gray-700 w-32 flex-shrink-0">
-            나이 제한
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                value={formData.minAge || "제한없음"}
-                onChange={(e) => handleInputChange("minAge", e.target.value)}
-                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
-                <option value="제한없음">제한없음</option>
-                <option value="7세미만">7세미만</option>
-                {Array.from({ length: 52 }, (_, i) => i + 8).map((age) => (
-                  <option key={age} value={age}>
-                    {age}세
-                  </option>
-                ))}
-                <option value="60세이상">60세이상</option>
-              </select>
-              <Image
-                src={ICONS.DOWN_ARROW}
-                alt="dropdown"
-                width={12}
-                height={12}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none"
-              />
-            </div>
-            <span className="text-gray-500">~</span>
-            <div className="relative">
-              <select
-                value={formData.maxAge || "제한없음"}
-                onChange={(e) => handleInputChange("maxAge", e.target.value)}
-                className="w-24 h-8 px-2 bg-transparent text-sm border-0 border-b border-gray-300 appearance-none focus:outline-none focus:border-blue-500">
-                <option value="제한없음">제한없음</option>
-                <option value="7세미만">7세미만</option>
-                {Array.from({ length: 52 }, (_, i) => i + 8).map((age) => {
-                  const isDisabled =
-                    formData.minAge !== "제한없음" &&
-                    formData.minAge !== "" &&
-                    formData.minAge !== "7세미만" &&
-                    formData.minAge !== "60세이상" &&
-                    age < parseInt(formData.minAge);
-
-                  return (
-                    <option
-                      key={age}
-                      value={age}
-                      disabled={isDisabled}
-                      style={isDisabled ? { color: "#ccc" } : {}}>
-                      {age}세
-                    </option>
-                  );
-                })}
-                <option value="60세이상">60세이상</option>
-              </select>
-              <Image
-                src={ICONS.DOWN_ARROW}
-                alt="dropdown"
-                width={12}
-                height={12}
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 pointer-events-none"
-              />
-            </div>
-          </div>
-        </div> */}
-
         {/* 모임장소 */}
         <div className="border-t border-gray-200 pt-4 mt-4">
           <div className="mb-4">
@@ -231,7 +197,7 @@ export default function TogetherWriteForm({
               모임장소 <span className="text-red-500">*</span>
             </label>
           </div>
-          
+
           {/* 지역 선택 */}
           <div className="flex items-center gap-4 mb-3">
             <label className="text-sm text-gray-700 w-32 flex-shrink-0">
@@ -243,7 +209,7 @@ export default function TogetherWriteForm({
             />
           </div>
 
-          {/* 모임장소 */}
+          {/* 상세 장소 */}
           <div className="flex items-center gap-4">
             <label className="text-sm text-gray-700 w-32 flex-shrink-0">
               모임장소

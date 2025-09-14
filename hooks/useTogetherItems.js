@@ -1,76 +1,72 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchTogetherList } from "@/lib/api/togetherApi";
+import togetherApi from "@/lib/api/togetherApi";
+import { getEventTypeLabel } from "@/lib/api/eventApi";
 
-/* 백엔드 응답 데이터 -> 카드 아이템 변환 */
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+
+/* 백엔드 TogetherDto.Response -> 카드 아이템 변환 */
 const fromServerResponse = (item = {}) => {
-  // 백엔드 응답 구조에 맞게 매핑
   return {
-    togetherId: item.id || item.togetherId,
-    imgSrc:
-      item.eventSnapshot?.eventImage ||
-      item.eventImage ||
-      item.imgSrc ||
-      "/img/default_img.svg",
+    // 기본 필드
+    togetherId: item.id,
     title: item.title || "제목 없음",
-    eventType: item.eventSnapshot?.eventType || item.eventType || "기타",
-    eventName:
-      item.eventSnapshot?.name ||
-      item.eventSnapshot?.eventName ||
-      item.eventName ||
-      "",
-    group: item.maxParticipants
-      ? `${item.currentParticipants || 0}/${item.maxParticipants}`
-      : item.companionCount || 1,
+    content: item.content || "",
+
+    // 이벤트 정보 (한글 변환)
+    eventType: getEventTypeLabel(item.event?.eventType) || "기타",
+    eventName: item.event?.eventName || item.event?.title || "",
+    imgSrc:
+      item.event?.eventImage ||
+      (item.event?.thumbnailImagePath
+        ? `${BASE_URL}${item.event.thumbnailImagePath}`
+        : "/img/default_img.svg"),
+    event: item.event,
+    eventSnapshot: item.event,
+
+    // 호스트 정보
+    host: item.host,
+    hostId: item.host?.id,
+    hostNickname: item.host?.nickname || item.host?.displayName,
+    hostLoginId: item.host?.loginId || item.host?.login_id,
+    author: item.host?.nickname || item.host?.displayName || "-",
+
+    // 참여자 정보
+    maxParticipants: item.maxParticipants,
+    currentParticipants: item.currentParticipants,
+    group: `${item.currentParticipants || 0}/${item.maxParticipants}`,
+
+    // 날짜 및 장소
+    meetingDate: item.meetingDate,
     date: item.meetingDate
       ? new Date(item.meetingDate)
           .toLocaleDateString("ko-KR")
           .replace(/\./g, ".")
           .replace(/ /g, "")
-      : item.companionDate
-      ? new Date(item.companionDate)
-          .toLocaleDateString("ko-KR")
-          .replace(/\./g, ".")
-          .replace(/ /g, "")
       : "",
-    address: item.eventSnapshot?.location || item.address || "",
-    meetingLocation: item.meetingLocation, // 추가
-    region: item.region, // 추가
-    author:
-      item.host?.nickname || item.host?.displayName || item.authorName || "-",
-    views: item.viewCount || item.views || 0,
-    isClosed: !item.active || item.isClosed || false,
+    meetingLocation: item.meetingLocation,
+    region: item.region,
+    address: item.meetingLocation || "",
 
-    // 백엔드 원본 필드들을 직접 전달 (컴포넌트에서 사용)
-    maxParticipants: item.maxParticipants,
-    currentParticipants: item.currentParticipants,
-    meetingDate: item.meetingDate,
-    eventSnapshot: item.event, // 백엔드에서 event 객체로 옴
-    event: item.event,
+    // 상태
+    active: item.active,
+    isClosed: !item.active,
+    isInterested: Boolean(item.isInterested), // 관심 등록 상태
 
-    // 호스트 정보 (TogetherList에서 필요한 필드들)
-    hostObj: item.host,
-    hostNickname: item.host?.nickname,
-    hostLoginId: item.host?.loginId || item.host?.login_id,
-    hostId: item.host?.id,
-    host: item.host, // 백엔드 호스트 객체 직접 전달
+    // 기타
+    // views: 0,
 
-    // 정렬을 위한 원본 데이터 보존
+    // 정렬을 위한 시간 데이터
     _createdTime: item.createdAt ? new Date(item.createdAt).getTime() : 0,
-    _eventTime: item.meetingDate
-      ? new Date(item.meetingDate).getTime()
-      : item.companionDate
-      ? new Date(item.companionDate).getTime()
-      : 0,
-    _views: item.viewCount || item.views || 0,
+    _eventTime: item.meetingDate ? new Date(item.meetingDate).getTime() : 0,
+    _views: 0,
 
-    // 원본 데이터 보존 (상세 페이지에서 필요할 수 있음)
+    // 원본 데이터 보존
     _original: item,
   };
 };
 
-/* 정렬 옵션을 백엔드 API 파라미터로 변환 */
 const getSortParam = (sortOption) => {
   switch (sortOption) {
     case "createdAt_desc":
@@ -85,7 +81,7 @@ const getSortParam = (sortOption) => {
       // 조회수 필드가 없으므로 생성일 기준으로 대체
       return "createdAt,desc";
     default:
-      return "meetingDate,desc"; // 기본: 최근 이벤트순
+      return "meetingDate,desc";
   }
 };
 
@@ -114,9 +110,17 @@ export default function useTogetherItems(
         };
 
         // 백엔드 API 호출
-        const response = await fetchTogetherList(params);
+        let response;
+        if (selectedEventType === "전체") {
+          // 전체 목록 조회
+          response = await togetherApi.getAll();
+        } else {
+          // 이벤트 타입별 검색
+          response = await togetherApi.search({
+            eventType: selectedEventType,
+          });
+        }
 
-        // 응답 데이터 구조에 따라 조정 필요
         // 만약 페이징된 응답이라면: response.content 또는 response.data
         // 단순 배열이라면: response 그대로
         const rawItems = Array.isArray(response)
@@ -127,7 +131,6 @@ export default function useTogetherItems(
         const transformedItems = rawItems.map(fromServerResponse);
 
         // 클라이언트 사이드에서 추가 정렬이 필요한 경우
-        // (백엔드에서 정렬을 완전히 처리한다면 이 부분은 불필요)
         const sortedItems = [...transformedItems].sort((a, b) => {
           switch (sortOption) {
             case "createdAt_desc":
@@ -176,7 +179,14 @@ export default function useTogetherItems(
             page: 0,
             size: 100,
           };
-          const response = await fetchTogetherList(params);
+          let response;
+          if (selectedEventType === "전체") {
+            response = await togetherApi.getAll();
+          } else {
+            response = await togetherApi.search({
+              eventType: selectedEventType,
+            });
+          }
           const rawItems = Array.isArray(response)
             ? response
             : response.content || response.data || [];

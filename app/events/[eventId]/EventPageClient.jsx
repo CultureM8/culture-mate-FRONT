@@ -1,6 +1,6 @@
 "use client";
 
-import { getEventReviews } from "@/lib/api/eventReviewApi"; //  리뷰 API (통합된 API)
+import { getEventReviews } from "@/lib/api/eventReviewApi";
 import EventDetail from "@/components/events/detail/EventDetail";
 import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -51,6 +51,7 @@ const toLocation = (obj) => {
 
 const mapDetail = (data) => {
   console.log("mapDetail - input data:", data);
+  console.log("mapDetail - isInterested from backend:", data?.isInterested);
 
   const priceList = Array.isArray(data?.ticketPrices)
     ? data.ticketPrices.map((p) => ({
@@ -102,10 +103,66 @@ const mapDetail = (data) => {
     contentImageUrls: getEventContentImageUrls(data),
     ticketPrices: data.ticketPrices || [],
     region: data.region || null,
+    isInterested: Boolean(data.isInterested), // 백엔드에서 받은 관심 상태 매핑
   };
 
   console.log("mapDetail - output result:", result);
   return result;
+};
+
+// 동행 데이터 매핑 함수
+const mapTogetherData = (together) => {
+  const togetherId = together.id || null;
+
+  return {
+    // 기본 식별자
+    id: togetherId,
+    togetherId: togetherId,
+
+    // 제목/내용
+    title: together.title || "제목 없음",
+    content: together.content || "",
+
+    // 이벤트 정보
+    eventType: together.event?.eventType || "기타",
+    eventName: together.event?.title || together.event?.eventName || "이벤트명",
+    eventSnapshot: together.event,
+    event: together.event,
+
+    // 호스트 정보
+    host: together.host,
+    hostId: together.host?.id,
+    hostNickname: together.host?.nickname || together.host?.displayName,
+    hostLoginId: together.host?.loginId || together.host?.login_id,
+
+    // 참여자 정보
+    maxParticipants: together.maxParticipants,
+    currentParticipants: together.currentParticipants,
+    group: `${together.currentParticipants || 0}/${together.maxParticipants}`,
+
+    // 날짜 및 장소
+    meetingDate: together.meetingDate,
+    date: together.meetingDate,
+    meetingLocation: together.meetingLocation,
+    region: together.region,
+    address: together.meetingLocation || "",
+
+    // 상태
+    active: together.active,
+    isClosed: !together.active,
+    isInterested: together.isInterested || false,
+
+    // 이미지 - getEventMainImageUrl 사용
+    imgSrc: together.event
+      ? getEventMainImageUrl(together.event)
+      : "/img/default_img.svg",
+
+    // href
+    href: `/together/${togetherId}`,
+
+    // 기타
+    _key: `together_${togetherId}`,
+  };
 };
 
 export default function EventPageClient({ eventData: initialEventData }) {
@@ -267,6 +324,40 @@ export default function EventPageClient({ eventData: initialEventData }) {
     }
   };
 
+  // 관심 상태 변경 이벤트 리스너
+  useEffect(() => {
+    if (!eventData?.eventId) return;
+
+    const handleInterestChanged = (event) => {
+      const { eventId: changedEventId, interested } = event.detail;
+
+      if (String(changedEventId) === String(eventData.eventId)) {
+        console.log("EventPageClient - 관심 상태 변경 감지:", interested);
+
+        // 즉시 UI 업데이트 (빠른 반응) - likesCount도 함께 업데이트
+        setEventData((prev) => ({
+          ...prev,
+          isInterested: Boolean(interested),
+          likesCount: interested
+            ? (prev.likesCount || 0) + 1
+            : Math.max((prev.likesCount || 0) - 1, 0),
+        }));
+
+        // 백엔드에서 최신 상태도 비동기로 가져오기 (정확성 보장)
+        setTimeout(() => {
+          updateEventData();
+        }, 100);
+      }
+    };
+
+    window.addEventListener("event-interest-changed", handleInterestChanged);
+    return () =>
+      window.removeEventListener(
+        "event-interest-changed",
+        handleInterestChanged
+      );
+  }, [eventData?.eventId]);
+
   // 동행 데이터 로드 함수
   const loadTogetherData = async () => {
     console.log("loadTogetherData 함수 실행됨");
@@ -287,8 +378,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
 
       console.log("동행 데이터 로드 성공:", togetherList);
       const safeList = Array.isArray(togetherList) ? togetherList : [];
-      console.log("설정할 데이터:", safeList);
-      setTogetherData(safeList);
+
+      // 동행 데이터 매핑 적용
+      const mappedData = safeList.map(mapTogetherData);
+      console.log("매핑된 동행 데이터:", mappedData);
+      setTogetherData(mappedData);
     } catch (error) {
       console.error("동행 데이터 로드 실패:", error);
       console.error("Error details:", error.message, error.stack);

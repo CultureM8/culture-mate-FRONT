@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import InterestEvent from "./InterestEvent";
 import InterestWith from "./InterestWith";
 
-export default function InterestTab({ eventData, onRefreshData }) {
+export default function InterestTab({ eventData, togetherData, onRefreshData }) {
   const [activeTab, setActiveTab] = useState("InterEventTab");
 
   // 관심 상태 변경 시 데이터 새로고침
@@ -18,9 +18,22 @@ export default function InterestTab({ eventData, onRefreshData }) {
       }
     };
 
+    const handleTogetherInterestChanged = (event) => {
+      const { togetherId, interested } = event.detail;
+
+      // 관심 해제 시에만 데이터 새로고침
+      if (!interested && typeof onRefreshData === "function") {
+        onRefreshData();
+      }
+    };
+
     window.addEventListener("interest-changed", handleInterestChanged);
-    return () =>
+    window.addEventListener("together-interest-changed", handleTogetherInterestChanged);
+    
+    return () => {
       window.removeEventListener("interest-changed", handleInterestChanged);
+      window.removeEventListener("together-interest-changed", handleTogetherInterestChanged);
+    };
   }, [onRefreshData]);
 
   return (
@@ -49,8 +62,9 @@ export default function InterestTab({ eventData, onRefreshData }) {
         {activeTab === "InterEventTab" && (
           <InterestEvent eventData={eventData} />
         )}
-        {/* 관심 동행은 아직 구현되지 않음 */}
-        {activeTab === "InterWithTab" && <InterestWith eventData={eventData} />}
+        {activeTab === "InterWithTab" && (
+          <InterestWith togetherData={togetherData} />
+        )}
       </div>
     </div>
   );

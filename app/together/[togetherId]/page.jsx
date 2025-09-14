@@ -9,7 +9,7 @@ import TogetherRequestModal from "@/components/mypage/TogetherManagement/Togethe
 import ConfirmModal from "@/components/global/ConfirmModal";
 import { LoginContext } from "@/components/auth/LoginProvider";
 /* API */
-import togetherApi from "@/lib/api/togetherApi";
+import togetherApi, { toggleTogetherInterest } from "@/lib/api/togetherApi";
 import { transformEventCardData } from "@/lib/api/eventApi";
 
 /* storage 유틸 */
@@ -36,7 +36,7 @@ function pickHostMeta(p) {
 
   // 백엔드에서 host 객체로 옴
   const a = p.host || p.author || {};
-  
+
   if (typeof p.author === "string") {
     const loginId = p.author || p.author_login_id || "";
     return {
@@ -88,13 +88,26 @@ const toMiniCard = (eventData, registeredPosts = 0) => {
     eventType: eventData?.eventType ?? eventData?.type,
     title: eventData?.title ?? eventData?.name ?? eventData?.eventName,
     description: eventData?.description ?? "",
-    thumbnailImagePath: eventData?.thumbnailImagePath ?? eventData?.eventImage ?? eventData?.image ?? eventData?.imgSrc,
-    avgRating: eventData?.avgRating ?? eventData?.rating ?? eventData?.score ?? eventData?.starScore,
-    interestCount: eventData?.interestCount ?? eventData?.likes ?? eventData?.liked ?? 0,
+    thumbnailImagePath:
+      eventData?.thumbnailImagePath ??
+      eventData?.eventImage ??
+      eventData?.image ??
+      eventData?.imgSrc,
+    avgRating:
+      eventData?.avgRating ??
+      eventData?.rating ??
+      eventData?.score ??
+      eventData?.starScore,
+    interestCount:
+      eventData?.interestCount ?? eventData?.likes ?? eventData?.liked ?? 0,
     reviewCount: registeredPosts,
-    isInterested: eventData?.isInterested ?? eventData?.initialLiked ?? eventData?.isLiked ?? false,
+    isInterested:
+      eventData?.isInterested ??
+      eventData?.initialLiked ??
+      eventData?.isLiked ??
+      false,
   };
-  
+
   // transformEventCardData 사용해서 변환 (이미지 URL 처리 포함)
   return transformEventCardData(normalizedEventCard);
 };
@@ -130,6 +143,8 @@ export default function TogetherDetailPage() {
   const [post, setPost] = useState(null); // 로컬 저장소에서 읽은 글
   const [eventData, setEventData] = useState(null); // 이벤트 상세(스냅샷 없을 때)
   const [liked, setLiked] = useState(false);
+  const [interest, setInterest] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
   const [mounted, setMounted] = useState(false); // 하이드레이션 안전 가드
@@ -197,7 +212,10 @@ export default function TogetherDetailPage() {
         const apiPost = await togetherApi.getById(togetherId);
         setPost(apiPost); // API 응답으로 상태 설정
 
-        // 2. 좋아요 상태 설정
+        // 2. 관심 등록 상태 설정 (백엔드 데이터만 사용)
+        setInterest(Boolean(apiPost?.isInterested));
+
+        // 3. 좋아요 상태 설정 (기존 로직 유지)
         setLiked(isLiked("together", togetherId));
 
         // 3. 이벤트 데이터 설정
@@ -216,7 +234,6 @@ export default function TogetherDetailPage() {
         } else {
           setEventData(null);
         }
-
       } catch (error) {
         console.error("게시글 로드 실패:", error);
         setPost(null); // 에러 발생 시 post를 null로 설정
@@ -229,7 +246,9 @@ export default function TogetherDetailPage() {
           alert("요청하신 글을 찾을 수 없습니다.");
           router.push("/together"); // 목록 페이지로 이동
         } else {
-          alert("글을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+          alert(
+            "글을 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+          );
         }
       }
     };
@@ -270,13 +289,14 @@ export default function TogetherDetailPage() {
   let isOwnPost = false;
   if (mounted && ready && post && user) {
     const myUid = user.id;
-    const authorUid = post.host?.id || post.hostId || post.authorId || post._ownerKey;
+    const authorUid =
+      post.host?.id || post.hostId || post.authorId || post._ownerKey;
     console.log("🔍 Own Post Check:", {
       myUid,
       authorUid,
       postHost: post.host,
       userInfo: user,
-      postData: post
+      postData: post,
     });
     isOwnPost =
       myUid != null && authorUid != null && String(myUid) === String(authorUid);
@@ -285,7 +305,7 @@ export default function TogetherDetailPage() {
 
   /* 이벤트 카드 데이터 */
   const card = post?.eventSnapshot
-    ? transformEventCardData(post.eventSnapshot)  // eventSnapshot도 transformEventCardData로 변환
+    ? transformEventCardData(post.eventSnapshot) // eventSnapshot도 transformEventCardData로 변환
     : eventData
     ? toMiniCard(eventData, 0)
     : null;
@@ -317,6 +337,47 @@ export default function TogetherDetailPage() {
           }
         : prev
     );
+  };
+
+  /* 관심 등록/해제 핸들러 */
+  const onToggleInterest = async () => {
+    console.log("🔍 TogetherDetail onToggleInterest 호출됨");
+    console.log("🔍 로그인 상태:", { isLogined, user, togetherId });
+
+    if (!isLogined || !user) {
+      console.log("⚠️ 로그인 필요");
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (isSubmitting) {
+      console.log("⏳ 이미 처리 중...");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await toggleTogetherInterest(togetherId);
+      setInterest((prev) => {
+        const next = !prev;
+
+        // 같은 페이지 내 다른 컴포넌트들에게 브로드캐스트
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("together-interest-changed", {
+              detail: { togetherId: String(togetherId), interested: next },
+            })
+          );
+        }
+        return next;
+      });
+      console.log("✅ 동행 관심 등록/해제 결과:", result);
+    } catch (error) {
+      console.error("❌ 동행 관심 등록/해제 실패:", error);
+      alert("동행 관심 등록/해제에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   /* 신고 */
@@ -384,9 +445,12 @@ export default function TogetherDetailPage() {
               {/* <span>조회 {views}</span> // 백엔드에 조회수 속성 없음 - 주석 처리 */}
               <span>
                 <button
-                  className="flex flex-col items-center py-3 ml-2"
-                  onClick={onToggleLike}>
-                  {liked ? (
+                  className={`flex flex-col items-center py-3 ml-2 ${
+                    isSubmitting ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
+                  onClick={onToggleInterest}
+                  disabled={isSubmitting}>
+                  {interest ? (
                     <Image
                       src={ICONS.HEART}
                       alt="관심"
@@ -403,7 +467,7 @@ export default function TogetherDetailPage() {
                   )}
                 </button>
               </span>
-              <span>{likeCount}</span>
+              <span>{post?.interestCount || 0}</span>
             </div>
           </div>
         </div>
@@ -428,14 +492,16 @@ export default function TogetherDetailPage() {
             <div className="flex items-center gap-8">
               <span className="text-base text-black w-20">동행 인원</span>
               <span className="text-base">
-                {`${post.currentParticipants || 1} / ${post.maxParticipants || 1} 명`}
+                {`${post.currentParticipants || 1} / ${
+                  post.maxParticipants || 1
+                } 명`}
               </span>
             </div>
 
             <div className="flex items-center gap-8">
               <span className="text-base text-black w-20">모임 지역</span>
               <span className="text-base">
-                {post?.region 
+                {post?.region
                   ? `${post.region.level1} ${post.region.level2} ${post.region.level3}`.trim()
                   : "지역 정보 없음"}
               </span>
@@ -485,10 +551,11 @@ export default function TogetherDetailPage() {
           </button>
 
           {/* 버튼 - 마운트 후에만 조건부 렌더링 */}
-          {mounted && isLogined && (
-            isOwnPost ? (
+          {mounted &&
+            isLogined &&
+            (isOwnPost ? (
               <button
-                onClick={() => router.push(`/together/write?edit=${togetherId}`)}
+                onClick={() => router.push(`/together/${togetherId}/edit`)}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
                 게시물 수정
               </button>
@@ -498,8 +565,7 @@ export default function TogetherDetailPage() {
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
                 동행 신청
               </button>
-            )
-          )}
+            ))}
         </div>
 
         {/* 작성자 정보 (간단) */}
@@ -550,7 +616,7 @@ export default function TogetherDetailPage() {
             post.companionDate || post.createdAt,
             "date-only"
           ),
-          group: formatGroupInfo(post), // "1/2명" 형식
+          group: formatGroupInfo(post),
           maxParticipants: post.maxParticipants || 1,
           currentParticipants: post.currentParticipants ?? 0,
           eventId: post.eventId,
@@ -562,7 +628,6 @@ export default function TogetherDetailPage() {
           eventType: post.eventSnapshot?.eventType || "기타",
           eventName:
             post.eventSnapshot?.name || post.eventSnapshot?.title || "이벤트",
-          // 수신자(호스트) 식별값을 확실히 채움
           authorUid: hostUid || hostMeta.uid || "",
           authorId:
             hostUid || hostMeta.uid || hostLogin || hostMeta.loginId || "",
