@@ -417,25 +417,7 @@ export default function TogetherRequestChat({
         console.warn("상대 참가 등록 실패(무시):", joinError);
       }
 
-      // 그룹챗 열기 이벤트 (togetherId로 전달하여 올바른 그룹채팅방 찾기)
-      try {
-        const togetherId = chatRequestData.togetherId || chatRequestData.postId || chatRequestData.requestId;
-        console.log('그룹채팅 열기: togetherId =', togetherId);
-        window.dispatchEvent(
-          new CustomEvent("open-group-chat", { detail: { togetherId: togetherId } })
-        );
-      } catch (error) {
-        console.error('그룹챗 열기 이벤트 오류:', error);
-      }
-
-      // 페이지 이동
-      if (typeof window !== "undefined") {
-        if (window.location.pathname !== "/mypage/together-manage") {
-          setTimeout(() => {
-            window.location.href = "/mypage/together-manage";
-          }, 80);
-        }
-      }
+      // 수락 완료 (자동 그룹채팅 열기 제거)
 
       // 모달 닫기
       onClose && setTimeout(onClose, 160);

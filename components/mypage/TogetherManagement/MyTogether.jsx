@@ -38,10 +38,12 @@ export default function MyTogether({
 
   // 카드 클릭
   const handleTogetherListClick = (item) => {
+    console.log('🎯 Together 선택됨:', item);
     setSelectedTogether(item);
     setIsSlideVisible(true);
     setChatError(null); // 새 동행 선택시 에러 초기화
     setChatRoomData(null); // 채팅방 데이터 초기화
+    setForcedRoomId(null); // 강제 roomId 초기화
   };
 
   const handleSlideClose = () => {
@@ -81,18 +83,61 @@ export default function MyTogether({
       const upcomingHostData = filterUpcoming(Array.isArray(hostData) ? hostData : []);
       const upcomingGuestData = filterUpcoming(Array.isArray(guestData) ? guestData : []);
 
-      // 데이터 표준화 및 마킹
-      const markedHostData = upcomingHostData.map(item => ({
-        ...item,
-        source: 'host',
-        isHost: true
-      }));
+      // 데이터 구조 디버깅
+      console.log('🔵 호스트 원본 데이터:', upcomingHostData);
+      console.log('🟢 게스트 원본 데이터:', upcomingGuestData);
 
-      const markedGuestData = upcomingGuestData.map(item => ({
-        ...item,
-        source: 'guest',
-        isHost: false
-      }));
+      // 호스트 데이터 분석 및 매핑
+      const markedHostData = upcomingHostData.map(item => {
+        console.log('🔵 호스트 원본 아이템:', item);
+
+        // 호스트 데이터에 이벤트 정보 매핑
+        const mapped = {
+          ...item,
+          source: 'host',
+          isHost: true,
+          // TogetherList가 찾는 필드들 직접 매핑
+          eventName: item.event?.title || item.eventName,
+          eventType: item.event?.eventType || item.eventType,
+          eventImage: item.event?.thumbnailImagePath || item.eventImage,
+          imgSrc: item.event?.thumbnailImagePath || item.imgSrc,
+          // eventSnapshot도 매핑
+          eventSnapshot: item.event ? {
+            name: item.event.title,
+            eventType: item.event.eventType,
+            eventImage: item.event.thumbnailImagePath,
+            location: item.event.location
+          } : item.eventSnapshot
+        };
+
+        console.log('🔵 호스트 매핑 결과:', mapped);
+        return mapped;
+      });
+
+      const markedGuestData = upcomingGuestData.map(item => {
+        console.log('🟢 게스트 원본 아이템:', item);
+
+        // 게스트 데이터 매핑 - 이제 TogetherDto.Response와 동일한 구조
+        const mapped = {
+          ...item,
+          source: 'guest',
+          isHost: false,
+          // 이벤트 정보 매핑 (호스트 매핑과 동일)
+          eventName: item.event?.title || item.eventName,
+          eventType: item.event?.eventType || item.eventType,
+          eventImage: item.event?.thumbnailImagePath || item.eventImage,
+          imgSrc: item.event?.thumbnailImagePath || item.imgSrc,
+          eventSnapshot: item.event ? {
+            name: item.event.title,
+            eventType: item.event.eventType,
+            eventImage: item.event.thumbnailImagePath,
+            location: item.event.location
+          } : item.eventSnapshot
+        };
+
+        console.log('🟢 게스트 매핑 결과:', mapped);
+        return mapped;
+      });
 
       // 전체 데이터 합치기
       const combinedData = [...markedHostData, ...markedGuestData];
@@ -156,21 +201,31 @@ export default function MyTogether({
 
   // 카드 클릭 시 동행 전용 채팅방 조회
   useEffect(() => {
+    console.log('🚪 채팅방 로딩 useEffect 실행:', selectedTogether);
     if (!selectedTogether) return;
     if (forcedRoomId) return;
     const tgtId = selectedTogether.togetherId ?? selectedTogether.id;
+    console.log('🚪 채팅방 로딩 시도 - tgtId:', tgtId);
     if (!tgtId) return;
 
     let stop = false;
     (async () => {
       try {
         // 새로운 Together 전용 채팅방 API 사용
+        console.log('🚪 getTogetherChatRoom 호출:', tgtId);
         const chatRoomData = await togetherApi.getTogetherChatRoom(tgtId);
+        console.log('🚪 getTogetherChatRoom 응답:', chatRoomData);
 
-        if (chatRoomData && !stop) {
+        if (chatRoomData) {
           // 백엔드에서 host 정보가 포함된 채팅방 데이터 저장
-          setChatRoomData(chatRoomData);
-          setForcedRoomId(chatRoomData.id ?? chatRoomData.roomId);
+          const actualRoomId = chatRoomData.id ?? chatRoomData.roomId;
+          console.log('🚪 실제 roomId 설정:', actualRoomId);
+
+          if (!stop) {
+            setChatRoomData(chatRoomData);
+            setForcedRoomId(actualRoomId);
+            console.log('✅ 채팅방 데이터 및 roomId 설정 완료:', actualRoomId);
+          }
           return;
         }
 
@@ -198,8 +253,11 @@ export default function MyTogether({
     };
   }, [selectedTogether, forcedRoomId]);
 
-  // 카드 클릭 시 roomId 탐색/생성
+  // 카드 클릭 시 roomId 탐색/생성 (현재 비활성화 - getTogetherChatRoom API 사용)
   useEffect(() => {
+    // TODO: listChatRooms 함수가 정의되지 않아 임시 비활성화
+    return;
+
     if (!selectedTogether) return;
     if (forcedRoomId) return;
     const tgtId = selectedTogether.togetherId ?? selectedTogether.id;
@@ -271,6 +329,18 @@ export default function MyTogether({
       selectedTogether?.groupRoomId ??
       selectedTogether?.togetherRoomId ??
       null;
+
+    console.log('🎯 groupData 생성 - rid 계산:', {
+      forcedRoomId,
+      selectedTogetherId: selectedTogether?.togetherId ?? selectedTogether?.id,
+      calculatedRid: rid,
+      roomIdSources: {
+        selectedTogetherRoomId: selectedTogether?.roomId,
+        chatRoomId: selectedTogether?.chatRoomId,
+        groupRoomId: selectedTogether?.groupRoomId,
+        togetherRoomId: selectedTogether?.togetherRoomId
+      }
+    });
 
     // 백엔드에서 받은 host 정보 우선 사용
     const hostFromBackend = chatRoomData?.host;
@@ -397,11 +467,19 @@ export default function MyTogether({
             {Array.isArray(listToRender) && listToRender.length > 0 ? (
               <div className="space-y-0 overflow-y-auto h-full scrollbar-visible">
                 {listToRender.map((item) => {
+                  // togetherId나 id 중 하나는 반드시 존재해야 함
+                  const itemId = item.togetherId ?? item.id;
+                  const selectedId = selectedTogether?.togetherId ?? selectedTogether?.id;
+
                   const isActive =
-                    selectedTogether?.togetherId === item.togetherId;
+                    selectedTogether &&
+                    itemId &&
+                    selectedId &&
+                    selectedId === itemId &&
+                    selectedTogether?.isHost === item.isHost;
                   return (
                     <div
-                      key={item.togetherId ?? item.id}
+                      key={`${item.togetherId ?? item.id}-${item.isHost ? 'host' : 'guest'}`}
                       className={`transition-colors duration-200 ${
                         isActive
                           ? "bg-blue-50 border-l-4 border-l-blue-500"

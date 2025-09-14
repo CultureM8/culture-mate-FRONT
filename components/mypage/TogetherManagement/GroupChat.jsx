@@ -157,21 +157,29 @@ export default function GroupChat({
     let cancelled = false;
     (async () => {
       try {
-        // 방 상세(참가자 등) — 실패해도 치명적이지 않게
+        // Together 참가자 정보 로드 (승인된 참가자들만)
         try {
-          const detail = await getChatRoom(Number(actualRoomId));
-          if (cancelled) return;
-          const fromDetail = parseParticipants(detail);
+          const { getParticipants } = await import('@/lib/api/togetherApi');
+          const participantsData = await getParticipants(togetherId, 'APPROVED');
+          console.log('✅ Together 참가자 로드 완료:', participantsData.length, '명');
+
+          const fromTogether = participantsData.map(member => ({
+            id: String(member.id || member.memberId),
+            name: member.memberDetail?.nickname || member.userName || member.loginId || String(member.id),
+            avatar: member.memberDetail?.profileImage || "/img/default_img.svg"
+          }));
+
           setParticipants((prev) =>
             ensureMeAndHost(
-              mergeParticipants(prev, fromDetail),
+              mergeParticipants(prev, fromTogether),
               currentUserId,
               currentUserName,
               effectiveAuthorId
             )
           );
-        } catch {
-          // 무시(서버 스펙이 없을 수도 있음)
+        } catch (error) {
+          console.warn('Together 참가자 로드 실패:', error);
+          // 무시(서버 연결 실패 등)
         }
 
         // 히스토리 로드 (TogetherRequestChat 방식으로 직접 fetch)

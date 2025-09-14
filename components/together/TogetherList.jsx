@@ -20,6 +20,9 @@ export default function TogetherList(props) {
     hostObj,
     host,
 
+    // 역할 정보
+    isHost = false,
+
     // UI 상태
     editMode = false,
     selected = false,
@@ -216,35 +219,35 @@ export default function TogetherList(props) {
         isInterested={isInterested}
         onInterestClick={handleInterestClick}>
         <div className="flex flex-col justify-around h-full">
-          <div className="flex gap-2">
-            <span className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2 w-fit">
-              {safeEventType}
-            </span>
-            <strong>{safeEventName}</strong>
-          </div>
-          <h3 className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
-            {safeTitle}
-          </h3>
-          <div className="flex gap-4 shrink-0 w-full">
-            <span className="flex items-center gap-2 flex-shrink-0">
-              <Image
-                src={ICONS.CALENDAR}
-                alt="calendar"
-                width={16}
-                height={16}
-              />
-              {safeDate}
-            </span>
-            <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.GROUP} alt="group" width={20} height={20} />
-              {safeGroup}
-            </span>
-            <span className="flex items-center gap-2 flex-shrink-0">
-              <Image src={ICONS.PIN} alt="pin" width={16} height={16} />
-              {safeAddress}
-            </span>
-          </div>
-          <div>작성자 : {displayHost}</div>
+            <div className="flex gap-2">
+              <span className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2 w-fit">
+                {safeEventType}
+              </span>
+              <strong>{safeEventName}</strong>
+            </div>
+            <h3 className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
+              {safeTitle}
+            </h3>
+            <div className="flex gap-4 shrink-0 w-full">
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <Image
+                  src={ICONS.CALENDAR}
+                  alt="calendar"
+                  width={16}
+                  height={16}
+                />
+                {safeDate}
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <Image src={ICONS.GROUP} alt="group" width={20} height={20} />
+                {safeGroup}
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <Image src={ICONS.PIN} alt="pin" width={16} height={16} />
+                {safeAddress}
+              </span>
+            </div>
+            <div>작성자 : {displayHost}</div>
         </div>
       </ListComponent>
     </div>
