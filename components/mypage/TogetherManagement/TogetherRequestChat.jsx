@@ -5,6 +5,7 @@ import FriendListItem from "@/components/mypage/FriendListItem";
 import SockJS from "sockjs-client";
 import { Client as StompClient } from "@stomp/stompjs";
 import { listChatRooms, joinRoom } from "@/lib/chatApi";
+import chatApi from "@/lib/api/chatApi";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
 import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
 
@@ -137,6 +138,7 @@ export default function TogetherRequestChat({
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("connecting"); // "connecting" | "connected" | "error"
 
   const [roomId, setRoomId] = useState(
     roomIdProp || chatRequestData.roomId || null
@@ -144,9 +146,25 @@ export default function TogetherRequestChat({
   const stompRef = useRef(null);
   const sentInitialRef = useRef(false);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  /* ---------- 최초 1회: 신청 메시지 한 줄 렌더 ---------- */
+  /* ---------- 스크롤 자동화 ---------- */
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  };
+
+  // 메시지가 변경될 때마다 아래로 스크롤
   useEffect(() => {
+    // 짧은 지연 후 스크롤 (DOM 업데이트 완료 후)
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
+  /* ---------- 채팅방/요청 변경 시 메시지 초기화 ---------- */
+  useEffect(() => {
+    // roomId나 chatRequestData가 변경될 때 메시지 초기화
     const initialSender = isFromSentBox
       ? myId
       : String(
@@ -165,17 +183,18 @@ export default function TogetherRequestChat({
           chatRequestData.fromUserId
         );
 
-    setMessages([
-      {
-        id: "initial-1",
-        sender: initialSender,
-        senderName: initialSenderName,
-        message: chatRequestData.message || "메시지 없음",
-        timestamp: new Date(chatRequestData.createdAt || Date.now()),
-        isInitial: true,
-      },
-    ]);
-  }, [chatRequestData, isFromSentBox, myId, myDisplayName]);
+    const initialMessage = {
+      id: "initial-1",
+      sender: initialSender,
+      senderName: initialSenderName,
+      message: chatRequestData.message || "메시지 없음",
+      timestamp: new Date(chatRequestData.createdAt || Date.now()),
+      isInitial: true,
+    };
+
+    // 초기 메시지만 설정 (히스토리는 WebSocket 연결 시 로드)
+    setMessages([initialMessage]);
+  }, [chatRequestData?.requestId, roomId]); // requestId와 roomId 변경 시에만 초기화
 
   /* ---------- 외부 roomId 반영 ---------- */
   useEffect(() => {
@@ -184,7 +203,12 @@ export default function TogetherRequestChat({
 
   /* ---------- JWT 인증 WebSocket 연결 ---------- */
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId) {
+      setConnectionStatus("connecting");
+      return;
+    }
+
+    setConnectionStatus("connecting");
 
     const initializeAuthenticatedWebSocket = async () => {
       try {
@@ -195,10 +219,61 @@ export default function TogetherRequestChat({
         const client = createAuthenticatedStompClient(WS_ENDPOINT);
 
         // 연결 성공 핸들러 오버라이드
-        client.onConnect = () => {
+        client.onConnect = async () => {
           console.log('✅ JWT 인증 WebSocket 연결 성공!', roomId);
+          setConnectionStatus("connected");
 
-          // 실시간 메시지 구독
+          // 1. 채팅 히스토리 로드
+          try {
+            console.log('📜 채팅 히스토리 로딩 시작...', roomId);
+
+            // 올바른 API 경로로 직접 호출 (/api/v1/chatroom/{roomId}/messages)
+            const token = localStorage.getItem("accessToken");
+            const response = await fetch(`/api/v1/chatroom/${roomId}/messages`, {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                ...(token && { "Authorization": `Bearer ${token}` })
+              }
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            }
+
+            const result = await response.json();
+            const historyMessages = result.content || result || [];
+
+            if (Array.isArray(historyMessages)) {
+              const formattedHistory = historyMessages.map(msg => ({
+                id: msg.id || `hist-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                sender: String(msg.senderId ?? msg.memberId ?? "unknown"),
+                senderName: String(msg.senderId ?? msg.memberId) === myId
+                  ? myDisplayName
+                  : otherUser.name,
+                message: String(msg.content ?? ""),
+                timestamp: new Date(msg.createdAt || Date.now()),
+                isHistory: true
+              }));
+
+              console.log(`✅ 채팅 히스토리 로드 완료: ${formattedHistory.length}개`);
+
+              // 초기 메시지와 히스토리 메시지 합치기
+              setMessages(prev => {
+                const initialMessages = prev.filter(m => m.isInitial);
+                // 히스토리가 있으면 초기 메시지 + 히스토리, 없으면 초기 메시지만
+                return formattedHistory.length > 0
+                  ? [...initialMessages, ...formattedHistory]
+                  : initialMessages;
+              });
+            }
+          } catch (error) {
+            console.warn('⚠️ 채팅 히스토리 로드 실패 (무시):', error);
+          }
+
+          // 2. 실시간 메시지 구독
           client.subscribe(subDestination(roomId), (frame) => {
             try {
               const body = JSON.parse(frame.body);
@@ -230,6 +305,7 @@ export default function TogetherRequestChat({
         // JWT 관련 오류 핸들러
         client.onStompError = (frame) => {
           console.error('❌ STOMP 연결 오류:', frame);
+          setConnectionStatus("error");
           if (frame.headers.message?.includes('JWT') ||
               frame.headers.message?.includes('토큰') ||
               frame.headers.message?.includes('인증')) {
@@ -241,6 +317,7 @@ export default function TogetherRequestChat({
 
         client.onWebSocketError = (event) => {
           console.error('❌ WebSocket 연결 오류:', event);
+          setConnectionStatus("error");
         };
 
         // STOMP 클라이언트 저장
@@ -253,6 +330,7 @@ export default function TogetherRequestChat({
 
       } catch (error) {
         console.error('WebSocket 초기화 실패:', error);
+        setConnectionStatus("error");
         if (error.message?.includes('JWT') || error.message?.includes('토큰')) {
           alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
           // window.location.href = '/login';
@@ -274,6 +352,15 @@ export default function TogetherRequestChat({
       }
     };
   }, [roomId, myId]); // 의존성 최소화로 중복 연결 방지
+
+  /* ---------- 재시도 기능 ---------- */
+  const handleRetryConnection = () => {
+    setConnectionStatus("connecting");
+    // WebSocket 연결 useEffect를 다시 트리거하기 위해 roomId를 재설정
+    const currentRoomId = roomId;
+    setRoomId(null);
+    setTimeout(() => setRoomId(currentRoomId), 100);
+  };
 
   /* ---------- 수락 ---------- */
   const handleAccept = async () => {
@@ -438,40 +525,103 @@ export default function TogetherRequestChat({
       </div>
 
       {/* 메시지 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg) => {
-          const mine =
-            String(msg.sender) === myId || String(msg.sender) === "me";
-          return (
-            <div
-              key={msg.id}
-              className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  mine ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
-                }`}>
-                {msg.isInitial && (
-                  <div className="text-xs opacity-75 mb-1">
-                    {isFromSentBox ? "보낸 동행 신청" : "받은 동행 신청"}
-                  </div>
-                )}
-                <p className="text-sm whitespace-pre-wrap break-words">
-                  {msg.message}
-                </p>
-                <p
-                  className={`text-xs mt-1 ${
-                    mine ? "text-blue-100" : "text-gray-500"
-                  }`}>
-                  {new Date(msg.timestamp).toLocaleTimeString("ko-KR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-4 relative">
+        {/* 연결 오류 시 오버레이 */}
+        {connectionStatus === "error" && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10">
+            <div className="text-center p-6">
+              <div className="mb-4">
+                <svg
+                  className="w-12 h-12 text-gray-400 mx-auto mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
               </div>
+              <p className="text-gray-600 mb-4">채팅방에 연결할 수 없습니다</p>
+              <p className="text-sm text-gray-500 mb-4">
+                네트워크 연결을 확인하거나 잠시 후 다시 시도해주세요
+              </p>
+              <button
+                onClick={handleRetryConnection}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
+                다시 시도
+              </button>
             </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* 연결 중일 때 메시지 영역 투명도 조정 */}
+        <div className={`space-y-2 ${connectionStatus === "connecting" ? "opacity-50" : ""}`}>
+          {messages.map((msg) => {
+            const mine =
+              String(msg.sender) === myId || String(msg.sender) === "me";
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    mine ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
+                  }`}>
+                  {msg.isInitial && (
+                    <div className="text-xs opacity-75 mb-1">
+                      {isFromSentBox ? "보낸 동행 신청" : "받은 동행 신청"}
+                    </div>
+                  )}
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {msg.message}
+                  </p>
+                  <p
+                    className={`text-xs mt-1 ${
+                      mine ? "text-blue-100" : "text-gray-500"
+                    }`}>
+                    {new Date(msg.timestamp).toLocaleTimeString("ko-KR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* 연결 중 상태 표시 */}
+        {connectionStatus === "connecting" && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-white px-4 py-2 rounded-lg shadow-md flex items-center space-x-2">
+              <svg
+                className="w-4 h-4 text-blue-500 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              <span className="text-sm text-gray-600">채팅방을 준비하는 중...</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 입력/액션 */}
@@ -499,8 +649,19 @@ export default function TogetherRequestChat({
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="메시지를 입력하세요... (Shift+Enter 줄바꿈)"
-            className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 pr-16 focus:ring-blue-500 focus:border-blue-500 outline-none scrollbar-hide"
+            placeholder={
+              connectionStatus === "connected"
+                ? "메시지를 입력하세요... (Shift+Enter 줄바꿈)"
+                : connectionStatus === "connecting"
+                ? "채팅방에 연결하는 중..."
+                : "채팅방에 연결되지 않음"
+            }
+            disabled={connectionStatus !== "connected"}
+            className={`w-full resize-none border rounded-lg px-3 py-2 pr-16 outline-none scrollbar-hide ${
+              connectionStatus === "connected"
+                ? "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                : "border-gray-200 bg-gray-50 text-gray-400"
+            }`}
             rows={2}
           />
           <style jsx>{`
@@ -510,7 +671,7 @@ export default function TogetherRequestChat({
           `}</style>
           <button
             onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
+            disabled={!newMessage.trim() || connectionStatus !== "connected"}
             className="absolute bottom-2 right-2 px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300">
             전송
           </button>

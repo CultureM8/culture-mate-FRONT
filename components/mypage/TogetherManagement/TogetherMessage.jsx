@@ -661,12 +661,6 @@ export default function TogetherMessage() {
                 </div>
               )
             )}
-            {/* roomId 준비 전 안내 (선택) */}
-            {selectedRequest && !activeRoomId && !isFriendProfileVisible && (
-              <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
-                채팅방을 준비하는 중입니다…
-              </div>
-            )}
           </div>
         </div>
       </div>
