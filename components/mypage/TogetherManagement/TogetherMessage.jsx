@@ -75,7 +75,9 @@ export default function TogetherMessage() {
             const statusMap = {
               "pending": "PENDING",
               "accepted": "APPROVED",
-              "rejected": "REJECTED"
+              "rejected": "REJECTED",
+              "host": "HOST",
+              "canceled": "CANCELED"
             };
             statusParam = statusMap[filterStatus] || filterStatus.toUpperCase();
           }
@@ -94,6 +96,8 @@ export default function TogetherMessage() {
             message: app.message || "동행 신청 메시지",
             status: app.status === "APPROVED" ? "accepted" :
                     app.status === "REJECTED" ? "rejected" :
+                    app.status === "HOST" ? "host" :
+                    app.status === "CANCELED" ? "canceled" :
                     "pending", // 백엔드 상태를 프론트엔드 형식으로 매핑
             eventName: app.eventName,
             eventType: app.eventType,
@@ -111,7 +115,9 @@ export default function TogetherMessage() {
             const statusMap = {
               "pending": "PENDING",
               "accepted": "APPROVED",
-              "rejected": "REJECTED"
+              "rejected": "REJECTED",
+              "host": "HOST",
+              "canceled": "CANCELED"
             };
             statusParam = statusMap[filterStatus] || filterStatus.toUpperCase();
           }
@@ -130,6 +136,8 @@ export default function TogetherMessage() {
             message: app.message || "동행 신청 메시지",
             status: app.status === "APPROVED" ? "accepted" :
                     app.status === "REJECTED" ? "rejected" :
+                    app.status === "HOST" ? "host" :
+                    app.status === "CANCELED" ? "canceled" :
                     "pending", // 백엔드 상태를 프론트엔드 형식으로 매핑
             eventName: app.eventName,
             eventType: app.eventType,

@@ -263,10 +263,22 @@ export default function TogetherRequestChat({
               // 초기 메시지와 히스토리 메시지 합치기
               setMessages(prev => {
                 const initialMessages = prev.filter(m => m.isInitial);
-                // 히스토리가 있으면 초기 메시지 + 히스토리, 없으면 초기 메시지만
-                return formattedHistory.length > 0
-                  ? [...initialMessages, ...formattedHistory]
-                  : initialMessages;
+
+                if (formattedHistory.length > 0) {
+                  // 초기 신청 메시지와 동일한 내용의 히스토리 메시지 제거
+                  const initialMessage = initialMessages[0];
+                  const filteredHistory = initialMessage ? formattedHistory.filter(histMsg => {
+                    // 신청 메시지와 내용이 같으면 히스토리에서 제외
+                    return !(histMsg.message === initialMessage.message &&
+                             histMsg.sender === initialMessage.sender);
+                  }) : formattedHistory;
+
+                  // 초기 메시지(신청 메시지) + 필터링된 히스토리
+                  return [...initialMessages, ...filteredHistory];
+                } else {
+                  // 히스토리가 없으면 초기 메시지만
+                  return initialMessages;
+                }
               });
             }
           } catch (error) {
@@ -405,12 +417,16 @@ export default function TogetherRequestChat({
         console.warn("상대 참가 등록 실패(무시):", joinError);
       }
 
-      // 그룹챗 열기 이벤트
+      // 그룹챗 열기 이벤트 (togetherId로 전달하여 올바른 그룹채팅방 찾기)
       try {
+        const togetherId = chatRequestData.togetherId || chatRequestData.postId || chatRequestData.requestId;
+        console.log('그룹채팅 열기: togetherId =', togetherId);
         window.dispatchEvent(
-          new CustomEvent("open-group-chat", { detail: { roomId: rid } })
+          new CustomEvent("open-group-chat", { detail: { togetherId: togetherId } })
         );
-      } catch {}
+      } catch (error) {
+        console.error('그룹챗 열기 이벤트 오류:', error);
+      }
 
       // 페이지 이동
       if (typeof window !== "undefined") {
@@ -524,6 +540,24 @@ export default function TogetherRequestChat({
         </button>
       </div>
 
+      {/* 받은함에서 대기중일 때만 수락/거절 버튼 노출 */}
+      {chatRequestData.status === "pending" && !isFromSentBox && (
+        <div className="border-b border-gray-200 p-3 flex gap-2">
+          <button
+            onClick={handleReject}
+            disabled={isProcessing}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:bg-gray-100">
+            {isProcessing ? "처리 중..." : "거절"}
+          </button>
+          <button
+            onClick={handleAccept}
+            disabled={isProcessing}
+            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300">
+            {isProcessing ? "처리 중..." : "수락"}
+          </button>
+        </div>
+      )}
+
       {/* 메시지 */}
       <div
         ref={messagesContainerRef}
@@ -626,24 +660,6 @@ export default function TogetherRequestChat({
 
       {/* 입력/액션 */}
       <div className="border-t border-gray-200 p-3 flex-shrink-0">
-        {/* 받은함에서 대기중일 때만 수락/거절 노출 */}
-        {chatRequestData.status === "pending" && !isFromSentBox && (
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={handleReject}
-              disabled={isProcessing}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:bg-gray-100">
-              {isProcessing ? "처리 중..." : "거절"}
-            </button>
-            <button
-              onClick={handleAccept}
-              disabled={isProcessing}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300">
-              {isProcessing ? "처리 중..." : "수락"}
-            </button>
-          </div>
-        )}
-
         <div className="relative">
           <textarea
             value={newMessage}

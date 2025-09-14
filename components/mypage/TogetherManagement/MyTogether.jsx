@@ -311,10 +311,10 @@ export default function MyTogether({
     ].filter(Boolean);
 
     if (!rid) {
-      const fallbackRoomId =
-        selectedTogether?.togetherId ?? selectedTogether?.id;
+      const togetherId = selectedTogether?.togetherId ?? selectedTogether?.id;
       return {
-        roomId: fallbackRoomId,
+        roomId: null, // 실제 채팅방 ID가 없으면 null로 설정
+        togetherId: togetherId, // togetherId를 별도로 전달
         groupName: selectedTogether?.title ?? "단체 채팅",
         participants: participantsSeed,
         authorId: hostIdRaw,
@@ -327,8 +327,10 @@ export default function MyTogether({
         })
       };
     }
+    const togetherId = selectedTogether?.togetherId ?? selectedTogether?.id;
     return {
       roomId: rid,
+      togetherId: togetherId, // togetherId를 별도로 전달
       groupName: selectedTogether?.title ?? "단체 채팅",
       participants: participantsSeed,
       authorId: hostIdRaw,
@@ -385,7 +387,7 @@ export default function MyTogether({
         </select>
       </div>
 
-      <div className="flex gap-0" style={{ maxHeight: '800px', minHeight: '600px', height: 'calc(100vh - 200px)' }}>
+      <div className="flex gap-2 flex-1" style={{ height: 'calc(100vh - 200px)' }}>
         {/* 좌측: 동행 카드 리스트 */}
         <div
           className={`transition-all duration-300 ease-in-out ${
@@ -432,7 +434,7 @@ export default function MyTogether({
           className={`transition-all duration-300 ease-in-out overflow-hidden ${
             isSlideVisible ? "w-1/2" : "w-0"
           }`}>
-          <div className="w-full h-full bg-white rounded-lg shadow-sm ml-2 flex flex-col" style={{ maxHeight: 'inherit' }}>
+          <div className="w-full h-full bg-white rounded-lg shadow-sm flex flex-col">
             {isSlideVisible && (
               <GroupChat
                 key={

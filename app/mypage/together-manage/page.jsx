@@ -16,13 +16,34 @@ export default function TogetherManagePage() {
   const currentUserId =
     user?.id || user?.user_id || user?.login_id || user?.loginId || null;
 
+  // 새로고침 후 탭 상태 복원
+  useEffect(() => {
+    const savedTab = localStorage.getItem('togetherManageActiveTab');
+    if (savedTab && ['together', 'message'].includes(savedTab)) {
+      setActiveTab(savedTab);
+    }
+  }, []);
+
+  // 탭 변경 시 저장
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem('togetherManageActiveTab', tab);
+  };
+
   // 방 열기 브로드캐스트 수신
   useEffect(() => {
     const onOpen = (e) => {
       const rid = e?.detail?.roomId;
-      if (!rid) return;
-      setActiveTab("together");
-      setRoomToOpen(rid);
+      const togetherId = e?.detail?.togetherId;
+
+      // roomId 또는 togetherId가 있으면 처리
+      if (rid || togetherId) {
+        handleTabChange("together"); // localStorage에도 저장
+        setRoomToOpen(rid || null);
+
+        // togetherId가 있으면 해당 동행을 선택상태로 만들기 위한 처리 가능
+        console.log('그룹채팅 열기 요청:', { roomId: rid, togetherId: togetherId });
+      }
     };
     window.addEventListener("open-group-chat", onOpen);
     return () => window.removeEventListener("open-group-chat", onOpen);
@@ -121,7 +142,7 @@ export default function TogetherManagePage() {
         <div className="mb-2">
           <div className="flex border-b border-gray-200">
             <button
-              onClick={() => setActiveTab("together")}
+              onClick={() => handleTabChange("together")}
               className={`px-6 py-3 font-medium border-b-2 transition-colors ${
                 activeTab === "together"
                   ? "text-[#26282a] border-[#26282a]"
@@ -130,7 +151,7 @@ export default function TogetherManagePage() {
               나의 소속 동행
             </button>
             <button
-              onClick={() => setActiveTab("message")}
+              onClick={() => handleTabChange("message")}
               className={`px-6 py-3 font-medium border-b-2 transition-colors ${
                 activeTab === "message"
                   ? "text-[#26282a] border-[#26282a]"

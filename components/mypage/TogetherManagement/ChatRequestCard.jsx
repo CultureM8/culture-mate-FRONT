@@ -141,8 +141,6 @@ export default function ChatRequestCard({
     type === "sent" &&
     statusNorm === "PENDING" &&
     typeof onReject === "function";
-  const showChat =
-    statusNorm === "ACCEPTED" && typeof onOpenChat === "function";
 
   return (
     <div
@@ -263,24 +261,6 @@ export default function ChatRequestCard({
             </button>
           )}
 
-          {/* 수락됨: 채팅 열기 버튼(카드 전체 클릭도 열림) */}
-          {showChat && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenChat();
-              }}
-              className="px-3 py-1.5 bg-black text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors flex items-center gap-1"
-              title="채팅 열기">
-              <Image
-                src={ICONS.CHAT ?? "/img/chat.svg"}
-                alt="채팅"
-                width={14}
-                height={14}
-              />
-              채팅
-            </button>
-          )}
         </div>
       </div>
     </div>
