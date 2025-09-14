@@ -11,10 +11,11 @@ export default function useTogetherWriteState() {
   /*작성 폼 상태*/
   const [form, setForm] = useState({
     companionDate: "" /* YYYY-MM-DD 등*/,
-    companionCount: "" /*"2명" 등 문자열 -> 저장 시 숫자로 변환*/,
+    maxParticipants: 2,
     minAge: "제한없음",
     maxAge: "제한없음",
-    locationQuery: "",
+    meetingRegion: { level1: "", level2: "", level3: "" },
+    meetingLocation: "",
   });
 
   /*폼 변경 콜백*/
@@ -33,18 +34,13 @@ export default function useTogetherWriteState() {
       eventSnapshot: selectedEvent ?? null,
     });
 
-    const count = parseCount(form.companionCount);
-
     return {
       ...base,
       /* 동행 정보*/
-      companionDate: form.companionDate || null,
-      companionCount: Number.isFinite(count) ? count : null,
-      /*레거시 호환(일부 뷰에서 maxPeople를 참조할 수 있어 같이 채워줌)*/
-      maxPeople: Number.isFinite(count) ? count : null,
-      minAge: form.minAge,
-      maxAge: form.maxAge,
-      locationQuery: form.locationQuery || "",
+      meetingDate: form.companionDate || null,
+      maxParticipants: form.maxParticipants || 2,
+      region: form.meetingRegion,
+      meetingLocation: form.meetingLocation || "",
     };
   };
 
