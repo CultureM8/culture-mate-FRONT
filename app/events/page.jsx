@@ -138,6 +138,7 @@ const fetchEventsByTypes = async (types, baseParams = {}) => {
   }
   return merged;
 };
+
 export default function Event() {
   const [title, intro] = [
     "이벤트",
@@ -158,9 +159,7 @@ export default function Event() {
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
 
-
   // 필터 적용 핸들러 - selectedRegion으로 변경
-
   const handleApplyFilters = async (filterData) => {
     console.log("적용된 필터:", filterData);
     try {
@@ -175,7 +174,6 @@ export default function Event() {
         searchParams.startDate = filterData.dateRange[0];
         searchParams.endDate = filterData.dateRange[1];
       }
-
       
       // 지역 필터 - 단일 지역 객체로 처리
       if (filterData.selectedRegion) {
@@ -183,8 +181,6 @@ export default function Event() {
         
         if (region.location1 && region.location1 !== "전체") {
           searchParams["region.level1"] = region.location1;
-
-  
         }
         if (region.location2 && region.location2 !== "전체") {
           searchParams["region.level2"] = region.location2;
@@ -203,7 +199,6 @@ export default function Event() {
       const raw = await fetchEventsByTypes(backendTypes, searchParams);
 
       let mapped = Array.isArray(raw) ? raw.map(mapListItem) : [];
-
       
       // 클라이언트 사이드 지역 필터링도 단일 객체로 수정
       if (filterData.selectedRegion) {
@@ -227,7 +222,6 @@ export default function Event() {
           }
           
           return true;
-
         });
       }
 
@@ -382,7 +376,30 @@ export default function Event() {
 
       <EventSelector selected={selectedType} setSelected={setSelectedType} />
 
-
+      {/* 필터 적용된 상태 표시 */}
+      {appliedFilters && (
+        <div className="px-6 mb-4 p-3 bg-blue-50 rounded flex justify-between items-center">
+          <div>
+            <span className="text-sm font-medium text-blue-800">필터 적용됨: </span>
+            {appliedFilters.selectedRegion && (
+              <span className="text-sm text-blue-700">
+                {appliedFilters.selectedRegion.fullAddress}
+              </span>
+            )}
+            {appliedFilters.dateRange && (
+              <span className="text-sm text-blue-700 ml-2">
+                ({appliedFilters.dateRange[0]} ~ {appliedFilters.dateRange[1]})
+              </span>
+            )}
+          </div>
+          <button 
+            onClick={handleClearFilters}
+            className="text-sm text-red-500 hover:text-red-700"
+          >
+            필터 해제
+          </button>
+        </div>
+      )}
 
       <SearchFilterSort
         enableTitle
