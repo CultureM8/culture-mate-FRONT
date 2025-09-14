@@ -1,11 +1,11 @@
-// components/together/TogetherList.jsx
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import ListComponent from "../global/ListComponent";
+import { getEventTypeLabel } from "@/lib/api/eventApi";
+import { toggleTogetherInterest } from "@/lib/api/togetherApi";
 
 export default function TogetherList(props) {
   const {
-    // 기본 프롭스
     togetherId,
     title,
     eventType,
@@ -26,8 +26,8 @@ export default function TogetherList(props) {
     selected = false,
     onToggleSelect,
     onCardClick,
+    isInterested = false,
 
-    // 명시적으로 분해할 핵심 데이터 필드들
     id,
     imgSrc,
     eventImage,
@@ -46,21 +46,15 @@ export default function TogetherList(props) {
     meetingLocation,
     region,
 
-    // 나머지 프롭스 (미래 확장성)
     ...rest
   } = props;
 
-  // ✅ 이미지 폴백(여러 키 지원)
+  //  이미지 폴백
   const coverSrc =
-    [
-      imgSrc,
-      eventImage,
-      image,
-      img,
-      eventSnapshot?.eventImage,
-    ].find((v) => typeof v === "string" && v.trim()) || "/img/default_img.svg";
+    [imgSrc, eventImage, image, img, eventSnapshot?.eventImage].find(
+      (v) => typeof v === "string" && v.trim()
+    ) || "/img/default_img.svg";
 
-  // ✅ 제목 폴백(방이름(dm-...)이면 이벤트명/기본값 사용)
   const rawTitle =
     title ||
     postTitle ||
@@ -73,8 +67,9 @@ export default function TogetherList(props) {
     ? eventName || "모집글 제목"
     : rawTitle;
 
-  // ✅ 이벤트/날짜/인원/주소 폴백
-  const safeEventType = eventType || eventSnapshot?.eventType || "이벤트";
+  //  이벤트/날짜/인원/주소
+  const safeEventType =
+    getEventTypeLabel(eventType || eventSnapshot?.eventType) || "이벤트";
   const safeEventName =
     eventName || eventSnapshot?.name || eventName || "이벤트명";
 
@@ -108,11 +103,10 @@ export default function TogetherList(props) {
       return parts.join(" | ");
     }
 
-    // Fallback to old logic if new fields are not present
     return address || eventSnapshot?.location || "모임 장소 정보 없음";
   })();
 
-  // ✅ 호스트 표시
+  //  호스트 표시
   const hostAsObj = typeof host === "object" && host ? host : hostObj;
   const hostAsStr = typeof host === "string" ? host : "";
   const displayHost =
@@ -127,9 +121,36 @@ export default function TogetherList(props) {
       .map((v) => (typeof v === "string" ? v.trim() : ""))
       .find(Boolean) || "-";
 
-  // ✅ 식별자/링크 (Gallery와 동일한 패턴)
+  //  식별자/링크
   const componentId = id ?? togetherId;
-  const href = componentId ? `/together/${encodeURIComponent(componentId)}` : "/together";
+  const href = componentId
+    ? `/together/${encodeURIComponent(componentId)}`
+    : "/together";
+
+  //  관심 기능 핸들러
+  const handleInterestClick = async () => {
+    if (!componentId) {
+      console.error("TogetherList: componentId가 없습니다.");
+      return;
+    }
+
+    try {
+      const result = await toggleTogetherInterest(componentId);
+      console.log("관심 상태 변경:", result);
+
+      // 관심 상태 변경 이벤트 발생
+      const eventDetail = {
+        togetherId: componentId,
+        interested: result.includes("등록"),
+      };
+
+      window.dispatchEvent(
+        new CustomEvent("together-interest-changed", { detail: eventDetail })
+      );
+    } catch (error) {
+      console.error("관심 상태 변경 실패:", error);
+    }
+  };
 
   return (
     <div className="relative">
@@ -145,7 +166,7 @@ export default function TogetherList(props) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onToggleSelect?.();
+              onToggleSelect?.(componentId);
             }}
             aria-label="select-card"
           />
@@ -155,8 +176,7 @@ export default function TogetherList(props) {
                 selected
                   ? "bg-blue-500 text-white border-blue-500"
                   : "bg-white/90 text-gray-600 border-gray-300"
-              }`}
-            >
+              }`}>
               {selected ? "✓" : ""}
             </div>
           </div>
@@ -170,10 +190,13 @@ export default function TogetherList(props) {
         src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={safeEventName || safeTitle}
         title={safeTitle}
-        href={editMode ? "#" : href}>
+        href={editMode ? "#" : href}
+        enableInterest={!editMode}
+        isInterested={isInterested}
+        onInterestClick={handleInterestClick}>
         <div className="flex flex-col justify-around h-full">
           <div className="flex gap-2">
-            <span className="border border-b-2 rounded-4xl px-2 w-fit">
+            <span className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2 w-fit">
               {safeEventType}
             </span>
             <strong>{safeEventName}</strong>

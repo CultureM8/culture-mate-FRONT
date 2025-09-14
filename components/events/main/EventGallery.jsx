@@ -1,12 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Gallery from "@/components/global/Gallery";
-import { ICONS, IMAGES } from "@/constants/path";
+import { ICONS } from "@/constants/path";
 import StarRating from "@/lib/StarRating";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 
 /** location fallback */
 const toLocation = (data) => {
-  // 백엔드 RegionDto.Response 구조 (level1, level2, level3)
   const level1 =
     typeof data?.region?.level1 === "string" ? data.region.level1.trim() : "";
   const level2 =
@@ -14,7 +15,6 @@ const toLocation = (data) => {
   const level3 =
     typeof data?.region?.level3 === "string" ? data.region.level3.trim() : "";
 
-  // 기존 구조 호환성 (city, district)
   const city =
     typeof data?.region?.city === "string" ? data.region.city.trim() : "";
   const district =
@@ -22,7 +22,6 @@ const toLocation = (data) => {
       ? data.region.district.trim()
       : "";
 
-  // level 구조를 우선 사용, 없으면 기존 구조 사용
   const parts =
     level1 || level2 || level3
       ? [level1, level2, level3].filter(Boolean)
@@ -62,37 +61,68 @@ export default function EventGallery({
     (typeof data?.title === "string" && data.title.trim()) ||
     "이미지";
 
+  const eventIdStr = String(data.id ?? data.eventId ?? "");
+
   return (
-    <Gallery
-      title={data.title}
-      src={imageSrc}
-      alt={altText}
-      href={data.href}
-      enableInterest={data.enableInterest !== false}
-      initialInterest={Boolean(data.isInterested)}
-      eventId={String(data.id ?? data.eventId)}>
-      <div className="flex gap-5 my-1">
-        <div className="flex gap-1 items-center">
-          <Image
-            src={ratingValue > 0 ? ICONS.STAR_FULL : ICONS.STAR_EMPTY}
-            alt="별점"
-            width={20}
-            height={20}
+    <div className="relative">
+      {/*  편집 모드일 때 카드 전체 선택 오버레이 */}
+      {props.editMode && (
+        <>
+          <button
+            type="button"
+            className="absolute inset-0 z-40"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              props.onToggleSelect?.();
+            }}
+            aria-label="select-card"
           />
-          <StarRating
-            rating={ratingValue}
-            mode="average"
-            showNumber={true}
-            showStars={false}
-          />
+          <div className="absolute top-2 right-2 z-50">
+            <div
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border ${
+                props.selected
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white/90 text-gray-600 border-gray-300"
+              }`}>
+              {props.selected ? "✓" : ""}
+            </div>
+          </div>
+        </>
+      )}
+
+      <Gallery
+        title={data.title}
+        src={imageSrc}
+        alt={altText}
+        href={data.href}
+        enableInterest={data.enableInterest !== false}
+        initialInterest={Boolean(data.isInterested)}
+        eventId={eventIdStr}
+        type="event">
+        <div className="flex gap-5 my-1">
+          <div className="flex gap-1 items-center">
+            <Image
+              src={ratingValue > 0 ? ICONS.STAR_FULL : ICONS.STAR_EMPTY}
+              alt="별점"
+              width={20}
+              height={20}
+            />
+            <StarRating
+              rating={ratingValue}
+              mode="average"
+              showNumber={true}
+              showStars={false}
+            />
+          </div>
+          <div>
+            {data.startDate} ~ {data.endDate}
+          </div>
         </div>
-        <div>
-          {data.startDate} ~ {data.endDate}
+        <div className="flex items-center gap-1">
+          {data.location || toLocation(data)}
         </div>
-      </div>
-      <div className="flex items-center gap-1">
-        {data.location || toLocation(data)}
-      </div>
-    </Gallery>
+      </Gallery>
+    </div>
   );
 }

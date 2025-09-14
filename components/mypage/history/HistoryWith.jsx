@@ -9,6 +9,7 @@ import useLogin from "@/hooks/useLogin";
 import { loadPosts, deletePost } from "@/lib/storage";
 import { getChatRequestsFromUser } from "@/lib/chatRequestUtils";
 import { togetherApi } from "@/lib/api/togetherApi";
+import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 
 /**내 동행 게스트카드 숨김 저장소*/
 const hiddenKey = (userKey) => `history:hidden:together:${userKey}`;
@@ -97,9 +98,8 @@ export default function HistoryWith({ togetherData = [] }) {
       source: "host",
       isHost: true,
       togetherId: t.id,
-      imgSrc:
-        t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
-      alt: t.event?.name || t.title || "",
+      imgSrc: getEventMainImageUrl(t.event) || "/img/default_img.svg",
+      alt: t.event?.title || t.event?.name || t.title || "",
       title: t.title || "",
       eventType: t.event?.eventType || "기타",
       eventName: t.event?.name || "",
@@ -144,6 +144,42 @@ export default function HistoryWith({ togetherData = [] }) {
       authorObj: a,
       author: typeof post.author === "string" ? post.author : undefined,
       _createdAt: post?.createdAt || null,
+    };
+  }, []);
+
+  /* 게스트 정규화 — 백엔드 API (getMyApplications) 응답 */
+  const normalizeGuestApi = useCallback((application) => {
+    if (!application || !application.together) return null;
+
+    const t = application.together;
+    const regionStr = t.region
+      ? [t.region.level1, t.region.level2, t.region.level3]
+          .filter(Boolean)
+          .join(" ")
+      : "";
+    const meeting = t.meetingDate
+      ? typeof t.meetingDate === "string"
+        ? t.meetingDate.replace(/-/g, ".")
+        : new Date(t.meetingDate).toLocaleDateString()
+      : "";
+
+    return {
+      source: "guest",
+      isHost: false,
+      togetherId: t.id,
+      imgSrc: getEventMainImageUrl(t.event) || "/img/default_img.svg",
+      alt: t.event?.title || t.event?.name || t.title || "",
+      title: t.title || "모집글 제목",
+      eventType: t.event?.eventType || "기타",
+      eventName: t.event?.title || t.event?.name || "",
+      group: t.maxParticipants ?? 1,
+      date: meeting,
+      address: regionStr || t.meetingLocation || "",
+      authorNickname: t.host?.nickname ?? null,
+      authorLoginId: t.host?.loginId ?? null,
+      authorObj: t.host ?? null,
+      _createdAt: application.createdAt ?? t.createdAt ?? null,
+      applicationStatus: application.status, // 신청 상태 추가
     };
   }, []);
 
@@ -238,9 +274,49 @@ export default function HistoryWith({ togetherData = [] }) {
     };
   }, []);
 
-  /* 채팅신청 기반 게스트 목록 로드 (기존 유지) */
-  const [guestFromRequests, setGuestFromRequests] = useState([]);
+  /* 게스트 동행: 백엔드 API로 내 신청 목록 로드 */
+  const [guestFromApi, setGuestFromApi] = useState([]);
+  const [guestFromRequests, setGuestFromRequests] = useState([]); // fallback으로 유지
+
   useEffect(() => {
+    // 로그인 사용자가 있으면 내 신청 목록을 API로 로드
+    if (!isLogined || !user?.id) {
+      setGuestFromApi([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        // APPROVED 상태의 신청 목록만 가져오기
+        const approvedApplications = await togetherApi.getMyApplications(
+          "APPROVED"
+        );
+        if (!cancelled) {
+          setGuestFromApi(
+            Array.isArray(approvedApplications) ? approvedApplications : []
+          );
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setGuestFromApi([]);
+          console.warn("게스트 동행(API) 로드 실패, fallback으로 대체:", e);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLogined, user]);
+
+  /* 채팅신청 기반 게스트 목록 로드 (fallback으로 유지) */
+  useEffect(() => {
+    if (guestFromApi.length > 0) {
+      setGuestFromRequests([]);
+      return;
+    }
+
     try {
       const me = userKey && userKey !== "anon" ? String(userKey) : null;
       if (!me) {
@@ -249,8 +325,6 @@ export default function HistoryWith({ togetherData = [] }) {
       }
       const sent = getChatRequestsFromUser(me) || [];
       const accepted = sent.filter((r) => r.status === "accepted");
-
-      // 같은 together(postId) 중복 제거
       const seen = new Set();
       const mapped = [];
       for (const r of accepted) {
@@ -281,12 +355,11 @@ export default function HistoryWith({ togetherData = [] }) {
       }
       setGuestFromRequests(mapped);
     } catch (e) {
-      console.warn("게스트 동행(실데이터) 로드 실패:", e);
+      console.warn("게스트 동행(fallback) 로드 실패:", e);
       setGuestFromRequests([]);
     }
-  }, [userKey]);
+  }, [userKey, guestFromApi]);
 
-  /* 데이터 구성: 호스트 — API 우선, fallback 로컬 */
   const hostRecords = useMemo(() => {
     if (hostFromApi.length > 0) {
       const arr = hostFromApi
@@ -308,22 +381,48 @@ export default function HistoryWith({ togetherData = [] }) {
     return mine.map(normalizeHostLocal).filter(Boolean);
   }, [hostFromApi, rawPosts, normalizeHostApi, normalizeHostLocal]);
 
-  // 게스트 최종: props(=Participants 응답) + 채팅 요청 기반 더해 dedupe
+  // 게스트 최종: 백엔드 API 우선, fallback으로 props + 채팅 요청 데이터
   const guestRecords = useMemo(() => {
+    // API에서 데이터를 성공적으로 가져온 경우
+    if (guestFromApi.length > 0) {
+      const apiData = guestFromApi
+        .slice()
+        .sort(
+          (x, y) =>
+            new Date(y?.createdAt || 0).getTime() -
+            new Date(x?.createdAt || 0).getTime()
+        )
+        .map(normalizeGuestApi)
+        .filter(Boolean);
+
+      console.log("게스트 데이터 (API):", apiData);
+      return apiData;
+    }
+
+    // fallback: props + 채팅 요청 데이터
     const fromProp = (togetherData || [])
       .map(normalizeGuestDummy)
       .filter(Boolean);
     const joined = [...fromProp, ...guestFromRequests];
 
     const seen = new Set();
-    return joined.filter((x) => {
+    const fallbackData = joined.filter((x) => {
       const key = String(x.togetherId ?? "");
       if (!key) return false;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [togetherData, normalizeGuestDummy, guestFromRequests]);
+
+    console.log("게스트 데이터 (fallback):", fallbackData);
+    return fallbackData;
+  }, [
+    guestFromApi,
+    togetherData,
+    normalizeGuestApi,
+    normalizeGuestDummy,
+    guestFromRequests,
+  ]);
 
   // 편집/선택/삭제
   const [editMode, setEditMode] = useState(false);

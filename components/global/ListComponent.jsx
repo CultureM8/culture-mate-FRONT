@@ -5,14 +5,28 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function ListComponent({ src, alt = "이미지", title = "", enableInterest=true, onClick, onInterestClick, href = "", children }) {
+export default function ListComponent({ 
+  src, 
+  alt = "이미지", 
+  title = "", 
+  enableInterest = true, 
+  isInterested = false, // 외부에서 관심 상태를 받을 수 있도록 추가
+  onClick, 
+  onInterestClick, 
+  href = "", 
+  children 
+}) {
 
-  // 추후에 매개변수로 넘겨받아서 처리
-  const [interest, setInterest] = useState(false);
+  // 내부 상태와 외부 prop 중 외부 prop 우선 사용
+  const [internalInterest, setInternalInterest] = useState(false);
+  const interest = typeof isInterested === 'boolean' ? isInterested : internalInterest;
 
   // 관심 버튼 클릭 핸들러
   const interestHandler = () => {
-    setInterest(prev => !prev);
+    // 외부에서 관심 상태를 관리하지 않는 경우에만 내부 상태 업데이트
+    if (typeof isInterested !== 'boolean') {
+      setInternalInterest(prev => !prev);
+    }
     if(typeof onInterestClick == "function") onInterestClick();
   }
   

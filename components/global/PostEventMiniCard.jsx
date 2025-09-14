@@ -18,6 +18,18 @@ export default function PostEventMiniCard({
   alt = "event-image",
   onClick, // 클릭 핸들러 (선택적)
 }) {
+  console.log("PostEventMiniCard - 받은 props:", {
+    eventImage,
+    eventType,
+    eventName,
+    description,
+    recommendations,
+    score,
+    initialLiked,
+    registeredPosts,
+    alt,
+    onClick: !!onClick
+  });
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [broken, setBroken] = useState(false);
 
