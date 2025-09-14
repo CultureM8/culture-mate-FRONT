@@ -5,6 +5,7 @@ import Image from "next/image";
 import Gallery from "../global/Gallery";
 import { getEventTypeLabel } from "@/lib/api/eventApi";
 import { toggleTogetherInterest } from "@/lib/api/togetherApi";
+import { toAbsoluteImageUrl } from "@/lib/utils/imageUtils";
 
 export default function TogetherGallery(props) {
   const {
@@ -43,12 +44,18 @@ export default function TogetherGallery(props) {
   const href = id ? `/together/${encodeURIComponent(id)}` : "/together";
 
   /* 커버 이미지 */
-  const coverSrc =
+  const rawImagePath =
     (typeof imgSrc === "string" && imgSrc.trim()) ||
     eventSnapshot?.eventImage ||
     eventSnapshot?.image ||
     eventSnapshot?.imgSrc ||
-    "/img/default_img.svg";
+    eventSnapshot?.thumbnailImagePath ||
+    null;
+
+  console.log("🖼️ TogetherGallery - rawImagePath:", rawImagePath);
+  console.log("🖼️ TogetherGallery - eventSnapshot:", eventSnapshot);
+
+  const coverSrc = toAbsoluteImageUrl(rawImagePath);
 
   /* 타이틀/라벨 */
   const title = titleProp || "모집글 제목";
