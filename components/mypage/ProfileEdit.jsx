@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { IMAGES, ICONS } from "@/constants/path";
+import useLogin from "@/hooks/useLogin";
+import { getMemberDetail } from "@/lib/api";
 
 // 저장 버튼 컴포넌트
 function SaveButton({ onClick }) {
@@ -732,6 +734,8 @@ function GalleryContainer({
 
 // 메인 컴포넌트
 export default function MyPageEdit() {
+  const { user } = useLogin();
+
   // 프로필 배경 및 이미지 상태
   const [nickname, setNickname] = useState("사용자 별명");
   const [score, setScore] = useState(50);
@@ -746,6 +750,20 @@ export default function MyPageEdit() {
   const [age] = useState(25); // 고정값
   const [gender] = useState("여"); // 고정값
   const [mbti, setMbti] = useState("ENFP");
+
+  useEffect(() => {
+    if (user?.id) {
+      getMemberDetail(user.id)
+        .then((data) => {
+          setNickname(data.nickname || "");
+          setIntroduction(data.intro || "");
+          setMbti(data.mbti || "");
+        })
+        .catch((error) => {
+          console.error("Failed to fetch member details:", error);
+        });
+    }
+  }, [user]);
 
   // 공개/비공개 설정
   const [ageVisibility, setAgeVisibility] = useState("비공개");
