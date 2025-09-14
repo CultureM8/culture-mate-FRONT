@@ -184,7 +184,9 @@ export default function TogetherRequestChat({
     const client = new StompClient({
       webSocketFactory: () => sock,
       reconnectDelay: 2000,
+      debug: (msg) => console.log('[WebSocket Debug]', msg), // 디버그 활성화
       onConnect: () => {
+        console.log('✅ WebSocket 연결 성공!', roomId);
         client.subscribe(subDestination(roomId), (frame) => {
           try {
             const body = JSON.parse(frame.body);

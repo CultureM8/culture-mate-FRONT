@@ -6,6 +6,18 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/api/:path*`,
       },
+      {
+        source: '/images/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/images/:path*`,
+      },
+      {
+        source: '/websocket/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/websocket/:path*`,
+      },
+      {
+        source: '/ws/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:8080'}/ws/:path*`,
+      },
     ];
   },
 

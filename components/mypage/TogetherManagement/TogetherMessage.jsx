@@ -33,14 +33,10 @@ export default function TogetherMessage() {
   const currentUserId =
     currentUserIdRaw != null ? String(currentUserIdRaw) : null;
 
-  // 필터된 목록
+  // 필터된 목록 (API에서 이미 필터링됨)
   const filteredRequests = useMemo(() => {
-    const base =
-      filterStatus === "all"
-        ? chatRequests
-        : chatRequests.filter((r) => r.status === filterStatus);
-    return base;
-  }, [chatRequests, filterStatus]);
+    return chatRequests;
+  }, [chatRequests]);
 
   // 외부 이벤트로 채팅 열기
   useEffect(() => {
@@ -59,12 +55,12 @@ export default function TogetherMessage() {
     return async () => {
       if (!currentUserId) return;
 
-      const cacheKey = `together_applications_${activeTab}_${currentUserId}`;
+      const cacheKey = `together_applications_${activeTab}_${filterStatus}_${currentUserId}`;
 
       try {
         let list = [];
 
-        // 캐시 확인 (5초 이내 데이터는 재사용)
+        // 캐시 확인 (짧은 TTL로 성능 최적화)
         const cached = CacheManager.get(cacheKey);
         if (cached) {
           setChatRequests(cached);
@@ -72,8 +68,18 @@ export default function TogetherMessage() {
         }
 
         if (activeTab === "received") {
-          // 받은 신청: 백엔드 API 사용
-          const receivedApps = await togetherApi.getReceivedApplications();
+          // 받은 신청: 백엔드 API 사용 (필터 상태에 따라 파라미터 전달)
+          let statusParam = null;
+          if (filterStatus !== "all") {
+            // 프론트엔드 상태를 백엔드 상태로 매핑
+            const statusMap = {
+              "pending": "PENDING",
+              "accepted": "APPROVED",
+              "rejected": "REJECTED"
+            };
+            statusParam = statusMap[filterStatus] || filterStatus.toUpperCase();
+          }
+          const receivedApps = await togetherApi.getReceivedApplications(statusParam);
           list = receivedApps.map(app => ({
             requestId: app.requestId,
             fromUserId: app.applicantId,
@@ -86,18 +92,53 @@ export default function TogetherMessage() {
             postTitle: app.togetherTitle,
             postDate: app.meetingDate,
             message: app.message || "동행 신청 메시지",
-            status: app.status.toUpperCase(), // PENDING, APPROVED, REJECTED
+            status: app.status === "APPROVED" ? "accepted" :
+                    app.status === "REJECTED" ? "rejected" :
+                    "pending", // 백엔드 상태를 프론트엔드 형식으로 매핑
             eventName: app.eventName,
             eventType: app.eventType,
             eventImage: app.eventImage,
             createdAt: app.createdAt,
+            roomId: app.applicationChatRoomId, // 1:1 신청용 채팅방 ID 매핑
+            roomName: app.applicationChatRoomName, // 1:1 신청용 채팅방 이름 매핑
             isBackendData: true
           }));
         } else {
-          // 보낸 신청: 백엔드 API 호출 (TODO: API 엔드포인트 추가 필요)
-          // 임시로 빈 배열 반환
-          list = [];
-          console.log("보낸 신청 API는 아직 구현되지 않았습니다.");
+          // 보낸 신청: 백엔드 API 사용 (필터 상태에 따라 파라미터 전달)
+          let statusParam = null;
+          if (filterStatus !== "all") {
+            // 프론트엔드 상태를 백엔드 상태로 매핑
+            const statusMap = {
+              "pending": "PENDING",
+              "accepted": "APPROVED",
+              "rejected": "REJECTED"
+            };
+            statusParam = statusMap[filterStatus] || filterStatus.toUpperCase();
+          }
+          const sentApps = await togetherApi.getMyApplications(statusParam);
+          list = sentApps.map(app => ({
+            requestId: app.requestId,
+            fromUserId: app.applicantId,
+            fromUserName: app.applicantName,
+            fromUserProfileImage: app.applicantProfileImage,
+            toUserId: app.hostId,
+            toUserName: app.hostName,
+            togetherId: app.togetherId,
+            postId: app.togetherId,
+            postTitle: app.togetherTitle,
+            postDate: app.meetingDate,
+            message: app.message || "동행 신청 메시지",
+            status: app.status === "APPROVED" ? "accepted" :
+                    app.status === "REJECTED" ? "rejected" :
+                    "pending", // 백엔드 상태를 프론트엔드 형식으로 매핑
+            eventName: app.eventName,
+            eventType: app.eventType,
+            eventImage: app.eventImage,
+            createdAt: app.createdAt,
+            roomId: app.applicationChatRoomId, // 1:1 신청용 채팅방 ID 매핑
+            roomName: app.applicationChatRoomName, // 1:1 신청용 채팅방 이름 매핑
+            isBackendData: true
+          }));
         }
 
         list.sort((a, b) => {
@@ -106,8 +147,8 @@ export default function TogetherMessage() {
           return bv - av;
         });
 
-        // 캐시 저장 (5초 TTL)
-        CacheManager.set(cacheKey, list, 5000);
+        // 캐시 저장 (짧은 TTL로 성능과 무결성 균형)
+        CacheManager.set(cacheKey, list, 3000); // 3초 캐시
 
         setChatRequests(list);
         setUnreadCount(0); // 백엔드에서 unread count API 구현 필요
@@ -124,13 +165,13 @@ export default function TogetherMessage() {
         }
       }
     };
-  }, [activeTab, currentUserId]);
+  }, [activeTab, currentUserId, filterStatus]);
 
   useEffect(() => {
     if (!currentUserId) return;
     loadAll();
 
-    const interval = setInterval(loadAll, 5000);
+    const interval = setInterval(loadAll, 10000); // 10초 간격으로 폴링
     const onSync = () => loadAll();
     const onStorage = (e) => {
       if (e.key === "chatRequests") loadAll();
@@ -306,19 +347,12 @@ export default function TogetherMessage() {
       const togetherId = selectedReq.togetherId;
       const participantId = selectedReq.fromUserId;
 
-      // 백엔드 API 호출
-      const response = await togetherApi.approveParticipation(togetherId, participantId);
+      // 백엔드 API 호출 (응답이 없는 void API)
+      await togetherApi.approveParticipation(togetherId, participantId);
 
-      // API 응답 검증
-      if (!response || response.error) {
-        throw new Error(response?.error || "승인 처리 중 오류가 발생했습니다.");
-      }
-
-      // 캐시 무효화 및 목록 새로고침
-      CacheManager.clearPattern(`together_applications_${activeTab}_${currentUserId}`);
+      // 캐시 무효화: 모든 필터 상태의 캐시 제거
+      CacheManager.clearPattern(`together_applications_`);
       await loadAll();
-
-      alert("동행 신청을 수락했습니다!");
 
       const req =
         selectedRequest?.requestId === requestId
@@ -425,16 +459,11 @@ export default function TogetherMessage() {
       const togetherId = selectedReq.togetherId;
       const participantId = selectedReq.fromUserId;
 
-      // 백엔드 API 호출
-      const response = await togetherApi.rejectParticipation(togetherId, participantId);
+      // 백엔드 API 호출 (응답이 없는 void API)
+      await togetherApi.rejectParticipation(togetherId, participantId);
 
-      // API 응답 검증
-      if (!response || response.error) {
-        throw new Error(response?.error || "거절 처리 중 오류가 발생했습니다.");
-      }
-
-      // 캐시 무효화 및 목록 새로고침
-      CacheManager.clearPattern(`together_applications_${activeTab}_${currentUserId}`);
+      // 캐시 무효화: 모든 필터 상태의 캐시 제거
+      CacheManager.clearPattern(`together_applications_`);
       await loadAll();
 
       alert("동행 신청을 거절했습니다.");
@@ -500,38 +529,34 @@ export default function TogetherMessage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* 헤더 */}
       <div className="flex justify-between mb-2">
-        <span className="w-fit">
-          <select
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-            className="text-xs px-2 py-2 border border-gray-300 rounded-lg bg-white text-[#26282a] focus:outline-none focus:border-[#26282a] focus:ring focus:ring-blue-500 min-w-[100px]">
-            <option value="received">
-              받은 신청{unreadCount > 0 ? ` (${unreadCount})` : ""}
-            </option>
-            <option value="sent">보낸 신청</option>
-          </select>
-        </span>
-
         <span className="flex gap-2">
-          {["all", "pending", "accepted", "rejected"].map((k) => (
+          {["received", "sent"].map((k) => (
             <button
               key={k}
-              onClick={() => setFilterStatus(k)}
-              className={`px-2 py-2 rounded-lg text-xs transition-colors min-w-[60px] ${
-                filterStatus === k
+              onClick={() => setActiveTab(k)}
+              className={`px-3 py-2 rounded-lg text-xs transition-colors min-w-[80px] ${
+                activeTab === k
                   ? "bg-blue-500 text-white"
                   : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
               }`}>
-              {
-                {
-                  all: "전체",
-                  pending: "대기중",
-                  accepted: "수락됨",
-                  rejected: "거절됨",
-                }[k]
+              {k === "received"
+                ? `받은 신청${unreadCount > 0 ? ` (${unreadCount})` : ""}`
+                : "보낸 신청"
               }
             </button>
           ))}
+        </span>
+
+        <span className="w-fit">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="text-xs px-2 py-2 border border-gray-300 rounded-lg bg-white text-[#26282a] focus:outline-none focus:border-[#26282a] focus:ring focus:ring-blue-500 min-w-[80px]">
+            <option value="all">전체</option>
+            <option value="pending">대기중</option>
+            <option value="accepted">수락됨</option>
+            <option value="rejected">거절됨</option>
+          </select>
         </span>
       </div>
 
