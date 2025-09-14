@@ -73,7 +73,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: getEventMainImageUrl(data, true),
+    imgSrc: getEventMainImageUrl(data, true), // EventInfo용이므로 고화질 사용
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,

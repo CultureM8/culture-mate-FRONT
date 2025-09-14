@@ -32,6 +32,43 @@ export default function Gallery({
     setInterest(!!initialInterest);
   }, [initialInterest]);
 
+  // localStorage에서 관심사 상태 동기화 (새로고침 시에도 유지)
+  useEffect(() => {
+    if (!eventId || type !== "event") return;
+
+    // 페이지 로드 시 localStorage에서 상태 확인
+    const storageKey = `event_interest_${eventId}`;
+    const savedData = localStorage.getItem(storageKey);
+
+    if (savedData) {
+      try {
+        const { interested } = JSON.parse(savedData);
+        setInterest(Boolean(interested));
+      } catch (error) {
+        console.error("localStorage에서 관심사 상태 읽기 실패:", error);
+      }
+    }
+
+    // storage 이벤트 리스너 (크로스 페이지 동기화)
+    const handleStorageChange = (e) => {
+      if (!e.key || !e.key.startsWith('event_interest_')) return;
+
+      try {
+        const storageData = JSON.parse(e.newValue || '{}');
+        const storageEventId = storageData.eventId;
+
+        if (String(storageEventId) === String(eventId)) {
+          setInterest(Boolean(storageData.interested));
+        }
+      } catch (error) {
+        console.error("storage 이벤트 처리 실패:", error);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [eventId, type]);
+
   const initialSrc = useMemo(() => {
     return typeof src === "string" && src.trim().length > 0
       ? src.trim()
@@ -97,6 +134,15 @@ export default function Gallery({
           interested
         });
 
+        // localStorage에 상태 저장 (새로고침 시에도 유지되도록)
+        const storageKey = `event_interest_${itemId}`;
+        const storageData = {
+          eventId: String(itemId),
+          interested: interested,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(storageData));
+
         // 이벤트는 마이크로태스크로 발생 (더 빠른 실행)
         Promise.resolve().then(() => {
           window.dispatchEvent(
@@ -104,6 +150,14 @@ export default function Gallery({
               detail: { eventId: String(itemId), interested },
             })
           );
+
+          // 다른 탭/창에 알리기 위한 storage 이벤트 트리거
+          window.dispatchEvent(new StorageEvent('storage', {
+            key: storageKey,
+            newValue: JSON.stringify(storageData),
+            storageArea: localStorage
+          }));
+
           console.log("✅ Gallery - 이벤트 발생 완료");
         });
 

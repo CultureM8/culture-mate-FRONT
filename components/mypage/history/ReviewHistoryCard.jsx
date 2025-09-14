@@ -3,6 +3,7 @@
 import Image from "next/image";
 import StarRating from "@/lib/StarRating";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const TYPE_LABELS = {
   MUSICAL: "뮤지컬",
@@ -33,6 +34,7 @@ export default function ReviewHistoryCard({
   enableInteraction = true,
 }) {
   const [reviewTabExtend, setReviewTabExtend] = useState(false);
+  const router = useRouter();
 
   const {
     userNickname,
@@ -128,13 +130,31 @@ export default function ReviewHistoryCard({
 
   const extendReviewTab = () => setReviewTabExtend(!reviewTabExtend);
 
-  // 카드 클릭 핸들러
+  // 카드 클릭 핸들러 - EventPageClient 리뷰 섹션으로 이동
   const handleCardClick = (e) => {
     e.stopPropagation();
     if (editMode && onToggleSelect) {
       onToggleSelect();
     } else if (enableInteraction) {
-      extendReviewTab();
+      // 이벤트 ID가 있으면 해당 EventPageClient의 후기 탭으로 이동
+      const eventId = event?.id || event?.eventId || review?.eventId;
+      console.log("ReviewHistoryCard - 클릭된 리뷰 데이터:", review);
+      console.log("ReviewHistoryCard - 이벤트 데이터:", event);
+      console.log("ReviewHistoryCard - 추출된 eventId:", eventId);
+
+      if (eventId) {
+        // URL 파라미터를 사용한 방법도 시도
+        const targetUrl = `/events/${eventId}?tab=후기`;
+        console.log("ReviewHistoryCard - 이동할 URL:", targetUrl);
+
+        router.push(targetUrl);
+      } else {
+        console.log(
+          "ReviewHistoryCard - eventId가 없어서 탭 확장으로 fallback"
+        );
+        // 이벤트 ID가 없으면 기존 동작 (탭 확장)
+        extendReviewTab();
+      }
     }
   };
 
@@ -213,8 +233,8 @@ export default function ReviewHistoryCard({
                 </span>
               </div>
               <div className="mt-4 ml-1">
-                <StarRating 
-                  rating={finalScore} 
+                <StarRating
+                  rating={finalScore}
                   mode="display"
                   showNumber={true}
                   showStars={true}
