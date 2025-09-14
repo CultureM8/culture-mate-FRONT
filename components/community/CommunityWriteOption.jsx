@@ -3,7 +3,7 @@
 /** 자유게시판 글 작성 옵션박스 */
 
 import SearchToWrite from "./SearchToWrite";
-import AddContent from "./AddContent";
+// import AddContent from "./AddContent";
 import Link from "next/link";
 
 export default function CommunityWriteOption({ onPickEvent = () => {} }) {
@@ -28,16 +28,14 @@ export default function CommunityWriteOption({ onPickEvent = () => {} }) {
       </div>
 
       {/* 컨텐츠 추가 */}
-      <div className="flex items-center">
+      {/* <div className="flex items-center">
         <span className="text-sm text-gray-700 w-32 flex-shrink-0">
           컨텐츠 추가
         </span>
         <div className="flex-1 ml-[20px]">
           <AddContent />
         </div>
-      </div>
-
-      {/* 글쓰기 방식 */}
+      </div> */}
     </div>
   );
 }

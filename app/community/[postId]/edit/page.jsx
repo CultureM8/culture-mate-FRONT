@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
 import ConfirmModal from "@/components/global/ConfirmModal";
-import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import { normalizeEventSnapshot } from "@/lib/schema";
 import { getBoardDetail, updateBoard } from "@/lib/api/boardApi";
+import { transformEventCardData } from "@/lib/api/eventApi";
 
 export default function CommunityEditPage() {
   const params = useParams();
@@ -38,8 +38,36 @@ export default function CommunityEditPage() {
         if (post) {
           setTitle(post.title || "");
           setContent(post.content || "");
-          // 이벤트 스펙이 응답에 어떻게 오는지 명확치 않으므로, 선택 시에만 보냄
-          setSelectedEvent(null);
+
+          // 이벤트 카드 복원 (1순위: eventCard, 2순위: eventId 파편정보)
+          if (post?.eventCard) {
+            const card = transformEventCardData(post.eventCard); // 상세 페이지와 동일 매핑
+            const id = post.eventCard.id ?? post.eventId ?? null;
+            setSelectedEvent(
+              normalizeEventSnapshot({
+                ...card,
+                id,
+                eventId: id,
+              })
+            );
+          } else if (post?.eventId && post.eventId !== 0) {
+            // eventCard가 없을 때의 보완 매핑
+            const fallback = {
+              id: post.eventId,
+              eventId: post.eventId,
+              eventName: post.eventTitle || "이벤트",
+              eventType: post.eventType || "이벤트",
+              eventImage: post.eventImage || "/img/default_img.svg",
+              description: post.eventTitle || "",
+              score: 0,
+              recommendations: 0,
+              registeredPosts: 0,
+              initialLiked: false,
+            };
+            setSelectedEvent(normalizeEventSnapshot(fallback));
+          } else {
+            setSelectedEvent(null);
+          }
         }
       } catch (e) {
         console.error("edit: getBoardDetail failed", e);
@@ -90,14 +118,18 @@ export default function CommunityEditPage() {
         title: title.trim(),
         content,
         authorId,
-        // 선택 값(백엔드가 쓰지 않으면 null로 보내도 무해)
-        eventType: null,
-        eventId: null,
+        // 백엔드에서 이벤트 수정을 지원하지 않으므로 이벤트 정보는 전송하지 않음
       };
-      
+
+      console.log("Sending update payload:", updatePayload);
+
       const updated = await updateBoard(postId, updatePayload);
+      console.log("Update response:", updated);
       setOpenSubmit(false);
-      router.replace(`/community/${updated?.id ?? postId}`);
+      // 수정 완료 후 상세 페이지로 이동할 때 새로고침 파라미터 추가
+      router.replace(
+        `/community/${updated?.id ?? postId}?updated=${Date.now()}`
+      );
     } catch (e) {
       console.error("updateBoard failed", e);
       alert(`수정에 실패했습니다.\n${e?.message ?? ""}`);
@@ -110,45 +142,36 @@ export default function CommunityEditPage() {
     <div className="w-full min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-8 py-6">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-black">
-            자유 게시판 게시글 수정
-          </h1>
-        </div>
-
-        <div className="mb-4">
-          <CommunityWriteOption onPickEvent={setSelectedEvent} />
+          <h1 className="text-2xl font-bold text-black">자유 게시판 수정</h1>
         </div>
 
         {selectedEvent && (
           <div className="mb-6 relative">
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
-              선택된 이벤트
-            </h3>
-            <button
-              onClick={() => setSelectedEvent(null)}
-              className="absolute top-12 right-2 w-6 h-6 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white text-sm z-10 transition-all">
-              ×
-            </button>
             <PostEventMiniCard {...selectedEvent} />
           </div>
         )}
 
-        <div className="w-full mb-4">
+        <div className="w-full mb-6">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
+            제목 <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
+            className="w-full h-12 px-4 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500"
             placeholder="제목을 입력해주세요"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full h-12 px-4 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
-
-        <div className="w-full">
+        <div className="w-full mb-6">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
+            내용
+          </label>
           <textarea
-            placeholder="내용을 입력해주세요"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full min-h-[500px] p-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+            className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500 resize-none"
+            placeholder="내용을 입력해주세요"
           />
         </div>
 

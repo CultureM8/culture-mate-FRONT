@@ -71,22 +71,28 @@ export default function CommunityWrite() {
           </div>
         )}
 
-        <div className="w-full mb-4">
+        <div className="w-full mb-6">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
+            제목 <span className="text-red-500">*</span>
+          </label>
           <input
             type="text"
+            className="w-full h-12 px-4 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500"
             placeholder="제목을 입력해주세요"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full h-12 px-4 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500"
           />
         </div>
 
-        <div className="w-full">
+        <div className="w-full mb-6">
+          <label className="block text-lg font-medium text-gray-700 mb-2">
+            내용
+          </label>
           <textarea
-            placeholder="내용을 입력해주세요"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full min-h-[500px] p-4 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+            className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:border-blue-500 resize-none"
+            placeholder="내용을 입력해주세요"
           />
         </div>
 

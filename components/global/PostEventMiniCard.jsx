@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import StarScore from "@/lib/StarScore";
+import { getEventTypeLabel } from "@/lib/api/eventApi";
 
 export default function PostEventMiniCard({
   eventImage = "/img/default_img.svg", // 기본 디폴트 이미지
@@ -37,24 +38,18 @@ export default function PostEventMiniCard({
   };
 
   return (
-    <div 
+    <div
       className={`bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden w-full ${
-        onClick ? 'cursor-pointer' : ''
+        onClick ? "cursor-pointer" : ""
       }`}
-      onClick={onClick}
-    >
+      onClick={onClick}>
       {/* 가로 레이아웃: 이미지 왼쪽 + 콘텐츠 오른쪽 */}
       <div className="flex">
         {/* 왼쪽 이미지 영역 - 세로 가운데 정렬 */}
-        <div className="w-32 h-40 bg-white flex-shrink-0 p-2">
+        <div className="w-32 h-40 bg-white flex-shrink-0 p-2 mb-2 ml-2">
           <div className="relative w-full h-full">
             {/* eslint-disable-next-line @next/next/no-img-element 이미지 경고제거 주석*/}
-            <Image
-              src={eventImage}
-              alt={alt}
-              fill
-              className="object-cover rounded"
-            />
+            <Image src={eventImage} alt={alt} fill className="object-cover" />
           </div>
         </div>
 
@@ -63,7 +58,7 @@ export default function PostEventMiniCard({
           {/* 상단: 이벤트 타입과 이름 */}
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full border">
-              {eventType}
+              {getEventTypeLabel(eventType)}
             </span>
             <span className="text-gray-600 text-sm font-medium">
               {eventName}

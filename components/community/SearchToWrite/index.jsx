@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import { toCard } from "@/lib/schema";
-import { searchEvents } from "@/lib/api/eventApi"; // ✅ 백엔드 연동
+import { searchEvents } from "@/lib/api/eventApi";
+import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 import EventTile from "./EventTile";
 
 export default function SearchToWrite({ onSelect = () => {} }) {
@@ -18,22 +19,42 @@ export default function SearchToWrite({ onSelect = () => {} }) {
   const PAGE_SIZE = 6;
 
   // eventApi.searchEvents() 결과를 카드 호환 형태로 변환
-  const transformFromApi = (events = []) =>
-    events.map((e) => ({
-      id: e.id, // string
-      name: e.title, // 카드에서 쓰는 이름
-      eventName: e.title, // 기존 호환
-      eventType: e.eventType,
-      type: e.eventType, // 기존 호환
-      image: e.imgSrc || "/img/default_img.svg", // 기본이미지 폴백
-      description: e.title,
-      rating: e.score ?? 0, // (api엔 avgRating 없어서 0)
-      likes: e.interestCount ?? 0,
-      postsCount: 0,
-      isLiked: false,
-    }));
+  const transformFromApi = (events = []) => {
+    console.log("SearchToWrite - transformFromApi input:", events);
 
-  // 바디 스크롤 잠금 유지 (기존 동작 그대로)
+    return events.map((e) => {
+      console.log("SearchToWrite - transforming event:", e);
+
+      const transformed = {
+        id: String(e.id || e.eventId || ""), // string으로 변환
+        name: e.title || "", // 카드에서 쓰는 이름
+        eventName: e.title || "", // 기존 호환
+        eventType: e.eventType || "이벤트",
+        type: e.eventType || "이벤트", // 기존 호환
+        eventImage: getEventMainImageUrl(e) || "/img/default_img.svg", // 올바른 이미지 필드
+        image: getEventMainImageUrl(e) || "/img/default_img.svg", // 기본이미지 폴백
+        description: e.title || "", // 제목을 설명으로 사용
+        rating: e.avgRating ? Number(e.avgRating) : 0, // avgRating 사용
+        starScore: e.avgRating ? Number(e.avgRating) : 0, // starScore 필드도 추가
+        likes: e.interestCount || 0,
+        recommendations: e.interestCount || 0, // recommendations 필드도 추가
+        postsCount: 0,
+        registeredPosts: 0,
+        isLiked: e.isInterested || false,
+        initialLiked: e.isInterested || false,
+        // 추가 필드들도 포함
+        startDate: e.startDate,
+        endDate: e.endDate,
+        location: e.location,
+        eventId: e.id || e.eventId,
+      };
+
+      console.log("SearchToWrite - transformed event:", transformed);
+      return transformed;
+    });
+  };
+
+  // 바디 스크롤 잠금 유지
   useEffect(() => {
     const isModalOpen = open || warnOpen;
 
@@ -68,14 +89,28 @@ export default function SearchToWrite({ onSelect = () => {} }) {
     }
 
     try {
-      // ✅ 백엔드 검색 호출
+      console.log("SearchToWrite - searching for:", q);
       const apiList = await searchEvents({ keyword: q });
-      const transformed = transformFromApi(apiList);
-      setResults(transformed.map(toCard));
+      console.log("SearchToWrite - search results from API:", apiList);
+
+      const transformed = transformFromApi(
+        Array.isArray(apiList) ? apiList : []
+      );
+      console.log("SearchToWrite - transformed results:", transformed);
+
+      const finalResults = transformed.map(toCard);
+      console.log("SearchToWrite - final card results:", finalResults);
+
+      setResults(finalResults);
       setShowAll(false);
       setOpen(true);
     } catch (err) {
       console.error("이벤트 검색 실패:", err);
+      console.error("Error details:", {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+      });
       setResults([]);
       setShowAll(false);
       setOpen(true);

@@ -3,14 +3,19 @@
 import ConfirmModal from "@/components/global/ConfirmModal";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import CommentsSection from "@/components/community/CommentsSection";
 import { ICONS } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
 
 /* 백엔드 */
-import { getBoardDetail, deleteBoard, toggleBoardLike, transformBoardData } from "@/lib/api/boardApi";
+import {
+  getBoardDetail,
+  deleteBoard,
+  toggleBoardLike,
+  transformBoardData,
+} from "@/lib/api/boardApi";
 import { transformEventCardData } from "@/lib/api/eventApi";
 
 /** 권한 키 */
@@ -36,9 +41,9 @@ const saveRecSet = (postId, set) => {
   } catch {}
 };
 
-
 export default function CommunityDetailPage() {
   const { postId } = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const bodyRef = useRef(null);
   const { ready, isLogined, user } = useLogin();
@@ -52,7 +57,7 @@ export default function CommunityDetailPage() {
   /** 이벤트 미니카드용 데이터 (백엔드에서 eventCard 필드로 제공) */
   const [eventCard, setEventCard] = useState(null);
 
-  /* 글 로드 */
+  /* 글 로드 - URL 파라미터 변경 시에도 새로고침 */
   useEffect(() => {
     let stop = false;
     (async () => {
@@ -68,7 +73,7 @@ export default function CommunityDetailPage() {
         const transformedPost = transformBoardData(post);
         console.log("Transformed post:", transformedPost);
         setPost(transformedPost || null);
-        
+
         // 백엔드에서 제공하는 eventCard를 변환해서 사용
         const transformedEventCard = transformEventCardData(post?.eventCard);
         setEventCard(transformedEventCard);
@@ -93,7 +98,7 @@ export default function CommunityDetailPage() {
     return () => {
       stop = true;
     };
-  }, [postId]);
+  }, [postId, searchParams]);
 
   // 내 추천 여부(초기값: 로컬 기록 사용)
   useEffect(() => {
@@ -101,7 +106,6 @@ export default function CommunityDetailPage() {
     const set = loadRecSet(postId);
     setRecommended(user ? set.has(userKey(user)) : false);
   }, [post, user, postId]);
-
 
   if (!post) {
     return (
@@ -131,6 +135,7 @@ export default function CommunityDetailPage() {
   const recommends = post?.recommendations ?? 0;
   const authorName = post?.author || "익명";
 
+
   return (
     <div className="w-full min-h-screen bg-white">
       <div className="max-w-6xl mx-auto px-8 py-6">
@@ -148,7 +153,7 @@ export default function CommunityDetailPage() {
               <span>{new Date(post.createdAt).toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-2 pr-2">
-              <span>조회 {views}</span>
+              {/* <span>조회 {views}</span> */}
               <span>추천 {recommends}</span>
               <span>댓글 {commentCount}</span>
             </div>
@@ -192,10 +197,6 @@ export default function CommunityDetailPage() {
                 const latestPost = await getBoardDetail(postId);
                 const transformedLatest = transformBoardData(latestPost);
                 setPost(transformedLatest || null);
-                
-                // 이벤트 카드도 업데이트
-                const updatedEventCard = transformEventCardData(latestPost?.eventCard);
-                setEventCard(updatedEventCard);
 
                 // 로컬 추천기록도 업데이트(초기상태 표시에 사용)
                 const currentUserKey = userKey(user);
@@ -262,12 +263,19 @@ export default function CommunityDetailPage() {
         {/* 액션 */}
         <div className="flex gap-2 mt-3 mb-10 justify-end">
           {canDelete && (
-            <button
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
-              onClick={() => setOpenDelete(true)}
-              disabled={deleting}>
-              {deleting ? "삭제 중…" : "삭제"}
-            </button>
+            <>
+              <button
+                className="flex items-center gap-2 px-4 py-2 border border-blue-500 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"
+                onClick={() => router.push(`/community/${postId}/edit`)}>
+                수정
+              </button>
+              <button
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                onClick={() => setOpenDelete(true)}
+                disabled={deleting}>
+                {deleting ? "삭제 중…" : "삭제"}
+              </button>
+            </>
           )}
           <button
             className="px-6 py-2 bg-gray-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"

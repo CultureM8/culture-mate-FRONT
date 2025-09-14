@@ -6,7 +6,6 @@ import Image from "next/image";
 
 import useLogin from "@/hooks/useLogin";
 import { ICONS } from "@/constants/path";
-import SlidingBanner from "@/components/community/SlidingBanner";
 import SearchBar from "@/components/global/SearchBar";
 import ListLayout from "@/components/global/ListLayout";
 import CommunityList from "@/components/community/CommunityList";
@@ -164,7 +163,17 @@ export default function CommunityListTablePage() {
       <h1 className="text-4xl font-bold py-[10px] h-16 px-6">{title}</h1>
       <p className="text-xl pt-[10px] h-12 fill-gray-600 px-6">{intro}</p>
 
-      <SlidingBanner />
+      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] mb-8">
+        <div className="relative w-full h-[370px] overflow-hidden ">
+          <div className="min-w-full h-full relative flex-shrink-0">
+            <img
+              src={"/img/communitybanner.jpg"}
+              alt={"배너이미지"}
+              className="w-full h-full object-cover block"
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="w-full mt-6 mb-2 flex items-center justify-end gap-3">
         <SearchBar
@@ -184,7 +193,7 @@ export default function CommunityListTablePage() {
             <option value="createdAt_asc">오래된순</option>
             <option value="comments_desc">댓글많은순</option>
             <option value="recommendations_desc">추천많은순</option>
-            <option value="views_desc">조회수많은순</option>
+            {/* <option value="views_desc">조회수많은순</option> */}
           </select>
 
           {ready && isLogined && (
