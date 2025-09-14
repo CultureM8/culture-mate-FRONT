@@ -444,7 +444,7 @@ export default function HistoryWith({ togetherData = [] }) {
   const handleDeleteSelected = async () => {
     const count = selectedIds.size;
     if (count === 0) return;
-    if (!confirm(`선택한 ${count}개 항목을 삭제할까요?`)) return;
+    if (!confirm(`선택한 ${count}개 항목을 삭제할까요?\n\n⚠️ 호스트 동행: Together 게시글도 함께 삭제됩니다.\n⚠️ 게스트 동행: 참여 신청이 취소됩니다.`)) return;
 
     const nextHidden = new Set(hiddenIds);
 
@@ -452,55 +452,96 @@ export default function HistoryWith({ togetherData = [] }) {
     const hostSet = new Set(hostRecords.map((x) => String(x.togetherId)));
     const guestSet = new Set(guestRecords.map((x) => String(x.togetherId)));
     const useHostApi = hostFromApi.length > 0;
+    const useGuestApi = guestFromApi.length > 0;
 
-    const ops = [];
+    const deleteOps = [];
+    const cancelOps = [];
+
     selectedIds.forEach((id) => {
       const key = String(id);
+
       if (hostSet.has(key)) {
+        // 호스트 동행: Together 게시글 완전 삭제
         if (useHostApi) {
-          ops.push(
-            togetherApi.delete(Number(key)).catch(() => {
-              // API 실패 시 숨김 처리로 폴백
+          console.log(`호스트 동행 삭제 시도: Together ID ${key}`);
+          deleteOps.push(
+            togetherApi.delete(Number(key)).catch((error) => {
+              console.error(`Together 삭제 실패 (ID: ${key}):`, error);
+              // API 실패 시에도 숨김 처리
               nextHidden.add(key);
             })
           );
         } else {
-          // 레거시 로컬스토리지 삭제
+          // 레거시 로컬스토리지에서 삭제
+          console.log(`레거시 Together 데이터 삭제: ${key}`);
           deletePost("together", key, { purgeExtras: true });
         }
       } else if (guestSet.has(key)) {
-        // 게스트는 숨김 처리
-        nextHidden.add(key);
+        // 게스트 동행: 참여 신청 취소 (API가 있는 경우)
+        if (useGuestApi) {
+          console.log(`게스트 동행 참여 취소 시도: Together ID ${key}`);
+          cancelOps.push(
+            togetherApi.cancelParticipation(Number(key)).catch((error) => {
+              console.warn(`참여 취소 실패 (ID: ${key}):`, error);
+              // 취소 실패 시 숨김 처리로 대체
+              nextHidden.add(key);
+            })
+          );
+        } else {
+          // API 없는 경우 숨김 처리
+          console.log(`게스트 동행 숨김 처리: ${key}`);
+          nextHidden.add(key);
+        }
       } else {
+        // 기타 경우 숨김 처리
         nextHidden.add(key);
       }
     });
 
-    if (ops.length) {
+    // 모든 삭제/취소 작업 실행
+    const allOps = [...deleteOps, ...cancelOps];
+    if (allOps.length > 0) {
       try {
-        await Promise.all(ops);
+        console.log(`총 ${allOps.length}개 작업 실행 중...`);
+        await Promise.all(allOps);
+        console.log("모든 작업 완료");
       } catch (e) {
-        console.warn("일부 삭제 실패:", e);
+        console.warn("일부 작업 실패:", e);
       }
     }
 
+    // 숨김 상태 저장
     saveHiddenIds(userKey, nextHidden);
     setHiddenIds(nextHidden);
     setSelectedIds(new Set());
 
     // 목록 갱신
-    if (hostFromApi.length > 0) {
+    if (useHostApi) {
       try {
         const myId = user?.id ?? user?.user_id ?? null;
         if (myId) {
           const list = await togetherApi.getByHost(myId);
           setHostFromApi(Array.isArray(list) ? list : []);
         }
-      } catch {}
+      } catch (e) {
+        console.warn("호스트 목록 갱신 실패:", e);
+      }
     } else {
       const arr = loadPosts("together") || [];
       setRawPosts(arr);
     }
+
+    // 게스트 목록도 갱신
+    if (useGuestApi) {
+      try {
+        const approvedApplications = await togetherApi.getMyApplications("APPROVED");
+        setGuestFromApi(Array.isArray(approvedApplications) ? approvedApplications : []);
+      } catch (e) {
+        console.warn("게스트 목록 갱신 실패:", e);
+      }
+    }
+
+    alert(`${count}개 항목이 처리되었습니다.`);
   };
 
   // 숨김 적용 + 탭 필터 + 합치기

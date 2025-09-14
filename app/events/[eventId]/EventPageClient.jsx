@@ -1,6 +1,10 @@
 "use client";
 
-import { getEventReviews } from "@/lib/api/eventReviewApi";
+import {
+  getEventReviews,
+  deleteEventReview,
+  deleteEventReviewByEvent,
+} from "@/lib/api/eventReviewApi";
 import EventDetail from "@/components/events/detail/EventDetail";
 import EventInfo from "./EventInfo";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -20,11 +24,10 @@ import {
   getEventMainImageUrl,
   getEventContentImageUrls,
 } from "@/lib/utils/imageUtils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 /** region → location 문자열(undef-safe) */
 const toLocation = (obj) => {
-  // 백엔드 RegionDto.Response 구조 (level1, level2, level3)
   const level1 =
     typeof obj?.region?.level1 === "string" ? obj.region.level1.trim() : "";
   const level2 =
@@ -32,13 +35,11 @@ const toLocation = (obj) => {
   const level3 =
     typeof obj?.region?.level3 === "string" ? obj.region.level3.trim() : "";
 
-  // 기존 구조 호환성 (city, district)
   const city =
     typeof obj?.region?.city === "string" ? obj.region.city.trim() : "";
   const district =
     typeof obj?.region?.district === "string" ? obj.region.district.trim() : "";
 
-  // level 구조를 우선 사용, 없으면 기존 구조 사용
   const parts =
     level1 || level2 || level3
       ? [level1, level2, level3].filter(Boolean)
@@ -50,9 +51,6 @@ const toLocation = (obj) => {
 };
 
 const mapDetail = (data) => {
-  console.log("mapDetail - input data:", data);
-  console.log("mapDetail - isInterested from backend:", data?.isInterested);
-
   const priceList = Array.isArray(data?.ticketPrices)
     ? data.ticketPrices.map((p) => ({
         type: p.ticketType,
@@ -65,7 +63,6 @@ const mapDetail = (data) => {
       ? data.ticketPrices.map((p) => p.ticketType).join(", ")
       : "미정";
 
-  // 백엔드 RegionDto.Response 구조에 맞게 수정
   const regionLevel1 = data?.region?.level1 || "";
   const regionLevel2 = data?.region?.level2 || "";
   const regionLevel3 = data?.region?.level3 || "";
@@ -73,7 +70,7 @@ const mapDetail = (data) => {
     .filter(Boolean)
     .join(" ");
 
-  const result = {
+  return {
     eventId: data.id,
     title: data.title,
     content: data.description || data.content || "",
@@ -92,7 +89,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: getEventMainImageUrl(data, true), // EventInfo용이므로 고화질 사용
+    imgSrc: getEventMainImageUrl(data, true),
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,
@@ -103,11 +100,8 @@ const mapDetail = (data) => {
     contentImageUrls: getEventContentImageUrls(data),
     ticketPrices: data.ticketPrices || [],
     region: data.region || null,
-    isInterested: Boolean(data.isInterested), // 백엔드에서 받은 관심 상태 매핑
+    isInterested: Boolean(data.isInterested),
   };
-
-  console.log("mapDetail - output result:", result);
-  return result;
 };
 
 // 동행 데이터 매핑 함수
@@ -115,58 +109,40 @@ const mapTogetherData = (together) => {
   const togetherId = together.id || null;
 
   return {
-    // 기본 식별자
     id: togetherId,
     togetherId: togetherId,
-
-    // 제목/내용
     title: together.title || "제목 없음",
     content: together.content || "",
-
-    // 이벤트 정보
     eventType: together.event?.eventType || "기타",
     eventName: together.event?.title || together.event?.eventName || "이벤트명",
     eventSnapshot: together.event,
     event: together.event,
-
-    // 호스트 정보
     host: together.host,
     hostId: together.host?.id,
     hostNickname: together.host?.nickname || together.host?.displayName,
     hostLoginId: together.host?.loginId || together.host?.login_id,
-
-    // 참여자 정보
     maxParticipants: together.maxParticipants,
     currentParticipants: together.currentParticipants,
     group: `${together.currentParticipants || 0}/${together.maxParticipants}`,
-
-    // 날짜 및 장소
     meetingDate: together.meetingDate,
     date: together.meetingDate,
     meetingLocation: together.meetingLocation,
     region: together.region,
     address: together.meetingLocation || "",
-
-    // 상태
     active: together.active,
     isClosed: !together.active,
     isInterested: together.isInterested || false,
-
-    // 이미지 - getEventMainImageUrl 사용
     imgSrc: together.event
       ? getEventMainImageUrl(together.event)
       : "/img/default_img.svg",
-
-    // href
     href: `/together/${togetherId}`,
-
-    // 기타
     _key: `together_${togetherId}`,
   };
 };
 
 export default function EventPageClient({ eventData: initialEventData }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const loginContext = useContext(LoginContext);
   const user = loginContext?.user || null;
   const isLogined = loginContext?.isLogined || false;
@@ -174,6 +150,7 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const currentUserId = user?.id ?? user?.user_id ?? user?.memberId ?? null;
   const [currentMenu, setCurrentMenu] = useState("상세 정보");
   const menuList = ["상세 정보", "후기", "모집중인 동행"];
+
   const [togetherViewType, setTogetherViewType] = useState("List");
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -184,6 +161,7 @@ export default function EventPageClient({ eventData: initialEventData }) {
   const [editingReview, setEditingReview] = useState(null);
   const [togetherData, setTogetherData] = useState([]);
   const [togetherLoading, setTogetherLoading] = useState(false);
+
   const openFilterModal = () => setIsFilterModalOpen(true);
   const closeFilterModal = () => setIsFilterModalOpen(false);
   const openReviewModal = () => {
@@ -194,6 +172,7 @@ export default function EventPageClient({ eventData: initialEventData }) {
     setEditingReview(null);
     setIsReviewModalOpen(false);
   };
+
   const reviewKey = (eid, uid) => `reviewed:${eid}:${uid}`;
 
   useEffect(() => {
@@ -209,11 +188,43 @@ export default function EventPageClient({ eventData: initialEventData }) {
     setEventData(initialEventData);
   }, [initialEventData]);
 
+  // URL 파라미터/해시 → 탭 이동
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const tabParam = searchParams.get("tab");
+    const hash = window.location.hash.slice(1);
+    const targetTab = tabParam || hash;
+    if (targetTab && menuList.includes(targetTab)) {
+      setCurrentMenu(targetTab);
+    }
+    const handleHashChange = () => {
+      const newHash = window.location.hash.slice(1);
+      if (newHash && menuList.includes(newHash)) setCurrentMenu(newHash);
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [searchParams]);
+
   useEffect(() => {
     if (currentMenu === "후기" && eventData?.eventId) {
       loadReviews();
     }
   }, [currentMenu, eventData?.eventId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash.slice(1);
+    if (hash && currentMenu === hash) {
+      setTimeout(() => {
+        const tabElement =
+          document.querySelector(`[data-tab="${hash}"]`) ||
+          document.querySelector(".min-h-50");
+        if (tabElement) {
+          tabElement.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+    }
+  }, [currentMenu]);
 
   const isMineReview = (rv, myId) => {
     if (!rv || myId == null) return false;
@@ -231,21 +242,18 @@ export default function EventPageClient({ eventData: initialEventData }) {
   };
 
   const loadReviews = async () => {
+    if (!eventData?.eventId) return;
     setReviewsLoading(true);
     try {
       const reviewData = await getEventReviews(eventData.eventId);
       const list = Array.isArray(reviewData) ? reviewData : [];
 
-      // 내 리뷰를 최상단으로 정렬
+      // 내 리뷰 상단 정렬
       const sortedList = list.sort((a, b) => {
         const aIsMine = isMineReview(a, currentUserId);
         const bIsMine = isMineReview(b, currentUserId);
-
-        // 내 리뷰가 있으면 맨 위로
         if (aIsMine && !bIsMine) return -1;
         if (!aIsMine && bIsMine) return 1;
-
-        // 둘 다 내 리뷰이거나 둘 다 내 리뷰가 아니면 기존 순서 유지
         return 0;
       });
 
@@ -277,64 +285,120 @@ export default function EventPageClient({ eventData: initialEventData }) {
     await updateEventData();
   };
 
-  // 리뷰 편집 처리
   const handleEditReview = (reviewData) => {
     setEditingReview(reviewData);
     setIsReviewModalOpen(true);
   };
 
-  // 리뷰 수정 완룉 처리
   const handleReviewUpdated = async (updatedReview) => {
     setEditingReview(null);
     await loadReviews();
     await updateEventData();
   };
 
-  // 모집중인 동행 > 글쓰기 버튼 동작 (TogetherPage와 동일 경로/가드)
+  // ★ 삭제 핸들러 (경로 자동 대응 + 낙관적 갱신 포함)
+  const handleDeleteReview = async (reviewData) => {
+    console.log("handleDeleteReview 호출됨, reviewData:", reviewData);
+
+    const reviewId =
+      reviewData?.id ?? reviewData?.reviewId ?? reviewData?.review_id;
+
+    if (!reviewId) {
+      console.error("리뷰 ID가 없음:", reviewData);
+      alert("리뷰 ID를 찾을 수 없습니다.");
+      return;
+    }
+
+    if (!confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
+      return;
+    }
+
+    const eventIdSafe =
+      reviewData?.eventId ??
+      reviewData?.event_id ??
+      eventData?.eventId ??
+      eventData?.id;
+
+    try {
+      console.log("deleteEventReview API 호출 시작, reviewId:", reviewId);
+
+      let result;
+      try {
+        if (eventIdSafe) {
+          result = await deleteEventReviewByEvent(eventIdSafe, reviewId);
+        } else {
+          result = await deleteEventReview(reviewId);
+        }
+      } catch (err) {
+        console.warn(
+          "event-route DELETE 실패, review-only 경로로 재시도:",
+          err?.message
+        );
+        result = await deleteEventReview(reviewId);
+      }
+      console.log("deleteEventReview 완료:", result);
+
+      // 즉시 리스트에서 제거
+      setReviews((prev) =>
+        Array.isArray(prev)
+          ? prev.filter(
+              (rv) =>
+                String(rv?.id ?? rv?.reviewId ?? rv?.review_id) !==
+                String(reviewId)
+            )
+          : prev
+      );
+
+      // 내 리뷰 플래그/로컬스토리지 정리
+      setHasMyReview(false);
+      if (typeof window !== "undefined" && currentUserId != null) {
+        localStorage.removeItem(reviewKey(eventData.eventId, currentUserId));
+      }
+
+      // 서버 최신 상태 재조회
+      console.log("삭제 후 리뷰 목록 재조회 시작");
+      await loadReviews();
+      await updateEventData();
+      console.log(
+        "삭제 후 리뷰 목록 재조회 완료, 현재 리뷰 수:",
+        reviews?.length
+      );
+
+      alert("리뷰가 성공적으로 삭제되었습니다.");
+    } catch (error) {
+      console.error("리뷰 삭제 실패:", error);
+      alert(`리뷰 삭제에 실패했습니다: ${error.message}`);
+    }
+  };
+
+  // 모집중인 동행 > 글쓰기 버튼 동작
   const handleWriteTogether = () => {
-    console.log("handleWriteTogether 호출됨");
-    console.log("현재 로그인 상태:", { ready, isLogined, user, currentUserId });
-
     const eid = eventData?.eventId || eventData?.id;
-    console.log("이벤트 ID:", eid);
-
     const qs = eid ? `?eventId=${encodeURIComponent(String(eid))}` : "";
     const targetUrl = `/together/write${qs}`;
-
-    console.log("이동할 URL:", targetUrl);
-
     if (ready && isLogined && currentUserId != null) {
-      console.log("로그인된 상태로 이동");
       router.push(targetUrl);
     } else {
-      console.log("비로그인 상태로 로그인 페이지로 이동");
       router.push(`/login?next=${encodeURIComponent(targetUrl)}`);
     }
   };
 
-  // 이벤트 데이터 업데이트 (공통 로직)
   const updateEventData = async () => {
     try {
       const raw = await getEventById(eventData.eventId);
       const updated = mapDetail(raw);
       setEventData(updated);
-      console.log("이벤트 데이터 업데이트 완료:", updated);
     } catch (error) {
       console.error("이벤트 데이터 업데이트 실패:", error);
     }
   };
 
-  // 관심 상태 변경 이벤트 리스너
+  // 관심 상태 변경 브로드캐스트 리스너
   useEffect(() => {
     if (!eventData?.eventId) return;
-
     const handleInterestChanged = (event) => {
       const { eventId: changedEventId, interested } = event.detail;
-
       if (String(changedEventId) === String(eventData.eventId)) {
-        console.log("EventPageClient - 관심 상태 변경 감지:", interested);
-
-        // 즉시 UI 업데이트 (빠른 반응) - likesCount도 함께 업데이트
         setEventData((prev) => ({
           ...prev,
           isInterested: Boolean(interested),
@@ -342,14 +406,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
             ? (prev.likesCount || 0) + 1
             : Math.max((prev.likesCount || 0) - 1, 0),
         }));
-
-        // 백엔드에서 최신 상태도 비동기로 가져오기 (정확성 보장)
         setTimeout(() => {
           updateEventData();
         }, 100);
       }
     };
-
     window.addEventListener("event-interest-changed", handleInterestChanged);
     return () =>
       window.removeEventListener(
@@ -358,42 +419,25 @@ export default function EventPageClient({ eventData: initialEventData }) {
       );
   }, [eventData?.eventId]);
 
-  // 동행 데이터 로드 함수
+  // 동행 데이터 로드
   const loadTogetherData = async () => {
-    console.log("loadTogetherData 함수 실행됨");
-
-    if (!eventData?.eventId) {
-      console.log("eventId가 없어서 동행 데이터 로드 건너뜀");
-      return;
-    }
-
+    if (!eventData?.eventId) return;
     setTogetherLoading(true);
     try {
-      console.log("동행 데이터 로드 시작, eventId:", eventData.eventId);
-      console.log("togetherApi.search 호출 전");
-
       const togetherList = await togetherApi.search({
         eventId: eventData.eventId,
       });
-
-      console.log("동행 데이터 로드 성공:", togetherList);
       const safeList = Array.isArray(togetherList) ? togetherList : [];
-
-      // 동행 데이터 매핑 적용
       const mappedData = safeList.map(mapTogetherData);
-      console.log("매핑된 동행 데이터:", mappedData);
       setTogetherData(mappedData);
     } catch (error) {
       console.error("동행 데이터 로드 실패:", error);
-      console.error("Error details:", error.message, error.stack);
       setTogetherData([]);
     } finally {
       setTogetherLoading(false);
-      console.log("동행 데이터 로드 완료");
     }
   };
 
-  // 모집중인 동행 탭으로 이동했을 때 데이터 로드
   useEffect(() => {
     if (currentMenu === "모집중인 동행") {
       loadTogetherData();
@@ -412,15 +456,15 @@ export default function EventPageClient({ eventData: initialEventData }) {
         align="center"
       />
 
-      <div className="min-h-50">
+      <div className="min-h-50" data-tab-content={currentMenu}>
         {currentMenu === menuList[0] && (
-          // 이벤트 상세 정보
-          <EventDetail eventData={eventData} />
+          <div data-tab="상세 정보">
+            <EventDetail eventData={eventData} />
+          </div>
         )}
 
         {currentMenu === menuList[1] && (
-          // 이벤트 리뷰
-          <>
+          <div data-tab="후기">
             <div className="flex justify-end py-4">
               {!hasMyReview && (
                 <button
@@ -439,7 +483,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
               <ListLayout
                 Component={EventReviewList}
                 items={reviews}
-                commonProps={{ currentUserId, onEditReview: handleEditReview }}
+                commonProps={{
+                  currentUserId,
+                  onEditReview: (rv) => handleEditReview(rv),
+                  onDeleteReview: (rv) => handleDeleteReview(rv),
+                }}
               />
             ) : (
               <div className="flex justify-center py-8 text-gray-500">
@@ -457,12 +505,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
               reviewData={editingReview}
               eventData={eventData}
             />
-          </>
+          </div>
         )}
 
         {currentMenu === menuList[2] && (
-          // 모집중인 동행
-          <>
+          <div data-tab="모집중인 동행">
             <div className="flex items-center justify-between">
               <SearchFilterSort
                 enableViewType
@@ -471,9 +518,8 @@ export default function EventPageClient({ eventData: initialEventData }) {
                 filterAction={openFilterModal}
               />
               <button
-                onClick={(e) => {
+                onClick={() => {
                   try {
-                    console.log("글쓰기 버튼 클릭됨");
                     handleWriteTogether();
                   } catch (error) {
                     console.error("글쓰기 버튼 클릭 에러:", error);
@@ -504,12 +550,12 @@ export default function EventPageClient({ eventData: initialEventData }) {
                 모집중인 동행이 없습니다.
               </div>
             )}
-            {/* 필터 모달창 => 동행용 필터로 추후 교체 예정 */}
+
             <EventFilterModal
               isOpen={isFilterModalOpen}
               onClose={closeFilterModal}
             />
-          </>
+          </div>
         )}
       </div>
     </>

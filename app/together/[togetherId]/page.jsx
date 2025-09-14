@@ -751,14 +751,69 @@ export default function TogetherDetailPage() {
       <ConfirmModal
         open={openDelete}
         title="게시글을 삭제할까요?"
-        description="삭제 후에는 복구할 수 없습니다."
+        description="삭제 후에는 복구할 수 없습니다. 관련된 모든 신청과 데이터가 함께 삭제됩니다."
         confirmText="삭제"
         cancelText="취소"
         variant="danger"
-        onConfirm={() => {
-          deletePost("together", togetherId, { purgeExtras: true });
-          setOpenDelete(false);
-          router.push("/together");
+        onConfirm={async () => {
+          try {
+            console.log(`Together 게시글 삭제 시도: ID ${togetherId}`);
+            console.log("현재 사용자 정보:", user);
+            console.log("게시글 정보:", post);
+            console.log("게시글 호스트 정보:", post?.host);
+            console.log("isOwnPost:", isOwnPost);
+
+            // 토큰 확인
+            const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+            console.log("Access Token:", token ? "존재함" : "없음");
+
+            // 먼저 다른 API 호출이 정상 동작하는지 테스트
+            try {
+              console.log("DELETE 전 GET 요청 테스트...");
+              const testGet = await togetherApi.getById(Number(togetherId));
+              console.log("GET 요청 성공:", testGet ? "데이터 있음" : "데이터 없음");
+            } catch (getError) {
+              console.log("GET 요청 실패:", getError);
+            }
+
+            // API를 통해 실제 삭제
+            await togetherApi.delete(Number(togetherId));
+            console.log("Together 게시글 API 삭제 완료");
+
+            // 로컬스토리지에서도 제거 (레거시 데이터 정리)
+            deletePost("together", togetherId, { purgeExtras: true });
+
+            setOpenDelete(false);
+
+            // 삭제 완료 알림
+            alert("게시글이 성공적으로 삭제되었습니다.");
+
+            // 목록 페이지로 이동
+            router.push("/together");
+
+          } catch (error) {
+            console.error("Together 게시글 삭제 실패:", error);
+
+            let errorMessage = "게시글 삭제 중 오류가 발생했습니다.";
+
+            if (error.message?.includes("Failed to fetch")) {
+              errorMessage = "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.";
+            } else if (error.status === 401 || error.status === 403) {
+              errorMessage = "삭제 권한이 없습니다. 본인이 작성한 글만 삭제할 수 있습니다.";
+            } else if (error.status === 404) {
+              errorMessage = "이미 삭제되었거나 존재하지 않는 게시글입니다.";
+              // 404인 경우 로컬스토리지에서 제거하고 목록으로 이동
+              deletePost("together", togetherId, { purgeExtras: true });
+              setOpenDelete(false);
+              router.push("/together");
+              return;
+            } else if (error.message) {
+              errorMessage = `오류: ${error.message}`;
+            }
+
+            alert(errorMessage);
+            setOpenDelete(false);
+          }
         }}
         onClose={() => setOpenDelete(false)}
       />
