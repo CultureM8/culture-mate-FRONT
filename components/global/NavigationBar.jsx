@@ -52,7 +52,7 @@ export default function NavigationBar() {
     return q ? `${pathname}?${q}` : pathname;
   }, [pathname, searchParams]);
 
-  /** 수정된 관리자 체크: 로그인 상태일 때만 관리자 권한 확인 */
+  /** 로그인 상태일 때만 관리자 권한 확인 */
   useEffect(() => {
     if (!mounted) return;
 
