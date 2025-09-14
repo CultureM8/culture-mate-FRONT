@@ -24,7 +24,7 @@ export default function TogetherPage() {
   const searchParams = useSearchParams();
   const { ready, isLogined } = useLogin();
 
-  // URL 파라미터 ↔ 상태 동기화 (q, sort, view)
+  // URL 파라미터 ↔ 상태 동기화 (q, sort, view, hideClosed)
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [sortOption, setSortOption] = useState(
     searchParams.get("sort") ?? "createdAt_desc"
@@ -33,14 +33,17 @@ export default function TogetherPage() {
     searchParams.get("view") === "List" ? "List" : "Gallery"
   );
 
+  // 완료된 모집 숨기기 체크박스 (쿼리로부터 초기화)
+  const [hideClosed, setHideClosed] = useState(
+    (searchParams.get("hideClosed") ?? "") === "1"
+  );
+
   const [selectedEventType, setSelectedEventType] = useState("전체");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // 필터 상태 추가
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [isFiltered, setIsFiltered] = useState(false);
-
-  // hook: 서버/스토리지에서 가져온 원본 목록
   const { items, loading, error, refetch } = useTogetherItems(
     selectedEventType,
     sortOption
@@ -59,25 +62,41 @@ export default function TogetherPage() {
     // view
     if (viewType !== "Gallery") params.set("view", viewType);
     else params.delete("view");
+    // hideClosed
+    if (hideClosed) params.set("hideClosed", "1");
+    else params.delete("hideClosed");
 
     const qs = params.toString();
     const nextUrl = qs ? `${pathname}?${qs}` : pathname;
     // 스크롤 유지
     router.replace(nextUrl, { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, sortOption, viewType]);
+  }, [query, sortOption, viewType, hideClosed]);
 
-  // 검색어 + 필터로 클라이언트 필터링 - 단순화
+  // 검색어 + 이벤트타입 + 지역 + 완료 숨기기 필터링
   const filtered = useMemo(() => {
     let result = items || [];
-    
-    console.log("=== Together 필터링 시작 ===");
-    console.log("원본 데이터 개수:", result.length);
-    console.log("샘플 데이터:", result[0]);
-    console.log("appliedFilters:", appliedFilters);
-    console.log("isFiltered:", isFiltered);
-    
-    // 검색어 필터링
+
+    // 1) 이벤트 타입
+    if (selectedEventType !== "전체") {
+      result = result.filter((item) => {
+        const itemEventType = item.eventType;
+
+        // 복합 타입 처리
+        if (selectedEventType === "클래식/무용") {
+          return itemEventType === "클래식" || itemEventType === "무용";
+        }
+        if (selectedEventType === "콘서트/페스티벌") {
+          return itemEventType === "콘서트" || itemEventType === "페스티벌";
+        }
+        // 단일 타입 매칭 (전시/전시회 교차 허용)
+        if (selectedEventType === "전시") {
+          return itemEventType === "전시" || itemEventType === "전시회";
+        }
+        return itemEventType === selectedEventType;
+      });
+    }
+
+    // 2) 검색어
     const q = query.trim().toLowerCase();
     if (q) {
       const safe = (v) => (v == null ? "" : String(v));
@@ -98,63 +117,97 @@ export default function TogetherPage() {
         return hay.includes(q);
       });
     }
-    
-    // 필터 적용 - 단순한 로직으로 변경
+
+    // 3) 지역 필터
     if (isFiltered && appliedFilters?.selectedRegion) {
       const selectedRegion = appliedFilters.selectedRegion;
-      console.log("지역 필터 적용:", selectedRegion);
-      
-      result = result.filter(item => {
-        console.log("아이템 체크:", item.title, item.region || item.location);
-        
-        // 지역 정보가 없는 아이템은 제외
+
+      result = result.filter((item) => {
         const itemRegion = item.region || item.location;
         if (!itemRegion) return false;
-        
-        // "전체"가 아닌 경우만 체크
+
         if (selectedRegion.location1 && selectedRegion.location1 !== "전체") {
-          if (itemRegion.level1 !== selectedRegion.location1 && 
-              itemRegion.city !== selectedRegion.location1 && 
-              itemRegion.location1 !== selectedRegion.location1) {
+          if (
+            itemRegion.level1 !== selectedRegion.location1 &&
+            itemRegion.city !== selectedRegion.location1 &&
+            itemRegion.location1 !== selectedRegion.location1
+          ) {
             return false;
           }
         }
-        
+
         if (selectedRegion.location2 && selectedRegion.location2 !== "전체") {
-          if (itemRegion.level2 !== selectedRegion.location2 && 
-              itemRegion.district !== selectedRegion.location2 && 
-              itemRegion.location2 !== selectedRegion.location2) {
+          if (
+            itemRegion.level2 !== selectedRegion.location2 &&
+            itemRegion.district !== selectedRegion.location2 &&
+            itemRegion.location2 !== selectedRegion.location2
+          ) {
             return false;
           }
         }
-        
+
         if (selectedRegion.location3 && selectedRegion.location3 !== "전체") {
-          if (itemRegion.level3 !== selectedRegion.location3 && 
-              itemRegion.dong !== selectedRegion.location3 && 
-              itemRegion.location3 !== selectedRegion.location3) {
+          if (
+            itemRegion.level3 !== selectedRegion.location3 &&
+            itemRegion.dong !== selectedRegion.location3 &&
+            itemRegion.location3 !== selectedRegion.location3
+          ) {
             return false;
           }
         }
-        
+
         return true;
       });
-      
-      console.log("필터링 후 결과:", result.length);
     }
-    
+
+    // 완료된 모집 숨기기 (기간 지남 OR inactive OR 정원 초과)
+    if (hideClosed) {
+      result = result.filter((it) => {
+        const now = new Date();
+
+        // 날짜 판정용 우선순위: meetingDate > companionDate > date > createdAt
+        const rawDate =
+          it.meetingDate || it.companionDate || it.date || it.createdAt;
+        const isPast =
+          rawDate != null
+            ? (() => {
+                const d = new Date(rawDate);
+                return !Number.isNaN(d.getTime()) && d < now;
+              })()
+            : false;
+
+        const isInactive = typeof it.active === "boolean" ? !it.active : false;
+
+        const cur =
+          typeof it.currentParticipants === "number"
+            ? it.currentParticipants
+            : typeof it.current === "number"
+            ? it.current
+            : null;
+        const max =
+          typeof it.maxParticipants === "number"
+            ? it.maxParticipants
+            : typeof it.maxPeople === "number"
+            ? it.maxPeople
+            : null;
+        const isFull =
+          cur != null && max != null ? Number(cur) >= Number(max) : false;
+
+        // 완료된 모집(숨김): 기간지남 || inactive || 정원초과
+        return !(isPast || isInactive || isFull);
+      });
+    }
+
     return result;
-  }, [items, query, isFiltered, appliedFilters]);
+  }, [items, query, selectedEventType, isFiltered, appliedFilters, hideClosed]);
 
   // 필터 적용 핸들러
   const handleApplyFilters = (filterData) => {
-    console.log("=== 동행모집 필터 적용 ===");
-    console.log("필터 데이터:", filterData);
-    
     setIsFiltered(true);
     setAppliedFilters(filterData);
   };
 
-  // 필터 초기화 함수 추가
+  // 필터 초기화
   const handleClearFilters = () => {
     setIsFiltered(false);
     setAppliedFilters(null);
@@ -191,7 +244,9 @@ export default function TogetherPage() {
       {appliedFilters && (
         <div className="px-6 mb-4 p-3 bg-blue-50 rounded flex justify-between items-center">
           <div>
-            <span className="text-sm font-medium text-blue-800">필터 적용됨: </span>
+            <span className="text-sm font-medium text-blue-800">
+              필터 적용됨:{" "}
+            </span>
             {appliedFilters.selectedRegion && (
               <span className="text-sm text-blue-700">
                 {appliedFilters.selectedRegion.fullAddress}
@@ -203,17 +258,15 @@ export default function TogetherPage() {
               </span>
             )}
           </div>
-          <button 
+          <button
             onClick={handleClearFilters}
-            className="text-sm text-red-500 hover:text-red-700"
-          >
+            className="text-sm text-red-500 hover:text-red-700">
             필터 해제
           </button>
         </div>
       )}
 
       <div className="px-2.5 h-16 flex items-center justify-between">
-        {/* 좌측: 뷰 토글 */}
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">{selectedEventType}</h2>
           <div className="flex items-center gap-1">
@@ -243,10 +296,20 @@ export default function TogetherPage() {
                 className={viewType === "List" ? "opacity-100" : "opacity-40"}
               />
             </button>
+            {/* 완료된 모집 안보기 */}
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="w-4 h-4"
+                checked={hideClosed}
+                onChange={(e) => setHideClosed(e.target.checked)}
+              />
+              완료된 모집 안보기
+            </label>
           </div>
         </div>
 
-        {/* 우측: 검색/필터/정렬/글쓰기 */}
+        {/* 우측: 검색/필터/정렬/글쓰기  */}
         <div className="flex items-center gap-2">
           <SearchBar
             value={query}
@@ -271,23 +334,18 @@ export default function TogetherPage() {
             {/* 이벤트 날짜 기준 */}
             <option value="event_desc">최근 이벤트순</option>
             <option value="event_asc">오래된 이벤트순</option>
-            {/* 기타 */}
-            <option value="views_desc">조회수많은순</option>
           </select>
 
           {ready && isLogined ? (
-            <button className="flex items-center gap-2" onClick={handleWrite}>
-              글쓰기
-              <Image
-                src={ICONS.ADD_WRITE}
-                alt="글쓰기"
-                width={24}
-                height={24}
-              />
+            <button
+              className="h-10 px-4 rounded bg-blue-600 text-white hover:bg-blue-500"
+              onClick={handleWrite}>
+              글작성
             </button>
           ) : null}
         </div>
       </div>
+
       {/* 검색 결과 수 */}
       <div className="px-2.5 text-sm text-gray-500">
         {loading ? (
@@ -325,10 +383,9 @@ export default function TogetherPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="p-6 text-gray-500 text-center">
-          {query.trim() || isFiltered ? 
-            "조건에 맞는 모임이 없습니다." : 
-            "등록된 모임이 없습니다."
-          }
+          {query.trim() || isFiltered
+            ? "조건에 맞는 모임이 없습니다."
+            : "등록된 모임이 없습니다."}
         </div>
       ) : viewType === "Gallery" ? (
         <GalleryLayout Component={TogetherGallery} items={filtered} />
@@ -340,7 +397,6 @@ export default function TogetherPage() {
         </div>
       )}
 
-      {/* TogetherFilterModal에 올바른 props 전달 확인 */}
       <TogetherFilterModal
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}

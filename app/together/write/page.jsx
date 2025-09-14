@@ -47,15 +47,46 @@ export default function TogetherRecruitmentPage() {
 
         console.log("TogetherWrite - 백엔드에서 받은 이벤트 데이터:", raw);
 
-        // community/write와 동일한 변환 로직 적용
+        // 이미지 URL 처리: 백엔드에서 받은 다양한 이미지 필드 확인
+        const eventImageUrl = (() => {
+          console.log("🖼️ 이미지 필드 확인:", {
+            mainImageUrl: raw.mainImageUrl,
+            thumbnailImagePath: raw.thumbnailImagePath,
+            imageUrl: raw.imageUrl,
+            eventImage: raw.eventImage,
+          });
+
+          // mainImageUrl 우선
+          if (raw.mainImageUrl && raw.mainImageUrl.trim())
+            return raw.mainImageUrl;
+
+          // thumbnailImagePath (상대 경로인 경우 BASE_URL 추가)
+          if (raw.thumbnailImagePath && raw.thumbnailImagePath.trim()) {
+            return raw.thumbnailImagePath.startsWith("http")
+              ? raw.thumbnailImagePath
+              : `${
+                  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080"
+                }${raw.thumbnailImagePath}`;
+          }
+
+          //  기타 이미지 필드들
+          if (raw.imageUrl && raw.imageUrl.trim()) return raw.imageUrl;
+          if (raw.eventImage && raw.eventImage.trim()) return raw.eventImage;
+
+          // 기본 이미지
+          return "/img/default_img.svg";
+        })();
+
+        console.log("🖼️ 선택된 이미지 URL:", eventImageUrl);
+
         const transformed = {
           id: String(raw.id || raw.eventId || ""),
           name: raw.title || "",
           eventName: raw.title || "",
           eventType: raw.eventType || "이벤트",
           type: raw.eventType || "이벤트",
-          eventImage: raw.mainImageUrl || "/img/default_img.svg",
-          image: raw.mainImageUrl || "/img/default_img.svg",
+          eventImage: eventImageUrl,
+          image: eventImageUrl,
           description: raw.description || raw.title || "",
           rating: raw.avgRating ? Number(raw.avgRating) : 0,
           starScore: raw.avgRating ? Number(raw.avgRating) : 0,
@@ -69,7 +100,6 @@ export default function TogetherRecruitmentPage() {
           endDate: raw.endDate,
           location: raw.location,
           eventId: raw.id || raw.eventId,
-          // 추가 백엔드 필드들
           content: raw.content,
           address: raw.address,
           addressDetail: raw.addressDetail,
@@ -81,7 +111,6 @@ export default function TogetherRecruitmentPage() {
 
         console.log("TogetherWrite - 변환된 이벤트 데이터:", transformed);
 
-        // useTogetherWriteState의 handleEventSelect에 전달 (내부에서 toCard 추가 적용)
         handleEventSelect(transformed);
         setLockEventFromQuery(true); // 이벤트 선택 UI 숨김
       } catch (e) {
@@ -92,7 +121,7 @@ export default function TogetherRecruitmentPage() {
       stop = true;
     };
   }, [searchParams, isEditMode, handleEventSelect]);
-  // 편집 모드 확인 및 데이터 로드
+
   useEffect(() => {
     const editParam = searchParams.get("edit");
     if (editParam) {
@@ -143,7 +172,7 @@ export default function TogetherRecruitmentPage() {
             meetingLocation: postData.meetingLocation || "",
           };
 
-          // 폼 상태 업데이트 (useTogetherWriteState의 handleFormChange 사용)
+          // 폼 상태 업데이트
           handleFormChange(stateFormData);
         } catch (error) {
           console.error("편집 데이터 로드 실패:", error);

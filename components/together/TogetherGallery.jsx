@@ -22,7 +22,7 @@ export default function TogetherGallery(props) {
     meetingDate,
     currentParticipants,
     maxParticipants,
-    active,
+    active, // 모집중 여부
 
     // 이벤트 스냅샷
     eventSnapshot,
@@ -61,16 +61,19 @@ export default function TogetherGallery(props) {
     eventNameProp ||
     "이벤트명";
 
-  /* 날짜 */
+  /* 날짜 포맷/판정 */
+  const parseDate = (d) => {
+    if (!d) return null;
+    const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
+    const dt = new Date(iso);
+    return Number.isNaN(+dt) ? null : dt;
+  };
+
   const fmtDate = (d) => {
-    if (!d) return "0000.00.00";
-    const date =
-      d.length === 10 && d[4] === "-" ? new Date(d + "T00:00:00") : new Date(d);
-    if (Number.isNaN(+date)) return "0000.00.00";
+    const dt = parseDate(d);
+    if (!dt) return "0000.00.00";
     const pad = (n) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(
-      date.getDate()
-    )}`;
+    return `${dt.getFullYear()}.${pad(dt.getMonth() + 1)}.${pad(dt.getDate())}`;
   };
 
   const dateStr = meetingDate
@@ -80,6 +83,10 @@ export default function TogetherGallery(props) {
     : rest.createdAt
     ? fmtDate(rest.createdAt)
     : "0000.00.00";
+
+  const eventDt = parseDate(meetingDate || dateProp || rest.createdAt);
+  const now = new Date();
+  const isPast = eventDt ? eventDt < now : false;
 
   /* 인원 */
   const groupStr = (() => {
@@ -94,8 +101,14 @@ export default function TogetherGallery(props) {
     return "명";
   })();
 
-  /* 마감 표시 */
-  const isClosed = typeof active === "boolean" ? !active : false;
+  /* 상태 판정 */
+  const isFull =
+    typeof currentParticipants === "number" &&
+    typeof maxParticipants === "number" &&
+    currentParticipants >= maxParticipants;
+
+  const isRecruiting = typeof active === "boolean" ? active : true;
+  const showClosedBadge = !isRecruiting || isFull;
 
   /* 하트(관심) 클릭 → API 토글 + 브로드캐스트 */
   const handleInterestClick = async (e) => {
@@ -117,12 +130,15 @@ export default function TogetherGallery(props) {
   };
 
   return (
-    <div className="relative">
-      {isClosed && (
-        <div className="absolute inset-0 w-full h-full bg-black opacity-10 z-10" />
+    <div className={`relative ${isPast ? "grayscale" : ""}`}>
+      {!isPast && showClosedBadge && (
+        <div className="absolute top-2 left-2 z-30">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
+            모집마감
+          </span>
+        </div>
       )}
 
-      {/* 편집/선택 오버레이 */}
       {editMode && (
         <>
           <button
@@ -153,10 +169,9 @@ export default function TogetherGallery(props) {
         src={coverSrc && coverSrc.trim() !== "" ? coverSrc : null}
         alt={alt || eventName || title}
         href={editMode ? "#" : href}
-        enableInterest={!editMode} // 편집 중에는 하트 비활성
-        initialInterest={!!isInterested} // 초기 관심 상태 반영
-        onClick={handleInterestClick} // 하트 눌렀을 때 API 호출
-      >
+        enableInterest={!editMode}
+        initialInterest={!!isInterested}
+        onClick={handleInterestClick}>
         <div className="flex items-center gap-2 my-1">
           <div className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2">
             {eventType}

@@ -13,13 +13,7 @@ import togetherApi, { toggleTogetherInterest } from "@/lib/api/togetherApi";
 import { transformEventCardData } from "@/lib/api/eventApi";
 
 /* storage 유틸 */
-import {
-  // getPost, // 더 이상 주 데이터 소스로 사용 안 함
-  bumpViews,
-  isLiked,
-  toggleLike,
-  deletePost,
-} from "@/lib/storage";
+import { bumpViews, isLiked, toggleLike, deletePost } from "@/lib/storage";
 
 /* chatRequest 저장 */
 import { addChatRequest } from "@/lib/chatRequestUtils";
@@ -149,6 +143,14 @@ export default function TogetherDetailPage() {
   const [openDelete, setOpenDelete] = useState(false);
   const [mounted, setMounted] = useState(false); // 하이드레이션 안전 가드
 
+  // 관심수 상태 관리
+  const [interestCount, setInterestCount] = useState(0);
+
+  // 모집마감/재개 상태
+  const [isRecruiting, setIsRecruiting] = useState(true); // 모집 중 여부 (true: 모집중, false: 마감)
+  const [statusChanging, setStatusChanging] = useState(false); // 상태 변경 중
+  const [openStatusModal, setOpenStatusModal] = useState(false); // 상태 변경 모달
+
   /* 마운트 표시 - 날짜/로그인 의존 UI 하이드레이션 안전 */
   useEffect(() => {
     setMounted(true);
@@ -215,7 +217,13 @@ export default function TogetherDetailPage() {
         // 2. 관심 등록 상태 설정 (백엔드 데이터만 사용)
         setInterest(Boolean(apiPost?.isInterested));
 
-        // 3. 좋아요 상태 설정 (기존 로직 유지)
+        // 3. 관심수 초기값 설정
+        setInterestCount(Number(apiPost?.interestCount) || 0);
+
+        // 4. 모집 상태 설정 (백엔드 active 필드 사용)
+        setIsRecruiting(Boolean(apiPost?.active));
+
+        // 5. 좋아요 상태 설정 (기존 로직 유지)
         setLiked(isLiked("together", togetherId));
 
         // 3. 이벤트 데이터 설정
@@ -259,14 +267,10 @@ export default function TogetherDetailPage() {
   /* 조회수 증가 - 마운트 후에만 실행 (백엔드에 조회수 속성 없음 - 주석 처리) */
   // useEffect(() => {
   //   if (!mounted || !post) return;
-
   //   const onceKey = `viewed:together:${togetherId}`;
   //   if (!sessionStorage.getItem(onceKey)) {
   //     bumpViews("together", togetherId);
   //     sessionStorage.setItem(onceKey, "1");
-  //     // 최신값 재반영
-  //     // const updated = getPost("together", togetherId); // getPost is not defined
-  //     // setPost(updated || post);
   //   }
   // }, [mounted, post, togetherId]);
 
@@ -300,7 +304,7 @@ export default function TogetherDetailPage() {
     });
     isOwnPost =
       myUid != null && authorUid != null && String(myUid) === String(authorUid);
-    console.log("✅ isOwnPost:", isOwnPost);
+    console.log(" isOwnPost:", isOwnPost);
   }
 
   /* 이벤트 카드 데이터 */
@@ -360,6 +364,17 @@ export default function TogetherDetailPage() {
       const result = await toggleTogetherInterest(togetherId);
       setInterest((prev) => {
         const next = !prev;
+
+        // 관심수 업데이트 (등록: +1, 해제: -1)
+        setInterestCount((prevCount) => {
+          const newCount = Math.max(0, prevCount + (next ? 1 : -1));
+          console.log(
+            `🔢 관심수 변경: ${prevCount} → ${newCount} (${
+              next ? "등록" : "해제"
+            })`
+          );
+          return newCount;
+        });
 
         // 같은 페이지 내 다른 컴포넌트들에게 브로드캐스트
         if (typeof window !== "undefined") {
@@ -435,6 +450,7 @@ export default function TogetherDetailPage() {
         <div className="mb-4 pb-5 border-b border-gray-200">
           <h2 className="text-xl font-bold text-black mb-4">{post.title}</h2>
 
+          {/* 메타 줄 */}
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center gap-4">
               <span>작성자 : {displayHost}</span>
@@ -467,7 +483,7 @@ export default function TogetherDetailPage() {
                   )}
                 </button>
               </span>
-              <span>{post?.interestCount || 0}</span>
+              <span>{interestCount}</span>
             </div>
           </div>
         </div>
@@ -513,21 +529,6 @@ export default function TogetherDetailPage() {
                 <span className="text-base">
                   {post?.meetingLocation || "장소 정보 없음"}
                 </span>
-                {/* <Image src={ICONS.PIN} alt="위치" width={16} height={16} /> */}
-                {/* <button className="text-base text-blue-500">지도 보기</button> */}
-                {/* <Image src={ICONS.COPY} alt="복사" width={16} height={16} /> */}
-                {/* <button
-                  className="text-base text-gray-500"
-                  onClick={() => {
-                    const addr = post?.meetingLocation || "";
-                    if (!addr) return;
-                    navigator.clipboard
-                      .writeText(addr)
-                      .then(() => alert("주소를 복사했습니다."))
-                      .catch(() => alert("복사에 실패했습니다."));
-                  }}>
-                  주소 복사
-                </button> */}
               </div>
             </div>
           </div>
@@ -554,11 +555,31 @@ export default function TogetherDetailPage() {
           {mounted &&
             isLogined &&
             (isOwnPost ? (
-              <button
-                onClick={() => router.push(`/together/${togetherId}/edit`)}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
-                게시물 수정
-              </button>
+              <>
+                <button
+                  onClick={() => router.push(`/together/${togetherId}/edit`)}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
+                  게시물 수정
+                </button>
+
+                {/* 모집 상태 토글 버튼 (마감/재개) */}
+                <button
+                  onClick={() => setOpenStatusModal(true)}
+                  disabled={statusChanging}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors disabled:opacity-60 ${
+                    isRecruiting
+                      ? "border-red-500 text-red-600 hover:bg-red-50"
+                      : "border-green-500 text-green-600 hover:bg-green-50"
+                  }`}>
+                  {statusChanging
+                    ? isRecruiting
+                      ? "모집마감 중…"
+                      : "모집재개 중…"
+                    : isRecruiting
+                    ? "모집마감"
+                    : "모집재개"}
+                </button>
+              </>
             ) : (
               <button
                 onClick={handleChatClick}
@@ -640,7 +661,6 @@ export default function TogetherDetailPage() {
           console.log("로컬 저장소 방식으로 신청 처리");
           console.log("신청 데이터:", payload);
           try {
-            // toUserId 필드 추가
             const enhancedPayload = {
               ...payload,
               toUserId:
@@ -666,6 +686,65 @@ export default function TogetherDetailPage() {
             throw error;
           }
         }}
+      />
+
+      {/* 모집 상태 변경 확인 모달 */}
+      <ConfirmModal
+        open={openStatusModal}
+        title={
+          isRecruiting
+            ? "이 동행을 모집마감할까요?"
+            : "이 동행을 모집재개할까요?"
+        }
+        description={
+          isRecruiting
+            ? "모집마감 후에는 참여 신청을 받을 수 없습니다."
+            : "모집재개 후에는 다시 참여 신청을 받을 수 있습니다."
+        }
+        confirmText={isRecruiting ? "마감" : "재개"}
+        cancelText="취소"
+        variant={isRecruiting ? "danger" : "confirm"}
+        onConfirm={async () => {
+          if (!togetherId) {
+            setOpenStatusModal(false);
+            return alert("동행 ID를 확인할 수 없습니다.");
+          }
+          setStatusChanging(true);
+          try {
+            const action = isRecruiting ? "close" : "reopen";
+            console.log("🔄 모집 상태 변경 요청:", { togetherId, action });
+
+            await togetherApi.changeRecruitingStatus(togetherId, action);
+
+            // 상태 업데이트
+            setIsRecruiting(!isRecruiting);
+            setOpenStatusModal(false);
+
+            alert(
+              isRecruiting ? "모집이 마감되었습니다." : "모집이 재개되었습니다."
+            );
+          } catch (e) {
+            console.error("❌ 모집 상태 변경 오류:", e);
+
+            let errorMessage = "모집 상태 변경 중 오류가 발생했습니다.";
+
+            if (e.message?.includes("Failed to fetch")) {
+              errorMessage =
+                "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.";
+            } else if (e.status === 401 || e.status === 403) {
+              errorMessage = "권한이 없습니다. 로그인 상태를 확인해주세요.";
+            } else if (e.status === 404) {
+              errorMessage = "해당 동행 모집글을 찾을 수 없습니다.";
+            } else if (e.message) {
+              errorMessage = `오류: ${e.message}`;
+            }
+
+            alert(errorMessage);
+          } finally {
+            setStatusChanging(false);
+          }
+        }}
+        onClose={() => setOpenStatusModal(false)}
       />
 
       {/* 삭제 확인 모달 */}

@@ -67,6 +67,38 @@ const fromServerResponse = (item = {}) => {
   };
 };
 
+// UI 라벨을 백엔드 이벤트 타입으로 변환 (events/page와 동일)
+const mapUiLabelToBackendTypes = (label) => {
+  switch (label) {
+    case "뮤지컬":
+      return ["MUSICAL"];
+    case "영화":
+      return ["MOVIE"];
+    case "연극":
+      return ["THEATER"];
+    case "전시":
+      return ["EXHIBITION"];
+    case "클래식":
+      return ["CLASSICAL"];
+    case "무용":
+      return ["DANCE"];
+    case "클래식/무용":
+      return ["CLASSICAL", "DANCE"];
+    case "콘서트":
+      return ["CONCERT"];
+    case "페스티벌":
+      return ["FESTIVAL"];
+    case "콘서트/페스티벌":
+      return ["CONCERT", "FESTIVAL"];
+    case "지역행사":
+      return ["LOCAL_EVENT"];
+    case "기타":
+      return ["OTHER"];
+    default:
+      return [];
+  }
+};
+
 const getSortParam = (sortOption) => {
   switch (sortOption) {
     case "createdAt_desc":
@@ -99,26 +131,43 @@ export default function useTogetherItems(
         setLoading(true);
         setError(null);
 
-        // API 파라미터 구성
-        const params = {
-          eventType:
-            selectedEventType === "전체" ? undefined : selectedEventType,
-          sort: getSortParam(sortOption),
-          // 필요하다면 페이징 파라미터도 추가
-          page: 0,
-          size: 100, // 일단 충분히 큰 값으로
-        };
-
-        // 백엔드 API 호출
+        // 백엔드 API 호출 - 이벤트 타입 매핑 적용
         let response;
         if (selectedEventType === "전체") {
           // 전체 목록 조회
           response = await togetherApi.getAll();
         } else {
-          // 이벤트 타입별 검색
-          response = await togetherApi.search({
-            eventType: selectedEventType,
-          });
+          // UI 라벨을 백엔드 타입으로 변환
+          const backendTypes = mapUiLabelToBackendTypes(selectedEventType);
+
+          if (backendTypes.length === 0) {
+            // 매핑되지 않은 타입인 경우 전체 조회
+            response = await togetherApi.getAll();
+          } else if (backendTypes.length === 1) {
+            // 단일 타입 검색
+            response = await togetherApi.search({
+              eventType: backendTypes[0],
+            });
+          } else {
+            // 복수 타입 검색 (Promise.all로 병렬 처리)
+            const results = await Promise.all(
+              backendTypes.map((type) => togetherApi.search({ eventType: type }))
+            );
+
+            // 중복 제거하며 결과 병합
+            const seen = new Set();
+            const merged = [];
+            for (const arr of results) {
+              if (!Array.isArray(arr)) continue;
+              for (const item of arr) {
+                const key = item?.id;
+                if (key == null || seen.has(key)) continue;
+                seen.add(key);
+                merged.push(item);
+              }
+            }
+            response = merged;
+          }
         }
 
         // 만약 페이징된 응답이라면: response.content 또는 response.data
@@ -172,20 +221,35 @@ export default function useTogetherItems(
         try {
           setLoading(true);
           setError(null);
-          const params = {
-            eventType:
-              selectedEventType === "전체" ? undefined : selectedEventType,
-            sort: getSortParam(sortOption),
-            page: 0,
-            size: 100,
-          };
+          // refetch도 동일한 로직 적용
           let response;
           if (selectedEventType === "전체") {
             response = await togetherApi.getAll();
           } else {
-            response = await togetherApi.search({
-              eventType: selectedEventType,
-            });
+            const backendTypes = mapUiLabelToBackendTypes(selectedEventType);
+            if (backendTypes.length === 0) {
+              response = await togetherApi.getAll();
+            } else if (backendTypes.length === 1) {
+              response = await togetherApi.search({
+                eventType: backendTypes[0],
+              });
+            } else {
+              const results = await Promise.all(
+                backendTypes.map((type) => togetherApi.search({ eventType: type }))
+              );
+              const seen = new Set();
+              const merged = [];
+              for (const arr of results) {
+                if (!Array.isArray(arr)) continue;
+                for (const item of arr) {
+                  const key = item?.id;
+                  if (key == null || seen.has(key)) continue;
+                  seen.add(key);
+                  merged.push(item);
+                }
+              }
+              response = merged;
+            }
           }
           const rawItems = Array.isArray(response)
             ? response
