@@ -48,7 +48,7 @@ export default function MiniProfile({ onClose }) {
 
   const nameToShow = nameFromBackend || displayName || "사용자";
 
-  // (수정된부분) NavigationBar의 handleLogout과 동일한 방식으로 변경
+  // NavigationBar의 handleLogout과 동일한 방식으로 변경
   const onLogout = async () => {
     await logout();
     if (onClose) onClose();
@@ -98,7 +98,6 @@ export default function MiniProfile({ onClose }) {
       ))}
 
       <div className="flex flex-row gap-4 items-center justify-end w-full">
-        {/* (수정된부분) 텍스트와 아이콘 로그아웃 버튼 모두 동일한 방식으로 통일 */}
         <button
           onMouseDown={(e) => {
             e.preventDefault();
