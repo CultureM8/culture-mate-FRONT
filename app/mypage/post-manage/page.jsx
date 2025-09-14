@@ -18,26 +18,30 @@ const fmtDate = (dt) => {
 };
 
 // Import the authenticated API instance
-import { api, unwrap } from '@/lib/apiBase';
+import { api, unwrap } from "@/lib/apiBase";
 
 const fetchMyBoards = async (memberId) => {
   try {
-    return await unwrap(
-      api.get(`/v1/board/author/${memberId}`)
-    );
+    const data = await unwrap(api.get(`/v1/board/author/${memberId}`));
+    // 최신글 먼저: createdAt 내림차순
+    return Array.isArray(data)
+      ? data.slice().sort((a, b) => {
+          const ta = new Date(a?.createdAt ?? 0).getTime();
+          const tb = new Date(b?.createdAt ?? 0).getTime();
+          return tb - ta;
+        })
+      : [];
   } catch (error) {
-    console.error('내 게시글 조회 실패:', error);
+    console.error("내 게시글 조회 실패:", error);
     throw error;
   }
 };
 
 const deleteBoard = async (boardId) => {
   try {
-    return await unwrap(
-      api.delete(`/v1/board/${boardId}`)
-    );
+    return await unwrap(api.delete(`/v1/board/${boardId}`));
   } catch (error) {
-    console.error('게시글 삭제 실패:', error);
+    console.error("게시글 삭제 실패:", error);
     throw error;
   }
 };
@@ -117,11 +121,11 @@ export default function PostManage() {
         <div className="mt-6">
           <div
             className="grid border-b mb-2 text-sm py-3 px-4  bg-gray-50"
-            style={{ gridTemplateColumns: "1fr 60px 60px 60px 300px 100px" }}>
+            style={{ gridTemplateColumns: "1fr 60px 60px  300px 100px" }}>
             <div className="text-left">제목</div>
             <div className="text-center">댓글</div>
             <div className="text-center">추천</div>
-            <div className="text-center">조회</div>
+            {/* <div className="text-center">조회</div> */}
             <div className="text-center px-2">작성일</div>
             <div></div>
           </div>
@@ -136,7 +140,7 @@ export default function PostManage() {
                 key={r.id}
                 className="grid items-center py-3 px-4 border-b text-sm hover:bg-gray-50"
                 style={{
-                  gridTemplateColumns: "1fr 60px 60px 60px 300px 100px",
+                  gridTemplateColumns: "1fr 60px 60px  300px 100px",
                 }}>
                 <div className="text-left">
                   <Link
@@ -149,7 +153,7 @@ export default function PostManage() {
 
                 <div className="text-center">{r.comments}</div>
                 <div className="text-center">{r.recommends}</div>
-                <div className="text-center">{r.views}</div>
+                {/* <div className="text-center">{r.views}</div> */}
                 <div className="text-center text-gray-500 px-2 whitespace-nowrap">
                   {r.date}
                 </div>

@@ -6,6 +6,7 @@ import Image from "next/image";
 
 import StarScore from "@/lib/StarScore";
 import { ICONS } from "@/constants/path";
+import { getEventTypeLabel } from "@/lib/api/eventApi";
 
 export default function EventTile({ card, onPick }) {
   const { eventImage, eventType, eventName, description, starScore = 0 } = card;
@@ -28,7 +29,7 @@ export default function EventTile({ card, onPick }) {
       {/* 본문 */}
       <div className="mt-3 flex-1 min-h-0">
         <span className="inline-flex items-center px-2 py-0.5 text-[11px] rounded-full border text-blue-600 bg-blue-50">
-          {eventType}
+          {getEventTypeLabel(eventType)}
         </span>
         <div className="mt-1 font-semibold text-[15px] leading-tight line-clamp-1">
           {eventName}
