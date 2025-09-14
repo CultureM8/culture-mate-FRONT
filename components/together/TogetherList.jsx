@@ -21,7 +21,6 @@ export default function TogetherList(props) {
     host,
 
     // UI 상태
-    isClosed = false,
     editMode = false,
     selected = false,
     onToggleSelect,
@@ -73,14 +72,24 @@ export default function TogetherList(props) {
   const safeEventName =
     eventName || eventSnapshot?.name || eventName || "이벤트명";
 
+  // 날짜 파싱/판정
+  const parseDate = (d) => {
+    if (!d) return null;
+    const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
+    const t = new Date(iso);
+    return Number.isNaN(+t) ? null : t;
+  };
+
   const safeDate = (() => {
     const d = meetingDate || companionDate || date || createdAt;
-    if (!d) return "0000.00.00";
-    const t = new Date(d);
-    return Number.isNaN(t.getTime())
-      ? "0000.00.00"
-      : t.toISOString().slice(0, 10).replaceAll("-", ".");
+    const t = parseDate(d);
+    if (!t) return "0000.00.00";
+    return t.toISOString().slice(0, 10).replaceAll("-", ".");
   })();
+
+  const now = new Date();
+  const eventDt = parseDate(meetingDate || companionDate || date || createdAt);
+  const isPast = eventDt ? eventDt < now : false;
 
   const safeGroup = (() => {
     const cur = currentParticipants ?? current ?? 1;
@@ -99,10 +108,7 @@ export default function TogetherList(props) {
     if (regionString) parts.push(regionString);
     if (meetingLocation) parts.push(meetingLocation);
 
-    if (parts.length > 0) {
-      return parts.join(" | ");
-    }
-
+    if (parts.length > 0) return parts.join(" | ");
     return address || eventSnapshot?.location || "모임 장소 정보 없음";
   })();
 
@@ -126,6 +132,16 @@ export default function TogetherList(props) {
   const href = componentId
     ? `/together/${encodeURIComponent(componentId)}`
     : "/together";
+
+  // 모집 상태
+  const cur = currentParticipants ?? current ?? 0;
+  const max = maxParticipants ?? maxPeople ?? 0;
+  const isFull = max > 0 && cur >= max;
+
+  // active 가 props에 없을 수도 있으니 보수적으로 true
+  const isRecruiting = typeof rest.active === "boolean" ? rest.active : true;
+
+  const showClosedBadge = !isPast && (!isRecruiting || isFull);
 
   //  관심 기능 핸들러
   const handleInterestClick = async () => {
@@ -153,9 +169,13 @@ export default function TogetherList(props) {
   };
 
   return (
-    <div className="relative">
-      {isClosed && (
-        <div className="absolute inset-0 w-full h-full bg-black opacity-10 z-10" />
+    <div className={`relative ${isPast ? "grayscale" : ""}`}>
+      {showClosedBadge && (
+        <div className="absolute top-2 left-2 z-30">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
+            모집마감
+          </span>
+        </div>
       )}
 
       {editMode && (
