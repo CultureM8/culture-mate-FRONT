@@ -363,8 +363,8 @@ function TogetherCardGrid() {
                   eventSnapshot={{
                     ...item.event,
                     eventName: item.event?.title, // title을 eventName으로 매핑
-                    eventImage: item.event?.thumbnailImagePath, // thumbnailImagePath를 eventImage로 매핑
-                    imgSrc: item.event?.thumbnailImagePath, // 추가 fallback
+                    eventImage: item.event?.mainImagePath || item.event?.thumbnailImagePath, // mainImagePath를 eventImage로 우선 매핑
+                    imgSrc: item.event?.mainImagePath || item.event?.thumbnailImagePath, // 추가 fallback
                   }}
                   isInterested={item.isInterested}
                 />
@@ -468,7 +468,7 @@ function NewEvent() {
     id: event.id,
     eventId: event.id,
     title: event.title,
-    imgSrc: event.thumbnailImagePath || event.mainImagePath || "",
+    imgSrc: event.mainImagePath || event.thumbnailImagePath || "",
     alt: event.title || "이벤트 이미지",
     href: `/events/${event.id}`,
     startDate: event.startDate

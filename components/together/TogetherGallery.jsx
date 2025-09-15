@@ -47,6 +47,7 @@ export default function TogetherGallery(props) {
   const rawImagePath =
     (typeof imgSrc === "string" && imgSrc.trim()) ||
     eventSnapshot?.eventImage ||
+    eventSnapshot?.mainImagePath ||
     eventSnapshot?.image ||
     eventSnapshot?.imgSrc ||
     eventSnapshot?.thumbnailImagePath ||

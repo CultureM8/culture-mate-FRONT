@@ -19,7 +19,9 @@ const fromServerResponse = (item = {}) => {
     eventName: item.event?.eventName || item.event?.title || "",
     imgSrc:
       item.event?.eventImage ||
-      (item.event?.thumbnailImagePath
+      (item.event?.mainImagePath
+        ? `${BASE_URL}${item.event.mainImagePath}`
+        : item.event?.thumbnailImagePath
         ? `${BASE_URL}${item.event.thumbnailImagePath}`
         : "/img/default_img.svg"),
     event: item.event,

@@ -83,6 +83,7 @@ const toMiniCard = (eventData, registeredPosts = 0) => {
     title: eventData?.title ?? eventData?.name ?? eventData?.eventName,
     description: eventData?.description ?? "",
     thumbnailImagePath:
+      eventData?.mainImagePath ??
       eventData?.thumbnailImagePath ??
       eventData?.eventImage ??
       eventData?.image ??

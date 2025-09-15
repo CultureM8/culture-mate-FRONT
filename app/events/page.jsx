@@ -50,6 +50,7 @@ const mapListItem = (event) => {
   console.log("mapListItem - event.id:", event.id);
   console.log("mapListItem - typeof event.id:", typeof event.id);
   console.log("mapListItem - available image fields:", {
+    mainImagePath: event.mainImagePath,
     mainImageUrl: event.mainImageUrl,
     thumbnailImagePath: event.thumbnailImagePath,
     imageUrl: event.imageUrl,
