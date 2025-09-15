@@ -63,7 +63,7 @@ const mapInterestTogetherData = (together) => {
   
   console.log("매핑 중인 together 데이터:", together);
   console.log("이벤트 데이터:", together.event);
-  console.log("이미지 경로:", together.event?.thumbnailImagePath);
+  console.log("이미지 경로:", together.event?.mainImagePath || together.event?.thumbnailImagePath);
   
   return {
     // 기본 식별자

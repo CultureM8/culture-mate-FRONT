@@ -50,11 +50,21 @@ export default function TogetherRecruitmentPage() {
         // 이미지 URL 처리: 백엔드에서 받은 다양한 이미지 필드 확인
         const eventImageUrl = (() => {
           console.log("🖼️ 이미지 필드 확인:", {
+            mainImagePath: raw.mainImagePath,
             mainImageUrl: raw.mainImageUrl,
             thumbnailImagePath: raw.thumbnailImagePath,
             imageUrl: raw.imageUrl,
             eventImage: raw.eventImage,
           });
+
+          // mainImagePath 최우선
+          if (raw.mainImagePath && raw.mainImagePath.trim()) {
+            return raw.mainImagePath.startsWith("http")
+              ? raw.mainImagePath
+              : `${
+                  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080"
+                }${raw.mainImagePath}`;
+          }
 
           // mainImageUrl 우선
           if (raw.mainImageUrl && raw.mainImageUrl.trim())
