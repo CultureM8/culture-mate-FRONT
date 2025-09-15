@@ -48,6 +48,30 @@ export default function TogetherList(props) {
     ...rest
   } = props;
 
+  // ----------------- [추가] 날짜 유틸 -----------------
+  // "YYYY-MM-DD"면 로컬기준 그 날의 23:59:59.999까지 유효로 본다.
+  const isPastDay = (raw) => {
+    if (!raw) return false;
+    if (typeof raw === "string" && raw.length === 10 && raw[4] === "-") {
+      const y = Number(raw.slice(0, 4));
+      const m = Number(raw.slice(5, 7)) - 1;
+      const d = Number(raw.slice(8, 10));
+      const endOfDay = new Date(y, m, d, 23, 59, 59, 999); // local EOD
+      return endOfDay.getTime() < Date.now();
+    }
+    const t = new Date(raw);
+    return Number.isFinite(t.getTime()) ? t.getTime() < Date.now() : false;
+  };
+
+  const parseDate = (d) => {
+    if (!d) return null;
+    // 날짜만 있으면 로컬 자정 기준으로 파싱되도록 T00:00:00 부여
+    const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
+    const t = new Date(iso);
+    return Number.isNaN(+t) ? null : t;
+  };
+  // ---------------------------------------------------
+
   //  이미지 폴백
   const coverSrc =
     [imgSrc, eventImage, image, img, eventSnapshot?.eventImage].find(
@@ -72,13 +96,10 @@ export default function TogetherList(props) {
   const safeEventName =
     eventName || eventSnapshot?.name || eventName || "이벤트명";
 
-  // 날짜 파싱/판정
-  const parseDate = (d) => {
-    if (!d) return null;
-    const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
-    const t = new Date(iso);
-    return Number.isNaN(+t) ? null : t;
-  };
+  // 기간지남(오늘은 포함 X)
+  const isExpired = isPastDay(
+    meetingDate ?? companionDate ?? date ?? createdAt
+  );
 
   const safeDate = (() => {
     const d = meetingDate || companionDate || date || createdAt;
@@ -86,10 +107,6 @@ export default function TogetherList(props) {
     if (!t) return "0000.00.00";
     return t.toISOString().slice(0, 10).replaceAll("-", ".");
   })();
-
-  const now = new Date();
-  const eventDt = parseDate(meetingDate || companionDate || date || createdAt);
-  const isPast = eventDt ? eventDt < now : false;
 
   const safeGroup = (() => {
     const cur = currentParticipants ?? current ?? 1;
@@ -141,7 +158,8 @@ export default function TogetherList(props) {
   // active 가 props에 없을 수도 있으니 보수적으로 true
   const isRecruiting = typeof rest.active === "boolean" ? rest.active : true;
 
-  const showClosedBadge = !isPast && (!isRecruiting || isFull);
+  // 기간이 지나지 않았고(=진행 중 날짜) + 마감 또는 정원초과면 배지 표시
+  const showClosedBadge = !isExpired && (!isRecruiting || isFull);
 
   //  관심 기능 핸들러
   const handleInterestClick = async () => {
@@ -169,7 +187,7 @@ export default function TogetherList(props) {
   };
 
   return (
-    <div className={`relative ${isPast ? "grayscale" : ""}`}>
+    <div className={`relative ${isExpired ? "grayscale" : ""}`}>
       {showClosedBadge && (
         <div className="absolute top-2 left-2 z-30">
           <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
