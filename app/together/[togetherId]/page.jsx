@@ -671,6 +671,9 @@ export default function TogetherDetailPage() {
               fromUserId: user?.id || user?.user_id, // 보내는 사람 ID
             };
 
+            // 실제 백엔드 API 호출
+            await togetherApi.applyTogether(togetherId, payload.message);
+
             console.log("백엔드 신청 완료");
             alert("동행 신청이 완료되었습니다!");
           } catch (error) {

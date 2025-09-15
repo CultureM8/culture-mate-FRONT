@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
 import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
-import { getChatRoom, getChatMessages } from "@/lib/chatApi";
+import { getChatRoom, getChatMessages } from "@/lib/api/chatApi";
+import { getProfileImageUrl } from "@/lib/imageUtils";
 
 /**
  * props:
@@ -166,7 +167,7 @@ export default function GroupChat({
           const fromTogether = participantsData.map(member => ({
             id: String(member.id || member.memberId),
             name: member.memberDetail?.nickname || member.userName || member.loginId || String(member.id),
-            avatar: member.memberDetail?.profileImage || "/img/default_img.svg"
+            avatar: getProfileImageUrl(member.memberDetail?.profileImage)
           }));
 
           setParticipants((prev) =>
@@ -479,7 +480,7 @@ export default function GroupChat({
             {(participants || []).slice(0, 5).map((p) => (
               <img
                 key={p.id}
-                src={p.avatar || "/img/default_img.svg"}
+                src={getProfileImageUrl(p.avatar)}
                 alt={p.name}
                 className="w-8 h-8 rounded-full border border-white object-cover"
               />
@@ -540,7 +541,7 @@ export default function GroupChat({
           const showName = mine
             ? currentUserName || "사용자"
             : author?.name || msg.senderName || "사용자";
-          const avatar = author?.avatar || "/img/default_img.svg";
+          const avatar = getProfileImageUrl(author?.avatar);
 
           return (
             <div
@@ -692,7 +693,7 @@ function ParticipantsPanel({ participants, onClose, onClick }) {
               onClick={() => onClick(p)}
               className="w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
               <img
-                src={p.avatar || "/img/default_img.svg"}
+                src={getProfileImageUrl(p.avatar)}
                 alt={p.name}
                 className="w-9 h-9 rounded-full object-cover"
               />
@@ -786,11 +787,11 @@ function normalizeParticipants(list) {
       return {
         id: String(id),
         name,
-        avatar:
+        avatar: getProfileImageUrl(
           x?.avatar ||
           x?.profileImage ||
-          x?.member?.memberDetail?.profileImage ||
-          "/img/default_img.svg",
+          x?.member?.memberDetail?.profileImage
+        ),
         isHost: !!x?.isHost,
       };
     })
@@ -816,10 +817,10 @@ function parseParticipants(detail) {
           host?.name ||
           host?.loginId ||
           String(hostId),
-        avatar:
+        avatar: getProfileImageUrl(
           host?.profileImage ||
-          host?.memberDetail?.profileImage ||
-          "/img/default_img.svg",
+          host?.memberDetail?.profileImage
+        ),
         isHost: true,
       });
     }
@@ -846,10 +847,10 @@ function parseParticipants(detail) {
         mem?.name ||
         mem?.loginId ||
         String(id),
-      avatar:
+      avatar: getProfileImageUrl(
         mem?.profileImage ||
-        mem?.memberDetail?.profileImage ||
-        "/img/default_img.svg",
+        mem?.memberDetail?.profileImage
+      ),
       isHost: false,
     });
   }

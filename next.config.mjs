@@ -2,40 +2,12 @@
 const nextConfig = {
   async rewrites() {
     return [
-      // ✅ 채팅 전용 오버라이드
+      // ✅ 이미지 프록시
       {
-        source: "/api/chat/rooms/list",
-        destination: "http://localhost:8080/chat/rooms/list",
+        source: "/images/:path*",
+        destination: "http://localhost:8080/images/:path*",
       },
-      {
-        source: "/api/chat/room/list",
-        destination: "http://localhost:8080/chat/room/list",
-      },
-      {
-        source: "/api/chat/room",
-        destination: "http://localhost:8080/chat/room",
-      },
-      {
-        source: "/api/chat/rooms",
-        destination: "http://localhost:8080/chat/rooms",
-      },
-      {
-        source: "/api/chat/room/create",
-        destination: "http://localhost:8080/chat/room/create",
-      },
-      {
-        source: "/api/chat/rooms/create",
-        destination: "http://localhost:8080/chat/rooms/create",
-      },
-      {
-        source: "/api/chat/room/:roomId",
-        destination: "http://localhost:8080/chat/room/:roomId",
-      },
-      {
-        source: "/api/chat/room/:roomId/messages",
-        destination: "http://localhost:8080/chat/room/:roomId/messages",
-      },
-      // ✅ 일반 API
+      // ✅ 일반 API (chatroom 포함)
       {
         source: "/api/:path*",
         destination: "http://localhost:8080/api/:path*",

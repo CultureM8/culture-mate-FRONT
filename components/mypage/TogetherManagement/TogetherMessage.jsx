@@ -9,7 +9,7 @@ import { LoginContext } from "@/components/auth/LoginProvider";
 import { togetherApi } from "@/lib/api/togetherApi";
 import CacheManager from "@/lib/api/cacheManager";
 
-import { listChatRooms, createChatRoom, joinRoom } from "@/lib/chatApi";
+import { listChatRooms, createChatRoom, joinRoom } from "@/lib/api/chatApi";
 
 export default function TogetherMessage() {
   const [chatRequests, setChatRequests] = useState([]);
@@ -121,7 +121,18 @@ export default function TogetherMessage() {
             };
             statusParam = statusMap[filterStatus] || filterStatus.toUpperCase();
           }
+          console.log(`📤 보낸 신청 API 호출 시작 - statusParam:`, statusParam);
           const sentApps = await togetherApi.getMyApplications(statusParam);
+          console.log(`📤 보낸 신청 API 응답:`, sentApps);
+
+          // 데이터 구조 상세 확인
+          if (sentApps.length > 0) {
+            console.log(`📤 첫 번째 신청 데이터 상세:`, sentApps[0]);
+            console.log(`📤 requestId:`, sentApps[0].requestId);
+            console.log(`📤 message:`, sentApps[0].message);
+            console.log(`📤 applicationChatRoomId:`, sentApps[0].applicationChatRoomId);
+            console.log(`📤 applicationChatRoomName:`, sentApps[0].applicationChatRoomName);
+          }
           list = sentApps.map(app => ({
             requestId: app.requestId,
             fromUserId: app.applicantId,
@@ -162,6 +173,13 @@ export default function TogetherMessage() {
         setUnreadCount(0); // 백엔드에서 unread count API 구현 필요
       } catch (error) {
         console.error("동행 신청 목록 로드 실패:", error);
+        console.error("오류 상세:", {
+          message: error.message,
+          stack: error.stack,
+          activeTab,
+          filterStatus,
+          currentUserId
+        });
 
         // API 실패 시 빈 배열로 설정
         setChatRequests([]);
@@ -578,9 +596,9 @@ export default function TogetherMessage() {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full">
             {filteredRequests.length > 0 ? (
               <div className="space-y-0 overflow-y-auto h-full">
-                {filteredRequests.map((request) => (
+                {filteredRequests.map((request, index) => (
                   <div
-                    key={request.requestId}
+                    key={request.requestId || `request-${index}`}
                     onClick={() => handleOpenChat(request)}
                     className={`cursor-pointer transition-colors duration-200 ${
                       selectedRequest?.requestId === request.requestId

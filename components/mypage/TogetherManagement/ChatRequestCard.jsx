@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
+import { getProfileImageUrl, getEventImageUrl } from "@/lib/imageUtils";
 
 /**
  * Props
@@ -27,33 +28,15 @@ export default function ChatRequestCard({
   const statusNorm = String(request?.status || "").toUpperCase();
 
   // --- 이벤트 썸네일 ---
-  const pickEventImg = (req) => {
-    const raw =
-      typeof (req?.eventImage ?? req?.eventImg ?? req?.imgSrc) === "string"
-        ? req?.eventImage ?? req?.eventImg ?? req?.imgSrc
-        : "";
-    const trimmed = raw.trim?.() ?? "";
-    return trimmed || "/img/default_img.svg";
-  };
-  const [eventImgSrc, setEventImgSrc] = useState(pickEventImg(request));
+  const [eventImgSrc, setEventImgSrc] = useState(getEventImageUrl(request));
   useEffect(() => {
-    setEventImgSrc(pickEventImg(request));
+    setEventImgSrc(getEventImageUrl(request));
   }, [request]);
 
   // --- 프로필 이미지 fallback ---
-  const initialProfile =
-    typeof request?.fromUserProfileImage === "string" &&
-    request.fromUserProfileImage.trim()
-      ? request.fromUserProfileImage
-      : "/img/default_img.svg";
-  const [profileImgSrc, setProfileImgSrc] = useState(initialProfile);
+  const [profileImgSrc, setProfileImgSrc] = useState(getProfileImageUrl(request?.fromUserProfileImage));
   useEffect(() => {
-    const next =
-      typeof request?.fromUserProfileImage === "string" &&
-      request.fromUserProfileImage.trim()
-        ? request.fromUserProfileImage
-        : "/img/default_img.svg";
-    setProfileImgSrc(next);
+    setProfileImgSrc(getProfileImageUrl(request?.fromUserProfileImage));
   }, [request]);
 
   // --- 상태 뱃지 ---

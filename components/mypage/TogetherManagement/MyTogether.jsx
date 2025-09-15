@@ -52,12 +52,33 @@ export default function MyTogether({
     setChatRoomData(null); // 채팅방 데이터 초기화
   };
 
-  // 미래 날짜만 필터링하는 헬퍼 함수
-  const filterUpcoming = (items) => {
-    return items.filter(item => {
+  // 날짜 기준으로 미래/과거 분리하는 헬퍼 함수
+  const separateByDate = (items) => {
+    const now = new Date();
+    const upcoming = [];
+    const past = [];
+
+    items.forEach(item => {
       const meetingDate = new Date(item.meetingDate);
-      return meetingDate > new Date(); // 모임날짜가 현재보다 미래
+      if (meetingDate > now) {
+        upcoming.push(item);
+      } else {
+        past.push(item);
+      }
     });
+
+    // 미래 모임: 가까운 순 (오름차순)
+    upcoming.sort((a, b) =>
+      new Date(a.meetingDate).getTime() - new Date(b.meetingDate).getTime()
+    );
+
+    // 지난 모임: 최근 순 (내림차순)
+    past.sort((a, b) =>
+      new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime()
+    );
+
+    // 미래 모임 먼저, 그 다음 지난 모임
+    return [...upcoming, ...past];
   };
 
   // 동행 데이터 로드 (History 패턴 적용)
@@ -73,22 +94,22 @@ export default function MyTogether({
     setError(null);
 
     try {
-      // 호스트 동행과 게스트 동행 병렬 로드 (History와 동일한 패턴)
+      // 호스트 동행과 게스트 동행 병렬 로드 (완전한 TogetherDto.Response 형식으로)
       const [hostData, guestData] = await Promise.all([
         togetherApi.getByHost(effectiveUserId),
-        togetherApi.getMyApplications('APPROVED').catch(() => []) // 실패 시 빈 배열
+        togetherApi.getByMember(effectiveUserId).catch(() => []) // 완전한 동행 정보 가져오기
       ]);
 
-      // 미래 날짜만 필터링
-      const upcomingHostData = filterUpcoming(Array.isArray(hostData) ? hostData : []);
-      const upcomingGuestData = filterUpcoming(Array.isArray(guestData) ? guestData : []);
+      // 날짜 기준으로 정렬 (미래 모임 우선, 지난 모임 포함)
+      const sortedHostData = separateByDate(Array.isArray(hostData) ? hostData : []);
+      const sortedGuestData = separateByDate(Array.isArray(guestData) ? guestData : []);
 
       // 데이터 구조 디버깅
-      console.log('🔵 호스트 원본 데이터:', upcomingHostData);
-      console.log('🟢 게스트 원본 데이터:', upcomingGuestData);
+      console.log('🔵 호스트 정렬된 데이터:', sortedHostData);
+      console.log('🟢 게스트 정렬된 데이터:', sortedGuestData);
 
       // 호스트 데이터 분석 및 매핑
-      const markedHostData = upcomingHostData.map(item => {
+      const markedHostData = sortedHostData.map(item => {
         console.log('🔵 호스트 원본 아이템:', item);
 
         // 호스트 데이터에 이벤트 정보 매핑
@@ -114,42 +135,43 @@ export default function MyTogether({
         return mapped;
       });
 
-      const markedGuestData = upcomingGuestData.map(item => {
+      const markedGuestData = sortedGuestData.map(item => {
         console.log('🟢 게스트 원본 아이템:', item);
 
-        // 게스트 데이터 매핑 - 이제 TogetherDto.Response와 동일한 구조
+        // 게스트 데이터 매핑 - 이제 TogetherDto.Response와 동일한 구조이므로 호스트와 동일하게 처리
         const mapped = {
           ...item,
           source: 'guest',
           isHost: false,
-          // 이벤트 정보 매핑 (호스트 매핑과 동일)
+          // 이벤트 정보 매핑 (호스트 매핑과 완전히 동일)
           eventName: item.event?.title || item.eventName,
           eventType: item.event?.eventType || item.eventType,
           eventImage: item.event?.thumbnailImagePath || item.eventImage,
           imgSrc: item.event?.thumbnailImagePath || item.imgSrc,
+          // eventSnapshot도 매핑
           eventSnapshot: item.event ? {
             name: item.event.title,
             eventType: item.event.eventType,
             eventImage: item.event.thumbnailImagePath,
             location: item.event.location
-          } : item.eventSnapshot
+          } : item.eventSnapshot,
+          // 호스트 정보도 포함 (게스트 입장에서 호스트는 다른 사람)
+          author: item.host || item.author // 백엔드에서 host 정보가 있으면 author로 매핑
         };
 
         console.log('🟢 게스트 매핑 결과:', mapped);
         return mapped;
       });
 
-      // 전체 데이터 합치기
+      // 전체 데이터 합치기 (이미 각각 정렬되어 있음)
       const combinedData = [...markedHostData, ...markedGuestData];
 
-      // 생성일 기준 내림차순 정렬
-      combinedData.sort((a, b) =>
-        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
+      // 전체 데이터도 동일한 규칙으로 재정렬 (미래 모임 + 지난 모임)
+      const finalSortedData = separateByDate(combinedData);
 
       setHostItems(markedHostData);
       setGuestItems(markedGuestData);
-      setAllItems(combinedData);
+      setAllItems(finalSortedData);
     } catch (err) {
       console.error("동행 데이터 로드 실패:", err);
       setError("동행 목록을 불러오는데 실패했습니다.");

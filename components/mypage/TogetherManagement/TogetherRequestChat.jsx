@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import FriendListItem from "@/components/mypage/FriendListItem";
 import SockJS from "sockjs-client";
 import { Client as StompClient } from "@stomp/stompjs";
-import { listChatRooms, joinRoom } from "@/lib/chatApi";
+import { listChatRooms, joinRoom } from "@/lib/api/chatApi";
 import chatApi from "@/lib/api/chatApi";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
 import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
