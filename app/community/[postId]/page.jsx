@@ -157,7 +157,7 @@ export default function CommunityDetailPage() {
         </div>
 
         {/* 본문 */}
-        <div ref={bodyRef} className="mb-8 min-h-[600px]">
+        <div ref={bodyRef} className="mb-8 min-h-[200px]">
           <div className="text-sm text-gray-700 whitespace-pre-line">
             {post.content}
           </div>
