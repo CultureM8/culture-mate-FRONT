@@ -499,6 +499,45 @@ export default function TogetherMessage() {
     }
   };
 
+  // 취소 처리 (본인이 보낸 신청을 취소)
+  const handleCancelRequest = async (requestId) => {
+    if (!requestId) {
+      alert("요청 ID가 없습니다.");
+      return;
+    }
+
+    const selectedReq = chatRequests.find((req) => req.requestId === requestId);
+    if (!selectedReq) {
+      alert("요청을 찾을 수 없습니다.");
+      return;
+    }
+
+    if (!confirm("정말로 동행 신청을 취소하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const togetherId = selectedReq.togetherId;
+      console.log('🚫 취소 요청 시작:', { requestId, togetherId, selectedReq });
+
+      // 본인 참여 취소 API 호출
+      await togetherApi.cancelParticipation(togetherId);
+      console.log('✅ 취소 API 호출 성공');
+
+      // 캐시 무효화: 모든 필터 상태의 캐시 제거
+      CacheManager.clearPattern(`together_applications_`);
+
+      // 취소된 항목을 보기 위해 전체 탭으로 이동
+      setFilterStatus("all");
+      await loadAll();
+
+      alert("동행 신청을 취소했습니다.");
+    } catch (e) {
+      console.error("취소 처리 실패:", e);
+      alert(`신청 취소에 실패했습니다: ${e.message}`);
+    }
+  };
+
   const handleOpenChat = (request) => {
     // ✅ 패널을 '즉시' 열고
     setSelectedRequest(request);
@@ -610,6 +649,7 @@ export default function TogetherMessage() {
                       request={request}
                       onAccept={handleAcceptRequest}
                       onReject={handleRejectRequest}
+                      onCancel={handleCancelRequest}
                       onOpenChat={handleOpenChatRoom}
                       type={activeTab}
                     />

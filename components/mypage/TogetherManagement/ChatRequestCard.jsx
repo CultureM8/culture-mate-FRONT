@@ -19,6 +19,7 @@ export default function ChatRequestCard({
   request,
   onAccept,
   onReject,
+  onCancel,
   onOpenChat,
   type = "received",
 }) {
@@ -48,6 +49,8 @@ export default function ChatRequestCard({
         return "bg-green-100 text-green-700 border-green-200";
       case "REJECTED":
         return "bg-red-100 text-red-700 border-red-200";
+      case "CANCELED":
+        return "bg-gray-100 text-gray-500 border-gray-300";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
@@ -60,6 +63,8 @@ export default function ChatRequestCard({
         return "수락됨";
       case "REJECTED":
         return "거절됨";
+      case "CANCELED":
+        return "취소됨";
       default:
         return "알 수 없음";
     }
@@ -123,11 +128,15 @@ export default function ChatRequestCard({
   const showCancel =
     type === "sent" &&
     statusNorm === "PENDING" &&
-    typeof onReject === "function";
+    typeof onCancel === "function";
 
   return (
     <div
-      className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+      className={`rounded-lg p-3 transition-shadow duration-200 cursor-pointer ${
+        statusNorm === "CANCELED"
+          ? "bg-gray-50 border border-gray-300 opacity-75"
+          : "bg-white border border-gray-200 hover:shadow-md"
+      }`}
       onClick={handleOpenChat}
       onKeyDown={handleKeyOpen}
       role="button"
@@ -236,7 +245,7 @@ export default function ChatRequestCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                safeCall(onReject, request.requestId); // 취소 == 거절 핸들러 재사용(부모에서 분기)
+                safeCall(onCancel, request.requestId); // 취소 전용 핸들러 사용
               }}
               disabled={isProcessing}
               className="px-3 py-1.5 border bg-white border-gray-300 rounded-lg text-gray-700 text-xs font-medium hover:bg-gray-200 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors">
