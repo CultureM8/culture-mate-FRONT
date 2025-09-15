@@ -257,7 +257,7 @@ export default function EventInfo({ eventData, score = 0 }) {
             </div>
             <div className="flex">
               <span className="w-25 font-medium">가격</span>
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-2">
                 {eventData.priceList?.length > 0 ? (
                   eventData.priceList.map((priceItem, index) => (
                     <span key={index} className="mb-1">
