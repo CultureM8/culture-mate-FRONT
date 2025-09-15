@@ -66,7 +66,7 @@ const mapListItem = (event) => {
     startDate: event.startDate,
     endDate: event.endDate,
     location: toLocation(event),
-    imgSrc: getEventMainImageUrl(event),
+    imgSrc: getEventMainImageUrl(event, false), // 고화질 이미지 사용
     alt: event.title,
     href: `/events/${eventId}`,
     isHot: false,
@@ -356,6 +356,80 @@ export default function Event() {
     };
 
     fetchAISuggestions();
+  }, []);
+
+  // 관심 상태 변경 이벤트 리스너
+  useEffect(() => {
+    console.log("🔵 Events 페이지 - event-interest-changed 이벤트 리스너 등록");
+
+    const handleInterestChanged = (event) => {
+      const { eventId: changedEventId, interested } = event.detail;
+
+      console.log("🔔 Events 페이지 - 관심 상태 변경 감지:", {
+        changedEventId,
+        interested
+      });
+
+      // 이벤트 목록에서 해당 이벤트의 관심 상태 업데이트
+      setEventData(prevEvents => {
+        const updated = prevEvents.map(eventItem => {
+          if (String(eventItem.eventId) === String(changedEventId) ||
+              String(eventItem.id) === String(changedEventId)) {
+            console.log(`✅ Events 페이지 - 이벤트 ${eventItem.title}의 관심 상태 업데이트: ${interested}`);
+            return {
+              ...eventItem,
+              isInterested: Boolean(interested),
+              interestCount: interested
+                ? (eventItem.interestCount || 0) + 1
+                : Math.max((eventItem.interestCount || 0) - 1, 0)
+            };
+          }
+          return eventItem;
+        });
+
+        console.log(`Events 페이지 - 이벤트 ${changedEventId} 상태 업데이트 완료`);
+        return updated;
+      });
+    };
+
+    // localStorage 변경 감지 (크로스 페이지 동기화)
+    const handleStorageChange = (e) => {
+      console.log("📨 Events 페이지 - storage 이벤트 수신:", {
+        key: e.key,
+        newValue: e.newValue
+      });
+
+      if (!e.key || !e.key.startsWith('event_interest_')) {
+        return;
+      }
+
+      try {
+        const storageData = JSON.parse(e.newValue || '{}');
+        const storageEventId = storageData.eventId;
+        const interested = storageData.interested;
+
+        console.log("📊 Events 페이지 - localStorage에서 관심 상태 변경 감지:", {
+          eventId: storageEventId,
+          interested
+        });
+
+        // 기존 handleInterestChanged 로직 재사용
+        handleInterestChanged({
+          detail: { eventId: storageEventId, interested }
+        });
+      } catch (error) {
+        console.error("❌ localStorage 관심 상태 파싱 실패:", error);
+      }
+    };
+
+    window.addEventListener("event-interest-changed", handleInterestChanged);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      console.log("🔴 Events 페이지 - 이벤트 리스너들 해제");
+      window.removeEventListener("event-interest-changed", handleInterestChanged);
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const getDisplayTitle = () => {

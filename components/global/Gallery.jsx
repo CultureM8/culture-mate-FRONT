@@ -20,6 +20,7 @@ export default function Gallery({
   eventId, // 이벤트 ID
   togetherId, // 동행 ID
   type = "event", // "event" | "together"
+  disableEventSync = false, // 이벤트 동기화 비활성화 여부
 }) {
   const [interest, setInterest] = useState(!!initialInterest);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,12 +30,35 @@ export default function Gallery({
   const user = loginContext?.user || null;
 
   useEffect(() => {
+    console.log("Gallery - 초기 관심 상태 설정:", {
+      eventId,
+      initialInterest,
+      disableEventSync,
+      finalInterest: !!initialInterest
+    });
     setInterest(!!initialInterest);
   }, [initialInterest]);
 
+  // 관심 상태 변경 이벤트 리스너 (Gallery 컴포넌트 간 동기화)
+  useEffect(() => {
+    if (!eventId || type !== "event" || disableEventSync) return;
+
+    const handleInterestChanged = (event) => {
+      const { eventId: changedEventId, interested } = event.detail;
+
+      if (String(changedEventId) === String(eventId)) {
+        console.log(`Gallery - 이벤트 ${eventId} 관심 상태 동기화:`, interested);
+        setInterest(Boolean(interested));
+      }
+    };
+
+    window.addEventListener("event-interest-changed", handleInterestChanged);
+    return () => window.removeEventListener("event-interest-changed", handleInterestChanged);
+  }, [eventId, type, disableEventSync]);
+
   // localStorage에서 관심사 상태 동기화 (새로고침 시에도 유지)
   useEffect(() => {
-    if (!eventId || type !== "event") return;
+    if (!eventId || type !== "event" || disableEventSync) return;
 
     // 페이지 로드 시 localStorage에서 상태 확인
     const storageKey = `event_interest_${eventId}`;
@@ -143,8 +167,10 @@ export default function Gallery({
         };
         localStorage.setItem(storageKey, JSON.stringify(storageData));
 
-        // 이벤트는 마이크로태스크로 발생 (더 빠른 실행)
-        Promise.resolve().then(() => {
+        // 이벤트 발생을 다음 틱으로 지연 (React 배치 업데이트 이후)
+        setTimeout(() => {
+          console.log("🚀 Gallery - 지연 이벤트 발생 시작");
+
           window.dispatchEvent(
             new CustomEvent("event-interest-changed", {
               detail: { eventId: String(itemId), interested },
@@ -158,8 +184,8 @@ export default function Gallery({
             storageArea: localStorage
           }));
 
-          console.log("✅ Gallery - 이벤트 발생 완료");
-        });
+          console.log("✅ Gallery - 지연 이벤트 발생 완료");
+        }, 50); // 50ms 지연으로 React 상태 업데이트 완료 후 실행
 
       } else if (type === "together") {
         console.log("🚀 Gallery - 동행 관심 토글 API 호출:", itemId);
