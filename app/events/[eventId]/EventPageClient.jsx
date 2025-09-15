@@ -89,7 +89,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: getEventMainImageUrl(data, true),
+    imgSrc: getEventMainImageUrl(data, true), // 썸네일 이미지 사용 (원래대로)
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,
@@ -186,6 +186,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
 
   useEffect(() => {
     setEventData(initialEventData);
+
+    // 페이지 로드 시 백엔드에서 최신 관심 상태 동기화
+    if (initialEventData?.eventId) {
+      updateEventData();
+    }
   }, [initialEventData]);
 
   // URL 파라미터/해시 → 탭 이동
@@ -419,9 +424,14 @@ export default function EventPageClient({ eventData: initialEventData }) {
   // 관심 상태 변경 브로드캐스트 리스너
   useEffect(() => {
     if (!eventData?.eventId) return;
+
     const handleInterestChanged = (event) => {
       const { eventId: changedEventId, interested } = event.detail;
+
       if (String(changedEventId) === String(eventData.eventId)) {
+        console.log("EventPageClient - 관심 상태 변경 감지:", interested);
+
+        // 즉시 UI 업데이트
         setEventData((prev) => ({
           ...prev,
           isInterested: Boolean(interested),
@@ -429,17 +439,18 @@ export default function EventPageClient({ eventData: initialEventData }) {
             ? (prev.likesCount || 0) + 1
             : Math.max((prev.likesCount || 0) - 1, 0),
         }));
-        setTimeout(() => {
+
+        // 백엔드에서 최신 데이터 동기화 (debounce)
+        const timeoutId = setTimeout(() => {
           updateEventData();
-        }, 100);
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
       }
     };
+
     window.addEventListener("event-interest-changed", handleInterestChanged);
-    return () =>
-      window.removeEventListener(
-        "event-interest-changed",
-        handleInterestChanged
-      );
+    return () => window.removeEventListener("event-interest-changed", handleInterestChanged);
   }, [eventData?.eventId]);
 
   // 동행 데이터 로드

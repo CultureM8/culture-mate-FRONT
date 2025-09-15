@@ -121,68 +121,79 @@ export default function Interest() {
   const [error, setError] = useState(null);
   const { isLogined, user } = useContext(LoginContext);
 
+  // 관심 목록 데이터 가져오기
+  const fetchInterestData = async () => {
+    if (!isLogined || !user) {
+      console.log("로그인되지 않은 상태이므로 관심 목록을 가져오지 않습니다.");
+      setEventData([]);
+      setTogetherData([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // 관심 이벤트와 관심 동행을 병렬로 가져오기
+      const [rawEvents, rawTogethers] = await Promise.all([
+        getUserInterestEvents().catch(err => {
+          console.error("관심 이벤트 가져오기 실패:", err);
+          return [];
+        }),
+        getUserInterestTogether().catch(err => {
+          console.error("관심 동행 가져오기 실패:", err);
+          return [];
+        })
+      ]);
+
+      console.log("가져온 관심 이벤트:", rawEvents);
+      console.log("가져온 관심 동행:", rawTogethers);
+
+      // 이벤트 데이터 매핑
+      const mappedEvents = Array.isArray(rawEvents)
+        ? rawEvents.map(mapInterestEventData)
+        : [];
+
+      // 동행 데이터 매핑
+      const mappedTogethers = Array.isArray(rawTogethers)
+        ? rawTogethers.map(mapInterestTogetherData)
+        : [];
+
+      console.log("매핑된 이벤트 데이터:", mappedEvents);
+      console.log("매핑된 동행 데이터:", mappedTogethers);
+
+      setEventData(mappedEvents);
+      setTogetherData(mappedTogethers);
+      setError(null);
+    } catch (error) {
+      console.error("관심 목록 가져오기 실패:", error);
+      setError("관심 목록을 불러오는데 실패했습니다.");
+      setEventData([]);
+      setTogetherData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchInterestData = async () => {
-      if (!isLogined || !user) {
-        console.log(
-          "로그인되지 않은 상태이므로 관심 목록을 가져오지 않습니다."
-        );
-        setEventData([]);
-        setTogetherData([]);
-        setLoading(false);
-        return;
-      }
+    fetchInterestData();
+  }, [isLogined, user]);
 
-      try {
-        setLoading(true);
-        
-        // 관심 이벤트와 관심 동행을 병렬로 가져오기
-        const [rawEvents, rawTogethers] = await Promise.all([
-          getUserInterestEvents().catch(err => {
-            console.error("관심 이벤트 가져오기 실패:", err);
-            return [];
-          }),
-          getUserInterestTogether().catch(err => {
-            console.error("관심 동행 가져오기 실패:", err);
-            return [];
-          })
-        ]);
+  // 관심 상태 변경 이벤트 리스너
+  useEffect(() => {
+    const handleInterestChanged = () => {
+      console.log("관심 목록 페이지 - 관심 상태 변경 감지, 데이터 새로고침");
 
-        console.log("가져온 관심 이벤트:", rawEvents);
-        console.log("가져온 관심 동행:", rawTogethers);
-        
-        // 첫 번째 together 데이터의 이벤트 구조 확인
-        if (rawTogethers && rawTogethers.length > 0) {
-          console.log("첫 번째 together의 event 데이터:", JSON.stringify(rawTogethers[0].event, null, 2));
-        }
+      // debounce로 너무 자주 호출되지 않도록 제한
+      const timeoutId = setTimeout(() => {
+        fetchInterestData();
+      }, 300);
 
-        // 이벤트 데이터 매핑
-        const mappedEvents = Array.isArray(rawEvents)
-          ? rawEvents.map(mapInterestEventData)
-          : [];
-
-        // 동행 데이터 매핑  
-        const mappedTogethers = Array.isArray(rawTogethers)
-          ? rawTogethers.map(mapInterestTogetherData)
-          : [];
-
-        console.log("매핑된 이벤트 데이터:", mappedEvents);
-        console.log("매핑된 동행 데이터:", mappedTogethers);
-
-        setEventData(mappedEvents);
-        setTogetherData(mappedTogethers);
-        setError(null);
-      } catch (error) {
-        console.error("관심 목록 가져오기 실패:", error);
-        setError("관심 목록을 불러오는데 실패했습니다.");
-        setEventData([]);
-        setTogetherData([]);
-      } finally {
-        setLoading(false);
-      }
+      return () => clearTimeout(timeoutId);
     };
 
-    fetchInterestData();
+    window.addEventListener("event-interest-changed", handleInterestChanged);
+    return () => window.removeEventListener("event-interest-changed", handleInterestChanged);
   }, [isLogined, user]);
 
   if (loading) {

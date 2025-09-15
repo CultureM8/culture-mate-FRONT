@@ -52,6 +52,7 @@ export default function EventGallery({
     score: props.score || 0,
     avgRating: props.avgRating || 0,
     enableInterest: props.enableInterest !== false,
+    disableEventSync: props.disableEventSync || false,
   };
 
   const ratingValue = Number(data.score || data.avgRating || 0);
@@ -99,7 +100,8 @@ export default function EventGallery({
         enableInterest={data.enableInterest !== false}
         initialInterest={Boolean(data.isInterested)}
         eventId={eventIdStr}
-        type="event">
+        type="event"
+        disableEventSync={Boolean(data.disableEventSync)}>
         <div className="flex gap-5 my-1">
           <div className="flex gap-1 items-center">
             <Image
