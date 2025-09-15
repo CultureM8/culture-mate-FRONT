@@ -78,17 +78,8 @@ export default function CommunityDetailPage() {
         const transformedEventCard = transformEventCardData(post?.eventCard);
         setEventCard(transformedEventCard);
 
-        // 댓글 수(루트만) – 서버 응답에 없으니 기존 로컬 계산 유지
-        try {
-          const raw = localStorage.getItem(`comments:${postId}`);
-          const list = raw ? JSON.parse(raw) : [];
-          const roots = Array.isArray(list)
-            ? list.filter((c) => !c.parentId).length
-            : 0;
-          setCommentCount(roots);
-        } catch {
-          setCommentCount(0);
-        }
+        // 댓글 수 - 백엔드 응답에서 가져오기
+        setCommentCount(transformedPost?.commentCount || 0);
       } catch (e) {
         console.error(e);
         setPost(null);

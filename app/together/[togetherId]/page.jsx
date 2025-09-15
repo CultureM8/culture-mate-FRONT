@@ -83,6 +83,7 @@ const toMiniCard = (eventData, registeredPosts = 0) => {
     title: eventData?.title ?? eventData?.name ?? eventData?.eventName,
     description: eventData?.description ?? "",
     thumbnailImagePath:
+      eventData?.mainImagePath ??
       eventData?.thumbnailImagePath ??
       eventData?.eventImage ??
       eventData?.image ??
@@ -535,7 +536,7 @@ export default function TogetherDetailPage() {
         </div>
 
         {/* 본문 */}
-        <div className="mb-8 min-h-[600px]">
+        <div className="mb-8 min-h-[200px]">
           <div className="text-sm text-gray-700 whitespace-pre-line">
             {post.content || "내용이 없습니다."}
           </div>

@@ -205,7 +205,7 @@ export default function HistoryWith({ togetherData = [] }) {
         isHost: false,
         togetherId: t.id,
         imgSrc:
-          t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
+          t.mainImagePath || t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
         alt: t.event?.name || t.title || "",
         title: t.title || "모집글 제목",
         eventType: t.event?.eventType || "이벤트유형",
@@ -238,7 +238,7 @@ export default function HistoryWith({ togetherData = [] }) {
         isHost: false,
         togetherId: t.id,
         imgSrc:
-          t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
+          t.mainImagePath || t.thumbnailImagePath || t.event?.imagePath || "/img/default_img.svg",
         alt: t.event?.name || t.title || "",
         title: t.title || "모집글 제목",
         eventType: t.event?.eventType || "이벤트유형",

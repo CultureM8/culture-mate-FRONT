@@ -63,6 +63,7 @@ export default function ReviewHistoryCard({
 
   // 2) 이벤트 이미지 원본 경로 수집 → 절대경로화 → 초기값 세팅
   const rawEventImg =
+    event?.mainImagePath ||
     event?.image ||
     event?.thumbnailImagePath ||
     review?.eventImage ||

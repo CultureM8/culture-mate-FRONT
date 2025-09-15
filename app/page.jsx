@@ -8,6 +8,8 @@ import Gallery from "@/components/global/Gallery";
 import EventGallery from "@/components/events/main/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import TogetherGallery from "@/components/together/TogetherGallery";
+import { togetherApi } from "@/lib/api/togetherApi";
+import { getEvents } from "@/lib/api/eventApi";
 
 // 상수 배열들을 컴포넌트 외부로 이동
 const PLACEHOLDER_TEXTS = [
@@ -15,7 +17,7 @@ const PLACEHOLDER_TEXTS = [
   "오늘 밤 함께할 문화 활동은?",
   "이번 주말 어떤 공연 볼까?",
   "혼자 가기 아쉬운 전시회 찾기",
-  "새로운 사람들과 즐길 이벤트?"
+  "새로운 사람들과 즐길 이벤트?",
 ];
 
 const TAG_SETS = [
@@ -23,15 +25,15 @@ const TAG_SETS = [
   ["전시회", "뮤지컬", "페스티벌", "동행", "아트 갤러리"],
   ["연극", "클래식", "재즈", "만남", "독립영화제"],
   ["오페라", "댄스", "힙합", "파티", "로맨틱 콘서트"],
-  ["팝업스토어", "모임", "뮤지컬", "네트워킹", "크리에이티브"]
+  ["팝업스토어", "모임", "뮤지컬", "네트워킹", "크리에이티브"],
 ];
 
 const VIDEO_SOURCES = [
   "/img/mainbanner1.gif",
-  "/img/mainbanner2.gif", 
+  "/img/mainbanner2.gif",
   "/img/mainbanner3.gif",
   "/img/mainbanner4.gif",
-  "/img/mainbanner5.gif"
+  "/img/mainbanner5.gif",
 ];
 
 export default function MainLanding() {
@@ -39,59 +41,26 @@ export default function MainLanding() {
     <>
       {/* 1. MainBanner - 상단 검색 배너 (전체 가로폭) */}
       <MainBanner />
-      
+
       {/* 메인 콘텐츠 영역 (1200px 제한) */}
       <div className="w-full min-w-full overflow-x-hidden">
-        {/* 2. MainSubcategoryBar - 인기 동행 */}
         <div className="py-2.5">
-          <MainSubcategoryBar title="인기 동행" subtitle="지금 가장 인기있는 모임" />
+          <MainSubcategoryBar
+            title="최신 동행"
+            subtitle="최신 동행을 확인 해 보세요"
+          />
         </div>
-        
-        {/* 3. TogetherCardGrid - 4개의 동행 카드 그리드 */}
         <TogetherCardGrid />
-        
-        {/* 4. MainSubcategoryBar2 - 추천동행 */}
-        <div className="py-2.5">
-          <MainSubcategoryBar title="추천동행" subtitle="내 관심사를 기반으로 추천" />
-        </div>
-        
-        {/* 5. TogetherCardGrid - 4개의 동행 카드 그리드 */}
-        <TogetherCardGrid />
-        
-        {/* 6. MainSubcategoryBar3 - 이벤트 후기 */}
-        <div className="py-2.5">
-          <MainSubcategoryBar title="이벤트 후기" subtitle="내가 찾는 이벤트의 후기가 궁금하다면" linkTo={ROUTES.COMMUNITY} />
-        </div>
       </div>
 
-      {/* 7. ReviewCardsSection - 4개의 후기 카드 (전체 가로폭) */}
-      <ReviewCardsSection />
-      
-      {/* 메인 콘텐츠 영역 계속 (1200px 제한) */}
       <div className="w-full min-w-full overflow-x-hidden">
-        {/* 8. MainSubcategoryBar4 - 지금 핫한 카테고리 */}
         <div className="py-2.5">
-          <MainSubcategoryBar title="지금 핫한 카테고리" subtitle="지금 가장 인기있는 이벤트 카테고리" linkTo={ROUTES.EVENTS} />
+          <MainSubcategoryBar2
+            title="최신 이벤트"
+            subtitle="최근 오픈한 이벤트를 확인 해 보세요"
+          />
         </div>
-        
-        {/* 9. InterestEvent - 4개의 이벤트 갤러리 */}
-        <InterestEvent />
-        
-        {/* 10. MainSubcategoryBar5 - 신규 동행 */}
-        <div className="py-2.5">
-          <MainSubcategoryBar title="신규 동행" subtitle="새로 열린 동행 모임" />
-        </div>
-        
-        {/* 11. TogetherCardGrid - 4개의 동행 카드 그리드 */}
-        <TogetherCardGrid />
-        
-        {/* 12. MainSubcategoryBar6 - 추천 (컨텐츠/SNS/화제글) top */}
-        <div className="py-2.5">
-          <MainSubcategoryBar title="추천 (컨텐츠/SNS/화제글) top" isSimple={true} linkTo={ROUTES.COMMUNITY} />
-        </div>
-        
-        {/* 13. RecommendedCardsGroup - 3개의 추천글 카드 */}
-        <RecommendedCardsGroup />
+        <NewEvent />
       </div>
     </>
   );
@@ -133,19 +102,19 @@ function MainBanner() {
     <section className="bg-[#C6C8CA] w-[100vw] h-[400px] relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden">
       {/* 배경 gif */}
       {currentVideoSrc && (
-        <img 
+        <img
           src={currentVideoSrc}
           alt="background animation"
           className="absolute inset-0 w-full h-full object-cover"
         />
       )}
-      
+
       <div className="relative w-full h-full flex items-center justify-center z-10">
         {/* 검색창 배경 (블러 효과) - 포커스 시에만 표시 */}
         {isFocused && (
           <div className="absolute bg-[rgba(255,255,255,0.2)] blur-[2px] filter h-[60px] left-1/2 rounded-xl top-1/2 translate-x-[-50%] translate-y-[-50%] w-[560px]" />
         )}
-        
+
         {/* 메인 검색창 */}
         <div className="absolute bg-[#ffffff] h-[50px] left-1/2 rounded-xl top-1/2 translate-x-[-50%] translate-y-[-50%] w-[550px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
           <div className="h-[50px] overflow-hidden relative w-[550px]">
@@ -160,12 +129,11 @@ function MainBanner() {
               placeholder={currentPlaceholder}
               className="absolute box-border w-[500px] h-full left-0 px-5 py-[13px] top-0 bg-transparent border-none outline-none font-medium text-[#333333] text-[20px] placeholder:text-[#76787a] placeholder:font-medium"
             />
-            
+
             {/* 검색 아이콘 */}
             <button
               onClick={handleSearch}
-              className="absolute box-border flex flex-row gap-2.5 items-center justify-center p-0 right-0 size-[50px] top-1/2 translate-y-[-50%] cursor-pointer hover:bg-gray-50 rounded-r-xl transition-colors duration-200"
-            >
+              className="absolute box-border flex flex-row gap-2.5 items-center justify-center p-0 right-0 size-[50px] top-1/2 translate-y-[-50%] cursor-pointer hover:bg-gray-50 rounded-r-xl transition-colors duration-200">
               <Image
                 src={ICONS.SEARCH}
                 alt="search"
@@ -183,12 +151,9 @@ function MainBanner() {
           {currentTags.map((tag, index) => (
             <div
               key={index}
-              className="box-border flex flex-row gap-2.5 items-center justify-center px-4 py-1.5 rounded-[20px] border border-[#ffffff] cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors duration-200"
-            >
+              className="box-border flex flex-row gap-2.5 items-center justify-center px-4 py-1.5 rounded-[20px] border border-[#ffffff] cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors duration-200">
               <div className="flex flex-col font-normal justify-center leading-[0] text-[#ffffff] text-[18px] text-center text-nowrap">
-                <p className="block leading-[1.55] whitespace-pre">
-                  {tag}
-                </p>
+                <p className="block leading-[1.55] whitespace-pre">{tag}</p>
               </div>
             </div>
           ))}
@@ -198,22 +163,33 @@ function MainBanner() {
   );
 }
 
-function MainSubcategoryBar({ title, subtitle, isSimple = false, linkTo = ROUTES.TOGETHER }) {
+function MainSubcategoryBar({
+  title,
+  subtitle,
+  isSimple = false,
+  linkTo = ROUTES.TOGETHER,
+}) {
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
-        {isSimple ? (
-          /* 제목과 더보기를 한 줄에 가운데 정렬 */
-          <div className="flex items-center justify-between">
+        <>
+          {/* 제목 영역 */}
+          <div className="h-7 mb-2">
             <h2 className="font-bold text-xl text-[#26282a] leading-[1.4]">
               {title}
             </h2>
-            
-            <Link href={linkTo} className="flex items-center gap-1 cursor-pointer">
+          </div>
+          {/* 설명 및 더보기 영역 */}
+          <div className="h-7 flex items-center justify-between">
+            <p className="text-base text-[#9ea0a2] leading-[1.5]">{subtitle}</p>
+
+            <Link
+              href={linkTo}
+              className="flex items-center gap-1 cursor-pointer">
               <span className="text-base text-[#c6c8ca] leading-[1.5]">
                 더보기
               </span>
-              <Image 
+              <Image
                 src={ICONS.DOWN_GRAY}
                 alt="더보기 화살표"
                 width={16}
@@ -222,433 +198,312 @@ function MainSubcategoryBar({ title, subtitle, isSimple = false, linkTo = ROUTES
               />
             </Link>
           </div>
-        ) : (
-          <>
-            {/* 제목 영역 */}
-            <div className="h-7 mb-2">
-              <h2 className="font-bold text-xl text-[#26282a] leading-[1.4]">
-                {title}
-              </h2>
-            </div>
-            {/* 설명 및 더보기 영역 */}
-            <div className="h-7 flex items-center justify-between">
-              <p className="text-base text-[#9ea0a2] leading-[1.5]">
-                {subtitle}
-              </p>
-              
-              <Link href={linkTo} className="flex items-center gap-1 cursor-pointer">
-                <span className="text-base text-[#c6c8ca] leading-[1.5]">
-                  더보기
-                </span>
-                <Image 
-                  src={ICONS.DOWN_GRAY}
-                  alt="더보기 화살표"
-                  width={16}
-                  height={8}
-                  className="rotate-270"
-                />
-              </Link>
-            </div>
-          </>
-        )}
+        </>
+      </div>
+    </div>
+  );
+}
+
+function MainSubcategoryBar2({
+  title,
+  subtitle,
+  isSimple = false,
+  linkTo = ROUTES.EVENTS,
+}) {
+  return (
+    <div className="w-full flex justify-center py-2.5">
+      <div className="w-[1200px]">
+        <>
+          {/* 제목 영역 */}
+          <div className="h-7 mb-2">
+            <h2 className="font-bold text-xl text-[#26282a] leading-[1.4]">
+              {title}
+            </h2>
+          </div>
+          {/* 설명 및 더보기 영역 */}
+          <div className="h-7 flex items-center justify-between">
+            <p className="text-base text-[#9ea0a2] leading-[1.5]">{subtitle}</p>
+
+            <Link
+              href={linkTo}
+              className="flex items-center gap-1 cursor-pointer">
+              <span className="text-base text-[#c6c8ca] leading-[1.5]">
+                더보기
+              </span>
+              <Image
+                src={ICONS.DOWN_GRAY}
+                alt="더보기 화살표"
+                width={16}
+                height={8}
+                className="rotate-270"
+              />
+            </Link>
+          </div>
+        </>
       </div>
     </div>
   );
 }
 
 function TogetherCardGrid() {
-  const togetherData = [
-    {
-      imgSrc: "",
-      alt: "",
-      title: "모집글 제목",
-      eventType: "이벤트유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000.00.00",
-      isClosed: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "모집글 제목",
-      eventType: "이벤트유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000.00.00",
-      isClosed: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "모집글 제목",
-      eventType: "이벤트유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000.00.00",
-      isClosed: false,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "모집글 제목",
-      eventType: "이벤트유형",
-      eventName: "이벤트명",
-      group: "00/00",
-      date: "0000.00.00",
-      isClosed: false,
-    },
-  ];
+  const [togetherData, setTogetherData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  console.log("🔄 TogetherCardGrid 컴포넌트 렌더링 시작");
+  console.log("🔍 현재 상태:", {
+    isLoading,
+    error,
+    dataLength: togetherData.length,
+  });
+
+  useEffect(() => {
+    const fetchRecentTogether = async () => {
+      try {
+        console.log("🚀 TogetherCardGrid: API 호출 시작");
+        setIsLoading(true);
+        const allTogether = await togetherApi.getAll();
+        console.log("✅ TogetherCardGrid: API 응답 받음", allTogether);
+
+        // 활성화된 동행만 필터링
+        const activeTogether = allTogether.filter((item) => {
+          if (!item.active) {
+            return false;
+          }
+
+          //정원 초과 체크
+          if (item.currentParticipants >= item.maxParticipants) {
+            return false;
+          }
+
+          // 모임 날짜 체크 (내일 이후만)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const meetingDate = new Date(item.meetingDate);
+          meetingDate.setHours(0, 0, 0, 0);
+
+          if (meetingDate <= today) {
+            return false;
+          }
+          return true;
+        });
+
+        // 최신 4개 선택 (created_at 또는 id 기준으로 정렬)
+        const recentTogether = activeTogether
+          .sort((a, b) => {
+            // createdAt이 있으면 그걸로, 없으면 id로 정렬
+            if (a.createdAt && b.createdAt) {
+              return new Date(b.createdAt) - new Date(a.createdAt);
+            }
+            return b.id - a.id;
+          })
+          .slice(0, 4);
+
+        setTogetherData(recentTogether);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecentTogether();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex justify-center py-2.5">
+        <div className="w-[1200px]">
+          <div className="grid grid-cols-4 gap-6 place-items-center">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="w-[290px] h-auto flex justify-center">
+                <div className="w-[290px] h-[200px] bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">로딩 중...</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full flex justify-center py-2.5">
+        <div className="w-[1200px]">
+          <div className="text-center py-8">
+            <p className="text-red-500">
+              동행 데이터를 불러오는 중 오류가 발생했습니다.
+            </p>
+            <p className="text-gray-500 mt-2">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
         <div className="grid grid-cols-4 gap-6 place-items-center">
-          {togetherData.map((item, index) => (
-            <div key={index} className="w-[290px] h-auto flex justify-center">
-              <TogetherGallery 
-                imgSrc={item.imgSrc}
-                alt={item.alt}
-                title={item.title}
-                eventType={item.eventType}
-                eventName={item.eventName}
-                group={item.group}
-                date={item.date}
-                isClosed={item.isClosed}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 개별 ReviewCard 컴포넌트
-function ReviewCard({ 
-  nickname = "닉네임", 
-  rating = 4.5, 
-  date = "25.08.01", 
-  content = "후기내용(공백포함 30자이후 ...말줄임 + 더보기추가", 
-  profileImage = null 
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    
-    const stars = [];
-    
-    // 꽉 찬 별
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <Image 
-          key={`full-${i}`}
-          src={ICONS.STAR_FULL} 
-          alt="full star" 
-          width={20} 
-          height={19} 
-        />
-      );
-    }
-    
-    // 반 별
-    if (hasHalfStar) {
-      stars.push(
-        <Image 
-          key="half"
-          src={ICONS.STAR_HALF} 
-          alt="half star" 
-          width={20} 
-          height={19} 
-        />
-      );
-    }
-    
-    return stars;
-  };
-
-  const shouldTruncate = content.length > 30;
-  const displayContent = isExpanded || !shouldTruncate 
-    ? content 
-    : content.slice(0, 30) + "...";
-
-  return (
-    // TODO: 카드 클릭 시 '/커뮤니티/이벤트후기' 경로로 이동 기능 추가 필요
-    <div className="bg-white rounded-xl border border-gray-100 p-0 w-[282px] h-[180px] flex flex-col" style={{ boxShadow: '0px 4px 4px 0px rgba(0,0,0,0.1)' }}>
-      {/* 헤더 영역 */}
-      <div className="flex items-center p-5 h-[90px]">
-        {/* 프로필 이미지 */}
-        <div className="mr-2.5">
-          {profileImage && profileImage.trim() !== "" ? (
-            <Image 
-              src={profileImage} 
-              alt="profile" 
-              width={50} 
-              height={50} 
-              className="rounded-full"
-            />
+          {togetherData.length > 0 ? (
+            togetherData.map((item) => (
+              <div
+                key={item.id}
+                className="w-[290px] h-auto flex justify-center">
+                <TogetherGallery
+                  togetherId={item.id}
+                  id={item.id}
+                  title={item.title}
+                  meetingDate={item.meetingDate}
+                  currentParticipants={item.currentParticipants}
+                  maxParticipants={item.maxParticipants}
+                  active={item.active}
+                  eventSnapshot={{
+                    ...item.event,
+                    eventName: item.event?.title, // title을 eventName으로 매핑
+                    eventImage: item.event?.mainImagePath || item.event?.thumbnailImagePath, // mainImagePath를 eventImage로 우선 매핑
+                    imgSrc: item.event?.mainImagePath || item.event?.thumbnailImagePath, // 추가 fallback
+                  }}
+                  isInterested={item.isInterested}
+                />
+              </div>
+            ))
           ) : (
-            <div className="w-[50px] h-[50px] bg-gray-100 rounded-full flex items-center justify-center">
-              <span className="text-xs text-gray-700">image</span>
+            <div className="col-span-4 text-center py-8">
+              <p className="text-gray-500">현재 모집 중인 동행이 없습니다.</p>
+              <p className="text-gray-400 text-sm mt-2">
+                새로운 동행이 곧 등록될 예정입니다!
+              </p>
             </div>
           )}
         </div>
-        
-        {/* 닉네임과 별점 */}
-        <div className="flex-1">
-          <div className="mb-1">
-            <p className="text-base font-normal text-gray-700">{nickname}</p>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            {renderStars(rating)}
-            <span className="text-xs text-gray-300 ml-1">{date}</span>
-          </div>
-        </div>
-      </div>
-      
-      {/* 후기 내용 */}
-      <div className="px-5 pb-5 flex-1">
-        <p className="text-sm text-gray-700 leading-relaxed">
-          {displayContent}
-          {shouldTruncate && !isExpanded && (
-            <button 
-              onClick={() => setIsExpanded(true)}
-              className="text-blue-500 ml-1 hover:underline"
-            >
-              더보기
-            </button>
-          )}
-          {isExpanded && shouldTruncate && (
-            <button 
-              onClick={() => setIsExpanded(false)}
-              className="text-gray-500 ml-1 hover:underline"
-            >
-              접기
-            </button>
-          )}
-        </p>
       </div>
     </div>
   );
 }
 
-// 메인 ReviewCardsSection 컴포넌트
-function ReviewCardsSection({ reviews = [] }) {
-  // 기본 데이터가 없을 경우 샘플 데이터 사용
-  const defaultReviews = [
-    {
-      id: 1,
-      nickname: "닉네임",
-      rating: 4.5,
-      date: "25.08.01",
-      content: "후기내용(공백포함 30자이후 ...말줄임 + 더보기추가",
-      profileImage: null
-    },
-    {
-      id: 2,
-      nickname: "닉네임",
-      rating: 4.5,
-      date: "25.08.01",
-      content: "후기내용(공백포함 30자이후 ...말줄임 + 더보기추가",
-      profileImage: null
-    },
-    {
-      id: 3,
-      nickname: "닉네임",
-      rating: 4.5,
-      date: "25.08.01",
-      content: "후기내용(공백포함 30자이후 ...말줄임 + 더보기추가",
-      profileImage: null
-    },
-    {
-      id: 4,
-      nickname: "닉네임",
-      rating: 4.5,
-      date: "25.08.01",
-      content: "후기내용(공백포함 30자이후 ...말줄임 + 더보기추가",
-      profileImage: null
-    }
-  ];
+function NewEvent() {
+  const [eventData, setEventData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const reviewData = reviews.length > 0 ? reviews : defaultReviews;
+  useEffect(() => {
+    const fetchRecentEvents = async () => {
+      try {
+        setIsLoading(true);
+        const allEvents = await getEvents();
 
-  return (
-    <section className="bg-gray-100 w-[100vw] py-5 relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-      <div className="w-full flex justify-center">
+        // 활성화된 이벤트만 필터링 (현재 진행 중이거나 미래 이벤트)
+        const activeEvents = allEvents.filter((event) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = new Date(event.endDate);
+
+          if (endDate < today) {
+            return false;
+          }
+
+          return true;
+        });
+
+        // 최신 4개 선택 (created_at 또는 id 기준으로 정렬)
+        const recentEvents = activeEvents
+          .sort((a, b) => {
+            // createdAt이 있으면 그걸로, 없으면 id로 정렬
+            if (a.createdAt && b.createdAt) {
+              return new Date(b.createdAt) - new Date(a.createdAt);
+            }
+            return b.id - a.id;
+          })
+          .slice(0, 4);
+
+        setEventData(recentEvents);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecentEvents();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex justify-center py-2.5">
         <div className="w-[1200px]">
-          <div className="grid grid-cols-4 gap-6">
-            {reviewData.map((review) => (
-              <ReviewCard
-                key={review.id}
-                nickname={review.nickname}
-                rating={review.rating}
-                date={review.date}
-                content={review.content}
-                profileImage={review.profileImage}
-              />
+          <div className="grid grid-cols-4 gap-6 place-items-center">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="w-[280px] h-auto flex justify-center">
+                <div className="w-[280px] h-[200px] bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">로딩 중...</span>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </div>
-    </section>
-  );
-}
+    );
+  }
 
-function InterestEvent() {
-  const eventData = [
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-1",
-      date: "0000.00.00 ~ 0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-2",
-      date: "0000.00.00 ~ 0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-3",
-      date: "0000.00.00 ~ 0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-    {
-      imgSrc: "",
-      alt: "",
-      title: "제목-4",
-      date: "0000.00.00 ~ 0000.00.00",
-      location: "지역 및 장소명",
-      isHot: true,
-    },
-  ];
-  const [selectedType, setSelectedType] = useState("전체");
-  
-  return (
-    <div className="w-full flex justify-center py-2.5">
-      <div className="w-[1200px]">
-        <GalleryLayout Component={EventGallery} items={eventData} />
-      </div>
-    </div>
-  );
-}
-
-// 개별 추천글 카드 컴포넌트
-function RecommendedCard({ title, nickname, content }) {
-  return (
-    <div className="flex-1 max-w-[354px]">
-      <div className="
-        flex flex-col border border-gray-300 rounded-xl 
-        bg-white h-[270px] overflow-hidden
-      ">
-        {/* 카드 헤더 */}
-        <div className="
-          flex items-center justify-start 
-          px-5 py-[21px] h-[70px]
-        ">
-          <h3 className="
-            text-lg font-bold text-gray-900
-            font-['Inter']
-          ">
-            {title}
-          </h3>
-        </div>
-        {/* 카드 본문 */}
-        <div className="
-          grid grid-cols-[50px_1fr] gap-4 
-          px-5 py-2.5 h-[146px]
-        ">
-          {/* 프로필 이미지 */}
-          <div className="flex items-start justify-center pt-1">
-            <div className="
-              w-[50px] h-[50px] 
-              bg-gray-100 rounded-full
-              flex items-center justify-center
-              shrink-0
-            ">
-              <span className="
-                text-xs text-gray-700 
-                font-['Inter'] tracking-wide
-              ">
-                image
-              </span>
-            </div>
-          </div>
-          {/* 닉네임 및 리뷰 */}
-          <div className="
-            flex flex-col gap-2.5 
-            self-start pt-1
-          ">
-            {/* 닉네임 */}
-            <div className="flex items-center">
-              <span className="
-                text-base text-gray-900
-                font-['Inter'] font-normal
-                leading-6
-              ">
-                {nickname}
-              </span>
-            </div>
-            {/* 리뷰 내용 */}
-            <div className="flex items-start">
-              <p className="
-                text-base text-gray-500 
-                font-['Inter'] font-normal 
-                leading-6
-              ">
-                {content}
-              </p>
-            </div>
+  if (error) {
+    return (
+      <div className="w-full flex justify-center py-2.5">
+        <div className="w-[1200px]">
+          <div className="text-center py-8">
+            <p className="text-red-500">
+              이벤트 데이터를 불러오는 중 오류가 발생했습니다.
+            </p>
+            <p className="text-gray-500 mt-2">{error}</p>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-// 메인 추천글 카드 그룹 컴포넌트
-function RecommendedCardsGroup() {
-  const [cardsData] = useState([
-    {
-      title: "관심 수 TOP",
-      nickname: "닉네임",
-      content: "이벤트 → 동행모집 흐름이 너무 자연스러워서, 들어왔다가 바로 모임 만들었어요...(공백포함 50자 이후 말줄임)"
-    },
-    {
-      title: "추천 수 TOP", 
-      nickname: "닉네임",
-      content: "후기/프로필 보고 참여하니 덜 불안했어요. 운영정책이 잘 정리되어 있어서 신뢰가 갔습니다."
-    },
-    {
-      title: "리뷰 점수 TOP",
-      nickname: "닉네임", 
-      content: "페스티벌은 혼자 가기 애매했는데, 동행모집을 통해 4명이 함께 가서 더 신나게 즐겼습니다."
-    }
-  ]);
-  
+  // 백엔드 데이터를 EventGallery 컴포넌트가 기대하는 형식으로 변환
+  const formattedEventData = eventData.map((event) => ({
+    id: event.id,
+    eventId: event.id,
+    title: event.title,
+    imgSrc: event.mainImagePath || event.thumbnailImagePath || "",
+    alt: event.title || "이벤트 이미지",
+    href: `/events/${event.id}`,
+    startDate: event.startDate
+      ? new Date(event.startDate)
+          .toLocaleDateString("ko-KR")
+          .replace(/\. /g, ".")
+          .slice(0, -1)
+      : "0000.00.00",
+    endDate: event.endDate
+      ? new Date(event.endDate)
+          .toLocaleDateString("ko-KR")
+          .replace(/\. /g, ".")
+          .slice(0, -1)
+      : "0000.00.00",
+    location: event.eventLocation || "장소 미정",
+    score: event.avgRating || 0,
+    avgRating: event.avgRating || 0,
+    isHot: true, // 최신 이벤트는 모두 핫으로 표시
+    enableInterest: true,
+    isInterested: event.isInterested || false,
+  }));
+
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
-        <div className="flex flex-row justify-between">
-          {cardsData.map((card, index) => (
-            <RecommendedCard
-              key={index}
-              title={card.title}
-              nickname={card.nickname}
-              content={card.content}
-            />
-          ))}
-        </div>
+        {formattedEventData.length > 0 ? (
+          <GalleryLayout Component={EventGallery} items={formattedEventData} />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500">현재 진행 중인 이벤트가 없습니다.</p>
+            <p className="text-gray-400 text-sm mt-2">
+              새로운 이벤트가 곧 등록될 예정입니다!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

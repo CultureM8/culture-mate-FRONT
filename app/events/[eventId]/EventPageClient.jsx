@@ -89,7 +89,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: getEventMainImageUrl(data, true),
+    imgSrc: getEventMainImageUrl(data, true), // 썸네일 이미지 사용 (원래대로)
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,
@@ -186,6 +186,11 @@ export default function EventPageClient({ eventData: initialEventData }) {
 
   useEffect(() => {
     setEventData(initialEventData);
+
+    // 페이지 로드 시 백엔드에서 최신 관심 상태 동기화
+    if (initialEventData?.eventId) {
+      updateEventData();
+    }
   }, [initialEventData]);
 
   // URL 파라미터/해시 → 탭 이동
@@ -242,11 +247,18 @@ export default function EventPageClient({ eventData: initialEventData }) {
   };
 
   const loadReviews = async () => {
-    if (!eventData?.eventId) return;
+    if (!eventData?.eventId) {
+      console.log("⏹️ loadReviews: eventData.eventId가 없음");
+      return;
+    }
+
+    console.log("🔄 loadReviews 시작, eventId:", eventData.eventId);
     setReviewsLoading(true);
     try {
       const reviewData = await getEventReviews(eventData.eventId);
+      console.log("📦 getEventReviews 응답:", reviewData);
       const list = Array.isArray(reviewData) ? reviewData : [];
+      console.log("📝 리뷰 배열로 변환:", list.length, "개");
 
       // 내 리뷰 상단 정렬
       const sortedList = list.sort((a, b) => {
@@ -257,10 +269,12 @@ export default function EventPageClient({ eventData: initialEventData }) {
         return 0;
       });
 
+      console.log("🔢 정렬된 리뷰 리스트:", sortedList.length, "개");
       setReviews(sortedList);
 
       if (currentUserId != null) {
         const mine = list.some((rv) => isMineReview(rv, currentUserId));
+        console.log("👤 내 리뷰 존재 여부:", mine);
         setHasMyReview(mine);
         if (typeof window !== "undefined") {
           const k = reviewKey(eventData.eventId, currentUserId);
@@ -269,9 +283,10 @@ export default function EventPageClient({ eventData: initialEventData }) {
         }
       }
     } catch (error) {
-      console.error("후기 데이터 로드 실패:", error);
+      console.error("❌ 후기 데이터 로드 실패:", error);
       setReviews([]);
     } finally {
+      console.log("🔄 loadReviews 완료");
       setReviewsLoading(false);
     }
   };
@@ -298,18 +313,21 @@ export default function EventPageClient({ eventData: initialEventData }) {
 
   // ★ 삭제 핸들러 (경로 자동 대응 + 낙관적 갱신 포함)
   const handleDeleteReview = async (reviewData) => {
-    console.log("handleDeleteReview 호출됨, reviewData:", reviewData);
+    console.log("🗑️ handleDeleteReview 호출됨, reviewData:", reviewData);
 
     const reviewId =
       reviewData?.id ?? reviewData?.reviewId ?? reviewData?.review_id;
 
     if (!reviewId) {
-      console.error("리뷰 ID가 없음:", reviewData);
+      console.error("❌ 리뷰 ID가 없음:", reviewData);
       alert("리뷰 ID를 찾을 수 없습니다.");
       return;
     }
 
+    console.log("🔍 추출된 reviewId:", reviewId);
+
     if (!confirm("정말로 이 리뷰를 삭제하시겠습니까?")) {
+      console.log("⏹️ 사용자가 삭제를 취소했습니다.");
       return;
     }
 
@@ -319,54 +337,64 @@ export default function EventPageClient({ eventData: initialEventData }) {
       eventData?.eventId ??
       eventData?.id;
 
+    console.log("🎯 eventIdSafe:", eventIdSafe);
+
     try {
-      console.log("deleteEventReview API 호출 시작, reviewId:", reviewId);
+      console.log("🔄 deleteEventReview API 호출 시작, reviewId:", reviewId);
 
       let result;
       try {
         if (eventIdSafe) {
+          console.log("📡 deleteEventReviewByEvent 호출:", eventIdSafe, reviewId);
           result = await deleteEventReviewByEvent(eventIdSafe, reviewId);
         } else {
+          console.log("📡 deleteEventReview 호출:", reviewId);
           result = await deleteEventReview(reviewId);
         }
       } catch (err) {
         console.warn(
-          "event-route DELETE 실패, review-only 경로로 재시도:",
+          "⚠️ event-route DELETE 실패, review-only 경로로 재시도:",
           err?.message
         );
         result = await deleteEventReview(reviewId);
       }
-      console.log("deleteEventReview 완료:", result);
+      console.log("✅ deleteEventReview 완료:", result);
 
       // 즉시 리스트에서 제거
-      setReviews((prev) =>
-        Array.isArray(prev)
+      console.log("🗂️ 로컬 리뷰 리스트에서 삭제 전 개수:", reviews?.length);
+      setReviews((prev) => {
+        const filtered = Array.isArray(prev)
           ? prev.filter(
               (rv) =>
                 String(rv?.id ?? rv?.reviewId ?? rv?.review_id) !==
                 String(reviewId)
             )
-          : prev
-      );
+          : prev;
+        console.log("🗂️ 로컬 리뷰 리스트에서 삭제 후 개수:", Array.isArray(filtered) ? filtered.length : 0);
+        return filtered;
+      });
 
       // 내 리뷰 플래그/로컬스토리지 정리
+      console.log("🧹 내 리뷰 플래그 및 로컬스토리지 정리");
       setHasMyReview(false);
       if (typeof window !== "undefined" && currentUserId != null) {
-        localStorage.removeItem(reviewKey(eventData.eventId, currentUserId));
+        const key = reviewKey(eventData.eventId, currentUserId);
+        console.log("🧹 로컬스토리지 키 삭제:", key);
+        localStorage.removeItem(key);
       }
 
       // 서버 최신 상태 재조회
-      console.log("삭제 후 리뷰 목록 재조회 시작");
+      console.log("🔄 삭제 후 리뷰 목록 재조회 시작");
       await loadReviews();
       await updateEventData();
       console.log(
-        "삭제 후 리뷰 목록 재조회 완료, 현재 리뷰 수:",
+        "✅ 삭제 후 리뷰 목록 재조회 완료, 현재 리뷰 수:",
         reviews?.length
       );
 
       alert("리뷰가 성공적으로 삭제되었습니다.");
     } catch (error) {
-      console.error("리뷰 삭제 실패:", error);
+      console.error("❌ 리뷰 삭제 실패:", error);
       alert(`리뷰 삭제에 실패했습니다: ${error.message}`);
     }
   };
@@ -396,9 +424,14 @@ export default function EventPageClient({ eventData: initialEventData }) {
   // 관심 상태 변경 브로드캐스트 리스너
   useEffect(() => {
     if (!eventData?.eventId) return;
+
     const handleInterestChanged = (event) => {
       const { eventId: changedEventId, interested } = event.detail;
+
       if (String(changedEventId) === String(eventData.eventId)) {
+        console.log("EventPageClient - 관심 상태 변경 감지:", interested);
+
+        // 즉시 UI 업데이트
         setEventData((prev) => ({
           ...prev,
           isInterested: Boolean(interested),
@@ -406,17 +439,18 @@ export default function EventPageClient({ eventData: initialEventData }) {
             ? (prev.likesCount || 0) + 1
             : Math.max((prev.likesCount || 0) - 1, 0),
         }));
-        setTimeout(() => {
+
+        // 백엔드에서 최신 데이터 동기화 (debounce)
+        const timeoutId = setTimeout(() => {
           updateEventData();
-        }, 100);
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
       }
     };
+
     window.addEventListener("event-interest-changed", handleInterestChanged);
-    return () =>
-      window.removeEventListener(
-        "event-interest-changed",
-        handleInterestChanged
-      );
+    return () => window.removeEventListener("event-interest-changed", handleInterestChanged);
   }, [eventData?.eventId]);
 
   // 동행 데이터 로드

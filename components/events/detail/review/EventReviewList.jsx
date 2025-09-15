@@ -81,6 +81,7 @@ export default function EventReviewList(props) {
 
   const getProfileImageUrl = () => {
     const raw =
+      (author?.mainImagePath && author.mainImagePath.trim()) ||
       (author?.profileImagePath && author.profileImagePath.trim()) ||
       (author?.thumbnailImagePath && author.thumbnailImagePath.trim()) ||
       "";
