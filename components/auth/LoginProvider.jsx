@@ -91,14 +91,18 @@ export default function LoginProvider({ children }) {
     }
 
     // 기존 로직: 세션 복원 + 만료 체크
-    const s = load();
+    const sessionData = load();
     const now = Date.now();
-    const exp = s?.expiresAt ?? null;
-    if (exp && now > exp) {
+    const sessionExp = sessionData?.expiresAt ?? null;
+    const tokenExp = sessionData?.tokenExpiresAt ?? null;
+
+    // 토큰 만료 시간 우선 체크 (더 엄격함)
+    if ((tokenExp && now > tokenExp) || (sessionExp && now > sessionExp)) {
+      console.log('🔒 토큰 또는 세션이 만료되어 자동 로그아웃됩니다.');
       clear();
       setUser(null);
     } else {
-      setUser(s?.user ?? null);
+      setUser(sessionData?.user ?? null);
     }
     setLoading(false);
     setReady(true);
@@ -116,8 +120,8 @@ export default function LoginProvider({ children }) {
     }
     const onStorage = (e) => {
       if (e.key !== KEY) return;
-      const s2 = load();
-      setUser(s2?.user ?? null);
+      const updatedSessionData = load();
+      setUser(updatedSessionData?.user ?? null);
     };
     window.addEventListener("storage", onStorage);
     return () => {
@@ -139,10 +143,16 @@ export default function LoginProvider({ children }) {
         role: profile.role ?? null,
       };
       const now = Date.now();
-      const ttlMs = remember ? 1000 * 60 * 60 * 24 * 7 : 1000 * 60 * 60 * 24;
+      // JWT 토큰은 백엔드에서 24시간 후 만료됨
+      // 프론트엔드도 동일하게 24시간으로 설정
+      const tokenExpiresAt = now + (1000 * 60 * 60 * 24); // 24시간
 
       setUser(u);
-      save({ user: u, expiresAt: now + ttlMs });
+      save({
+        user: u,
+        expiresAt: tokenExpiresAt,  // 24시간으로 통일
+        tokenExpiresAt: tokenExpiresAt  // 명시적으로 토큰 만료 시간 저장
+      });
 
       try {
         localStorage.setItem("userRole", (u.role ?? "").toString());
@@ -168,9 +178,9 @@ export default function LoginProvider({ children }) {
   };
 
   const refresh = () => {
-    const s = load();
-    setUser(s?.user ?? null);
-    return s;
+    const sessionData = load();
+    setUser(sessionData?.user ?? null);
+    return sessionData;
   };
 
   const uid = user?.id ?? null;
