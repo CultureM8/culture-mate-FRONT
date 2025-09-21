@@ -29,7 +29,7 @@ export default function ContactList({
       if (!replyContent.trim()) return alert("답변 내용을 입력해주세요.");
 
       // POST 요청 결과를 res에 저장
-      const res = await api.post(`/v1/inquiries/${inquiryId}/answer`, {
+      const res = await api.post(`/v1/admin/inquiries/${inquiryId}/answer`, {
         content: replyContent,
       });
 
