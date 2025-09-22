@@ -86,13 +86,13 @@ export default function TogetherMessage() {
             requestId: app.requestId,
             fromUserId: app.applicantId,
             fromUserName: app.applicantName,
-            fromNickname: app.applicantName,    // preferName 함수가 찾는 필드 추가
-            fromLoginId: app.applicantId,       // preferName 함수가 찾는 필드 추가
+            fromNickname: app.applicantName,    // 신청자 닉네임 = applicantName
+            fromLoginId: app.applicantId ? String(app.applicantId) : null,
             fromUserProfileImage: app.applicantProfileImage,
             toUserId: app.hostId,
             toUserName: app.hostName,
-            toNickname: app.hostName,           // preferName 함수가 찾는 필드 추가
-            toLoginId: app.hostId,              // preferName 함수가 찾는 필드 추가
+            toNickname: app.hostName,           // 호스트 닉네임 = hostName
+            toLoginId: app.hostId ? String(app.hostId) : null,
             togetherId: app.togetherId,
             postId: app.togetherId,
             postTitle: app.togetherTitle,
@@ -141,13 +141,13 @@ export default function TogetherMessage() {
             requestId: app.requestId,
             fromUserId: app.applicantId,
             fromUserName: app.applicantName,
-            fromNickname: app.applicantName,    // preferName 함수가 찾는 필드 추가
-            fromLoginId: app.applicantId,       // preferName 함수가 찾는 필드 추가
+            fromNickname: app.applicantName,    // 신청자 닉네임 = applicantName
+            fromLoginId: app.applicantId ? String(app.applicantId) : null,
             fromUserProfileImage: app.applicantProfileImage,
             toUserId: app.hostId,
             toUserName: app.hostName,
-            toNickname: app.hostName,           // preferName 함수가 찾는 필드 추가
-            toLoginId: app.hostId,              // preferName 함수가 찾는 필드 추가
+            toNickname: app.hostName,           // 호스트 닉네임 = hostName
+            toLoginId: app.hostId ? String(app.hostId) : null,
             togetherId: app.togetherId,
             postId: app.togetherId,
             postTitle: app.togetherTitle,

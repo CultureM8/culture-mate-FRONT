@@ -33,7 +33,6 @@ export default function GroupChat({
   } = groupData ?? {};
 
   // 디버깅: props 값 확인
-  console.log('GroupChat props:', { roomId, togetherId, groupData });
 
   // 실제 채팅방 roomId 상태 관리 - roomId가 togetherId와 같으면 null로 초기화
   const [actualRoomId, setActualRoomId] = useState(
@@ -90,9 +89,7 @@ export default function GroupChat({
   // togetherId로 실제 채팅방 정보 가져오기
   useEffect(() => {
     async function fetchChatRoom() {
-      console.log('fetchChatRoom 호출:', { togetherId, actualRoomId });
       if (!togetherId || actualRoomId) {
-        console.log('fetchChatRoom 스킵:', { togetherId, actualRoomId });
         return; // 이미 roomId가 있으면 패스
       }
 
@@ -108,7 +105,6 @@ export default function GroupChat({
         if (response.ok) {
           const chatRoomData = await response.json();
           setActualRoomId(chatRoomData.id); // 실제 채팅방 ID 설정
-          console.log('채팅방 정보 로드 성공:', chatRoomData.id);
         } else {
           console.error('채팅방 정보 가져오기 실패:', response.status, response.statusText);
         }
@@ -161,13 +157,14 @@ export default function GroupChat({
         // Together 참가자 정보 로드 (승인된 참가자들만)
         try {
           const { getParticipants } = await import('@/lib/api/togetherApi');
-          const participantsData = await getParticipants(togetherId, 'APPROVED');
-          console.log('✅ Together 참가자 로드 완료:', participantsData.length, '명');
+          const participantsData = await getParticipants(togetherId, 'APPROVED'); // APPROVED + HOST 모두 조회
 
           const fromTogether = participantsData.map(member => ({
             id: String(member.id || member.memberId),
-            name: member.memberDetail?.nickname || member.userName || member.loginId || String(member.id),
-            avatar: getProfileImageUrl(member.memberDetail?.profileImage)
+            name: member.nickname || member.userName || member.loginId || String(member.id),
+            nickname: member.nickname,
+            displayName: member.nickname,
+            avatar: getProfileImageUrl(member.thumbnailImagePath || member.memberDetail?.profileImage)
           }));
 
           setParticipants((prev) =>
@@ -179,7 +176,9 @@ export default function GroupChat({
             )
           );
         } catch (error) {
-          console.warn('Together 참가자 로드 실패:', error);
+          console.error('🔴 Together 참가자 로드 실패:', error);
+          console.error('🔴 togetherId:', togetherId);
+          console.error('🔴 에러 상세:', error.message, error.stack);
           // 무시(서버 연결 실패 등)
         }
 
@@ -271,8 +270,6 @@ export default function GroupChat({
 
     const initializeAuthenticatedWebSocket = async () => {
       try {
-        console.log('=== GroupChat JWT 인증 WebSocket 초기화 ===');
-        console.log('actualRoomId:', actualRoomId, 'currentUserId:', currentUserId);
 
         // JWT 인증된 STOMP 클라이언트 생성
         const client = createAuthenticatedStompClient(WS_ENDPOINT);
@@ -284,7 +281,6 @@ export default function GroupChat({
             return;
           }
 
-          console.log('✅ GroupChat JWT 인증 WebSocket 연결 성공!', actualRoomId);
           setConnected(true);
 
           // 실시간 메시지 구독
@@ -342,7 +338,6 @@ export default function GroupChat({
 
         // JWT 관련 오류 핸들러
         client.onStompError = (frame) => {
-          console.error('❌ GroupChat STOMP 연결 오류:', frame);
           if (!alive) return;
           setConnected(false);
           if (frame.headers.message?.includes('JWT') ||
@@ -353,7 +348,6 @@ export default function GroupChat({
         };
 
         client.onWebSocketError = (event) => {
-          console.error('❌ GroupChat WebSocket 연결 오류:', event);
           if (!alive) return;
           setConnected(false);
         };
@@ -389,11 +383,6 @@ export default function GroupChat({
 
   // ---------- 전송 (TogetherRequestChat 방식과 동일) ----------
   const handleSend = () => {
-    console.log("=== GroupChat 메시지 전송 디버깅 ===");
-    console.log("actualRoomId:", actualRoomId);
-    console.log("currentUserId:", currentUserId);
-    console.log("STOMP connected:", clientRef.current?.connected);
-    console.log("message:", newMessage.trim());
 
     const text = newMessage.trim();
     if (!text) return;
@@ -433,7 +422,6 @@ export default function GroupChat({
         headers: { "content-type": "application/json" },
       });
 
-      console.log('GroupChat 메시지 전송 완료, 서버 응답 대기 중...');
 
       // 낙관적 업데이트 제거: 서버 응답을 통한 실시간 구독으로만 메시지 표시
       // (TogetherRequestChat과 동일한 방식)
@@ -538,9 +526,10 @@ export default function GroupChat({
           const sid = String(msg.sender);
           const mine = isMine(sid);
           const author = participantsMap.get(sid);
+
           const showName = mine
-            ? currentUserName || "사용자"
-            : author?.name || msg.senderName || "사용자";
+            ? currentUserName || "나"
+            : author?.name || author?.nickname || author?.displayName || msg.senderName || "사용자";
           const avatar = getProfileImageUrl(author?.avatar);
 
           return (
@@ -883,6 +872,7 @@ function mergeParticipants(a = [], b = []) {
 function ensureMeAndHost(list = [], meId, meName = "사용자", authorId = null) {
   let out = Array.isArray(list) ? [...list] : [];
 
+
   if (!meId) {
     return out.length > 0
       ? out
@@ -899,21 +889,28 @@ function ensureMeAndHost(list = [], meId, meName = "사용자", authorId = null)
   const myId = String(meId);
   const hostId = authorId ? String(authorId) : null;
 
-  // 내가 호스트인 경우 (나 혼자만)
+  // 내가 호스트인 경우 (모든 참가자 포함, 나를 호스트로 표시)
   if (hostId && myId === hostId) {
-    const existing = out.find((p) => String(p.id) === myId);
-    if (existing) {
-      return [{ ...existing, isHost: true, name: meName || existing.name }];
-    } else {
-      return [
-        {
-          id: myId,
-          name: meName,
-          avatar: "/img/default_img.svg",
-          isHost: true,
-        },
-      ];
+    let hasMe = false;
+    out = out.map((p) => {
+      if (String(p.id) === myId) {
+        hasMe = true;
+        return { ...p, isHost: true, name: meName || p.name };
+      }
+      return { ...p, isHost: false };
+    });
+
+    // 내가 목록에 없으면 추가
+    if (!hasMe) {
+      out.push({
+        id: myId,
+        name: meName,
+        avatar: "/img/default_img.svg",
+        isHost: true,
+      });
     }
+
+    return out;
   }
 
   // 다른 사람이 호스트인 경우 (작성자 + 나)
@@ -980,6 +977,7 @@ function ensureMeAndHost(list = [], meId, meName = "사용자", authorId = null)
     const cur = out[i];
     out[i] = { ...cur, name: meName || cur.name || String(meId) || "사용자" };
   }
+
 
   return out;
 }

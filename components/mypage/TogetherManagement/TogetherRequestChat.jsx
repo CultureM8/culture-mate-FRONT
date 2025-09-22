@@ -153,16 +153,57 @@ export default function TogetherRequestChat({
   const [participants, setParticipants] = useState([]);
   const [participantsLoading, setParticipantsLoading] = useState(false);
 
+  /* ---------- 참가자 정보로 사용자 이름 조회 함수 ---------- */
+  const getSenderName = (senderId) => {
+    const senderIdStr = String(senderId);
+
+    // 본인인 경우
+    if (senderIdStr === myId) {
+      return myDisplayName;
+    }
+
+    // 참가자 목록에서 검색 (그룹 모드)
+    if (isGroupMode && participants.length > 0) {
+      const participant = participants.find(p => String(p.id) === senderIdStr || String(p.memberId) === senderIdStr);
+      if (participant) {
+        return preferName(
+          participant.displayName,
+          participant.nickname,
+          participant.name,
+          participant.loginId,
+          senderIdStr
+        );
+      }
+    }
+
+    // 1:1 모드이거나 참가자에서 찾지 못한 경우 기존 로직 사용
+    return otherUser.name;
+  };
+
   /* ---------- 참가자 목록 로드 (그룹 모드) ---------- */
   const loadParticipants = async () => {
     if (!isGroupMode || !chatRequestData?.togetherId) return;
 
     setParticipantsLoading(true);
     try {
-      const response = await fetch(`/api/v1/together/${chatRequestData.togetherId}/participants?status=APPROVED`);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`/api/v1/together/${chatRequestData.togetherId}/participants?status=APPROVED`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` })
+        }
+      });
+
       if (response.ok) {
         const participantData = await response.json();
-        setParticipants(participantData);
+        console.log("🟢 참가자 목록 응답:", participantData);
+        console.log("🟢 참가자 수:", participantData?.length || 0);
+        setParticipants(participantData || []);
+      } else {
+        console.warn("🔴 참가자 목록 API 오류:", response.status, await response.text());
       }
     } catch (error) {
       console.warn("참가자 목록 로드 실패:", error);
@@ -276,16 +317,17 @@ export default function TogetherRequestChat({
             const historyMessages = result.content || result || [];
 
             if (Array.isArray(historyMessages)) {
-              const formattedHistory = historyMessages.map(msg => ({
-                id: msg.id || `hist-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                sender: String(msg.senderId ?? msg.memberId ?? "unknown"),
-                senderName: String(msg.senderId ?? msg.memberId) === myId
-                  ? myDisplayName
-                  : otherUser.name,
-                message: String(msg.content ?? ""),
-                timestamp: new Date(msg.createdAt || Date.now()),
-                isHistory: true
-              }));
+              const formattedHistory = historyMessages.map(msg => {
+                const senderId = String(msg.senderId ?? msg.memberId ?? "unknown");
+                return {
+                  id: msg.id || `hist-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  sender: senderId,
+                  senderName: getSenderName(senderId),
+                  message: String(msg.content ?? ""),
+                  timestamp: new Date(msg.createdAt || Date.now()),
+                  isHistory: true
+                };
+              });
 
               console.log(`✅ 채팅 히스토리 로드 완료: ${formattedHistory.length}개`);
 
@@ -327,7 +369,7 @@ export default function TogetherRequestChat({
                 {
                   id: `srv-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
                   sender: senderId,
-                  senderName: senderId === myId ? myDisplayName : otherUser.name,
+                  senderName: getSenderName(senderId),
                   message: String(body.content ?? ""),
                   timestamp: new Date(),
                 },
@@ -543,7 +585,7 @@ export default function TogetherRequestChat({
               <div>
                 <h3 className="font-medium text-gray-900">그룹 채팅</h3>
                 <p className="text-sm text-gray-500">
-                  {participantsLoading ? "로딩 중..." : `참가자 ${participants.length}명`}
+                  {participantsLoading ? "로딩 중..." : `총 참가자 ${participants.length}명`}
                 </p>
               </div>
             </div>

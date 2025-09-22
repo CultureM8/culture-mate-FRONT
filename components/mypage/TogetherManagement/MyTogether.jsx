@@ -38,7 +38,6 @@ export default function MyTogether({
 
   // 카드 클릭
   const handleTogetherListClick = (item) => {
-    console.log('🎯 Together 선택됨:', item);
     setSelectedTogether(item);
     setIsSlideVisible(true);
     setChatError(null); // 새 동행 선택시 에러 초기화
@@ -104,13 +103,8 @@ export default function MyTogether({
       const sortedHostData = separateByDate(Array.isArray(hostData) ? hostData : []);
       const sortedGuestData = separateByDate(Array.isArray(guestData) ? guestData : []);
 
-      // 데이터 구조 디버깅
-      console.log('🔵 호스트 정렬된 데이터:', sortedHostData);
-      console.log('🟢 게스트 정렬된 데이터:', sortedGuestData);
-
       // 호스트 데이터 분석 및 매핑
       const markedHostData = sortedHostData.map(item => {
-        console.log('🔵 호스트 원본 아이템:', item);
 
         // 호스트 데이터에 이벤트 정보 매핑
         const mapped = {
@@ -131,12 +125,10 @@ export default function MyTogether({
           } : item.eventSnapshot
         };
 
-        console.log('🔵 호스트 매핑 결과:', mapped);
         return mapped;
       });
 
       const markedGuestData = sortedGuestData.map(item => {
-        console.log('🟢 게스트 원본 아이템:', item);
 
         // 게스트 데이터 매핑 - 이제 TogetherDto.Response와 동일한 구조이므로 호스트와 동일하게 처리
         const mapped = {
@@ -159,7 +151,6 @@ export default function MyTogether({
           author: item.host || item.author // 백엔드에서 host 정보가 있으면 author로 매핑
         };
 
-        console.log('🟢 게스트 매핑 결과:', mapped);
         return mapped;
       });
 
@@ -223,30 +214,24 @@ export default function MyTogether({
 
   // 카드 클릭 시 동행 전용 채팅방 조회
   useEffect(() => {
-    console.log('🚪 채팅방 로딩 useEffect 실행:', selectedTogether);
     if (!selectedTogether) return;
     if (forcedRoomId) return;
     const tgtId = selectedTogether.togetherId ?? selectedTogether.id;
-    console.log('🚪 채팅방 로딩 시도 - tgtId:', tgtId);
     if (!tgtId) return;
 
     let stop = false;
     (async () => {
       try {
         // 새로운 Together 전용 채팅방 API 사용
-        console.log('🚪 getTogetherChatRoom 호출:', tgtId);
         const chatRoomData = await togetherApi.getTogetherChatRoom(tgtId);
-        console.log('🚪 getTogetherChatRoom 응답:', chatRoomData);
 
         if (chatRoomData) {
           // 백엔드에서 host 정보가 포함된 채팅방 데이터 저장
           const actualRoomId = chatRoomData.id ?? chatRoomData.roomId;
-          console.log('🚪 실제 roomId 설정:', actualRoomId);
 
           if (!stop) {
             setChatRoomData(chatRoomData);
             setForcedRoomId(actualRoomId);
-            console.log('✅ 채팅방 데이터 및 roomId 설정 완료:', actualRoomId);
           }
           return;
         }
@@ -352,24 +337,13 @@ export default function MyTogether({
       selectedTogether?.togetherRoomId ??
       null;
 
-    console.log('🎯 groupData 생성 - rid 계산:', {
-      forcedRoomId,
-      selectedTogetherId: selectedTogether?.togetherId ?? selectedTogether?.id,
-      calculatedRid: rid,
-      roomIdSources: {
-        selectedTogetherRoomId: selectedTogether?.roomId,
-        chatRoomId: selectedTogether?.chatRoomId,
-        groupRoomId: selectedTogether?.groupRoomId,
-        togetherRoomId: selectedTogether?.togetherRoomId
-      }
-    });
-
     // 백엔드에서 받은 host 정보 우선 사용
     const hostFromBackend = chatRoomData?.host;
 
     // 작성자(호스트) ID/이름 - 백엔드 데이터 우선
     const hostIdRaw =
       hostFromBackend?.id ??
+      selectedTogether?.host?.id ??            // 🔥 host 필드 우선 사용
       selectedTogether?.author?.id ??
       selectedTogether?.authorId ??
       selectedTogether?.author?.user_id ??
@@ -379,6 +353,7 @@ export default function MyTogether({
 
     const hostName = hostFromBackend?.name ??
       pickReadableName(
+        selectedTogether?.host?.nickname,        // 🔥 host 필드 우선 사용
         selectedTogether?.author?.memberDetail?.nickname,
         selectedTogether?.author?.nickname,
         selectedTogether?.author?.login_id,
@@ -387,20 +362,39 @@ export default function MyTogether({
 
     const meName = pickReadableName(effectiveUserName);
 
-    const participantsSeed = [
-      effectiveUserId && {
-        id: String(effectiveUserId),
-        name: meName,
-        avatar: "/img/default_img.svg",
-        isHost: false,
-      },
-      hostIdRaw && {
-        id: String(hostIdRaw),
-        name: hostName || "작성자",
-        avatar: "/img/default_img.svg",
-        isHost: true,
-      },
-    ].filter(Boolean);
+    // 백엔드 참가자 데이터가 있으면 우선 사용, 없으면 기본 시드 데이터 사용
+    const participantsSeed = chatRoomData?.participants?.length > 0
+      ? chatRoomData.participants.map(p => ({
+          id: String(p.id || p.memberId),
+          name: pickReadableName(p.displayName, p.nickname, p.name, p.loginId) || "참가자",
+          avatar: p.profileImage || "/img/default_img.svg",
+          isHost: String(p.id || p.memberId) === String(hostIdRaw),
+        }))
+      : (() => {
+          const participants = [];
+
+          // 호스트 추가
+          if (hostIdRaw) {
+            participants.push({
+              id: String(hostIdRaw),
+              name: hostName || "작성자",
+              avatar: "/img/default_img.svg",
+              isHost: true,
+            });
+          }
+
+          // 본인이 호스트가 아닌 경우에만 별도로 추가
+          if (effectiveUserId && String(effectiveUserId) !== String(hostIdRaw)) {
+            participants.push({
+              id: String(effectiveUserId),
+              name: meName,
+              avatar: "/img/default_img.svg",
+              isHost: false,
+            });
+          }
+
+          return participants;
+        })();
 
     if (!rid) {
       const togetherId = selectedTogether?.togetherId ?? selectedTogether?.id;
