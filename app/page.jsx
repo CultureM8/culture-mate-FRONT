@@ -260,44 +260,15 @@ function TogetherCardGrid() {
   useEffect(() => {
     const fetchRecentTogether = async () => {
       try {
-        console.log("🚀 TogetherCardGrid: API 호출 시작");
+        console.log("🚀 TogetherCardGrid: 최신 동행 4개 조회");
         setIsLoading(true);
-        const allTogether = await togetherApi.getAll();
-        console.log("✅ TogetherCardGrid: API 응답 받음", allTogether);
-
-        // 활성화된 동행만 필터링
-        const activeTogether = allTogether.filter((item) => {
-          if (!item.active) {
-            return false;
-          }
-
-          //정원 초과 체크
-          if (item.currentParticipants >= item.maxParticipants) {
-            return false;
-          }
-
-          // 모임 날짜 체크 (내일 이후만)
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const meetingDate = new Date(item.meetingDate);
-          meetingDate.setHours(0, 0, 0, 0);
-
-          if (meetingDate <= today) {
-            return false;
-          }
-          return true;
-        });
-
-        // 최신 4개 선택 (created_at 또는 id 기준으로 정렬)
-        const recentTogether = activeTogether
-          .sort((a, b) => {
-            // createdAt이 있으면 그걸로, 없으면 id로 정렬
-            if (a.createdAt && b.createdAt) {
-              return new Date(b.createdAt) - new Date(a.createdAt);
-            }
-            return b.id - a.id;
-          })
-          .slice(0, 4);
+        // /recent 엔드포인트 사용으로 필요한 데이터만 조회
+        const response = await fetch('/api/v1/together/recent?limit=4');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const recentTogether = await response.json();
+        console.log("✅ TogetherCardGrid: 응답 받음", recentTogether);
 
         setTogetherData(recentTogether);
       } catch (err) {
@@ -393,31 +364,12 @@ function NewEvent() {
     const fetchRecentEvents = async () => {
       try {
         setIsLoading(true);
-        const allEvents = await getEvents();
-
-        // 활성화된 이벤트만 필터링 (현재 진행 중이거나 미래 이벤트)
-        const activeEvents = allEvents.filter((event) => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const endDate = new Date(event.endDate);
-
-          if (endDate < today) {
-            return false;
-          }
-
-          return true;
-        });
-
-        // 최신 4개 선택 (created_at 또는 id 기준으로 정렬)
-        const recentEvents = activeEvents
-          .sort((a, b) => {
-            // createdAt이 있으면 그걸로, 없으면 id로 정렬
-            if (a.createdAt && b.createdAt) {
-              return new Date(b.createdAt) - new Date(a.createdAt);
-            }
-            return b.id - a.id;
-          })
-          .slice(0, 4);
+        // /recent 엔드포인트 사용으로 필요한 데이터만 조회
+        const response = await fetch('/api/v1/events/recent?limit=4');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        const recentEvents = await response.json();
 
         setEventData(recentEvents);
       } catch (err) {

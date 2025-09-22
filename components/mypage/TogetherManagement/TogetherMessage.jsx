@@ -86,9 +86,13 @@ export default function TogetherMessage() {
             requestId: app.requestId,
             fromUserId: app.applicantId,
             fromUserName: app.applicantName,
+            fromNickname: app.applicantName,    // preferName 함수가 찾는 필드 추가
+            fromLoginId: app.applicantId,       // preferName 함수가 찾는 필드 추가
             fromUserProfileImage: app.applicantProfileImage,
             toUserId: app.hostId,
             toUserName: app.hostName,
+            toNickname: app.hostName,           // preferName 함수가 찾는 필드 추가
+            toLoginId: app.hostId,              // preferName 함수가 찾는 필드 추가
             togetherId: app.togetherId,
             postId: app.togetherId,
             postTitle: app.togetherTitle,
@@ -137,9 +141,13 @@ export default function TogetherMessage() {
             requestId: app.requestId,
             fromUserId: app.applicantId,
             fromUserName: app.applicantName,
+            fromNickname: app.applicantName,    // preferName 함수가 찾는 필드 추가
+            fromLoginId: app.applicantId,       // preferName 함수가 찾는 필드 추가
             fromUserProfileImage: app.applicantProfileImage,
             toUserId: app.hostId,
             toUserName: app.hostName,
+            toNickname: app.hostName,           // preferName 함수가 찾는 필드 추가
+            toLoginId: app.hostId,              // preferName 함수가 찾는 필드 추가
             togetherId: app.togetherId,
             postId: app.togetherId,
             postTitle: app.togetherTitle,
@@ -380,96 +388,10 @@ export default function TogetherMessage() {
       CacheManager.clearPattern(`together_applications_`);
       await loadAll();
 
-      const req =
-        selectedRequest?.requestId === requestId
-          ? selectedRequest
-          : chatRequests.find((r) => r.requestId === requestId);
-
-      let rid = null;
-
-      if (req?.roomId != null) {
-        rid = req.roomId;
-      } else {
-        const rooms = await listChatRooms();
-        const rows = Array.isArray(rooms) ? rooms : [];
-        const post = req?.postId ? String(req.postId) : "";
-        const me = String(req?.toUserId ?? "");
-        const him = String(req?.fromUserId ?? "");
-        const nameHit =
-          rows.find(
-            (r) =>
-              String(r.roomName || "").includes(post) &&
-              String(r.roomName || "").includes(me) &&
-              String(r.roomName || "").includes(him)
-          ) ||
-          rows.find((r) => String(r.roomName || "").includes(post)) ||
-          rows.find(
-            (r) =>
-              String(r.roomName || "").includes(me) &&
-              String(r.roomName || "").includes(him)
-          );
-        rid = nameHit?.id ?? nameHit?.roomId ?? null;
-
-        if (!rid) {
-          // 없으면 생성
-          const name = post ? `채팅방 - ${post}` : `채팅방 - ${Date.now()}`;
-          const created = await createChatRoom(name);
-          rid = created?.id ?? created?.roomId ?? null;
-        }
-      }
-
-      if (!rid) {
-        alert("채팅방을 찾지 못했습니다. 다시 시도해주세요.");
-        return null;
-      }
-
-      // 두 명 모두 참가
-      const meIdNum = Number(currentUserId);
-      if (Number.isFinite(meIdNum)) {
-        try {
-          await joinRoom(Number(rid), meIdNum);
-        } catch (e) {
-          console.warn("내 방참가 실패(무시 가능):", e);
-        }
-      }
-
-      const peerIdRaw =
-        req && (req.fromUserId ?? req.toUserId) != null
-          ? req.status === "accepted" && activeTab === "received"
-            ? req.fromUserId
-            : req.toUserId
-          : activeTab === "received"
-          ? req?.fromUserId
-          : req?.toUserId;
-
-      const peerIdNum = Number(peerIdRaw);
-      if (Number.isFinite(peerIdNum)) {
-        try {
-          await joinRoom(Number(rid), peerIdNum);
-        } catch (e) {
-          console.warn("상대 방참가 실패(무시 가능):", e);
-        }
-      }
-
-      // ✅ 숫자로 세팅
-      setActiveRoomId(Number(rid));
-      setIsSlideVisible(true);
-
-      // 브로드캐스트 (선택)
-      try {
-        window.dispatchEvent(
-          new CustomEvent("open-group-chat", {
-            detail: { roomId: Number(rid) },
-          })
-        );
-      } catch {}
-
       alert("동행 신청을 수락했습니다!");
-      return Number(rid);
     } catch (e) {
       console.error(e);
       alert("신청 처리에 실패했습니다.");
-      return null;
     }
   };
 

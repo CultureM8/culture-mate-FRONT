@@ -148,6 +148,35 @@ export default function TogetherRequestChat({
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
+  // 그룹 모드 관련 상태 (승인된 참가자들의 채팅)
+  const isGroupMode = chatRequestData?.status === "accepted" || chatRequestData?.status === "approved";
+  const [participants, setParticipants] = useState([]);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+
+  /* ---------- 참가자 목록 로드 (그룹 모드) ---------- */
+  const loadParticipants = async () => {
+    if (!isGroupMode || !chatRequestData?.togetherId) return;
+
+    setParticipantsLoading(true);
+    try {
+      const response = await fetch(`/api/v1/together/${chatRequestData.togetherId}/participants?status=APPROVED`);
+      if (response.ok) {
+        const participantData = await response.json();
+        setParticipants(participantData);
+      }
+    } catch (error) {
+      console.warn("참가자 목록 로드 실패:", error);
+    } finally {
+      setParticipantsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isGroupMode) {
+      loadParticipants();
+    }
+  }, [isGroupMode, chatRequestData?.togetherId]);
+
   /* ---------- 스크롤 자동화 ---------- */
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -502,7 +531,46 @@ export default function TogetherRequestChat({
     <div className="flex flex-col h-full">
       {/* 헤더 */}
       <div className="flex items-center justify-between p-3 border-b border-gray-200 flex-shrink-0">
-        <FriendListItem friend={friendData} onClick={onFriendClick} />
+        {isGroupMode ? (
+          /* 그룹 모드: 참가자 목록 표시 */
+          <div className="flex items-center space-x-3 flex-1">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">그룹 채팅</h3>
+                <p className="text-sm text-gray-500">
+                  {participantsLoading ? "로딩 중..." : `참가자 ${participants.length}명`}
+                </p>
+              </div>
+            </div>
+            {!participantsLoading && participants.length > 0 && (
+              <div className="flex -space-x-2 ml-4">
+                {participants.slice(0, 5).map((participant, index) => (
+                  <div
+                    key={participant.id}
+                    className="w-8 h-8 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center text-xs font-medium text-gray-600"
+                    style={{ zIndex: 10 - index }}
+                    title={participant.displayName || participant.loginId}
+                  >
+                    {(participant.displayName || participant.loginId)?.charAt(0)?.toUpperCase()}
+                  </div>
+                ))}
+                {participants.length > 5 && (
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-400 flex items-center justify-center text-xs font-medium text-white">
+                    +{participants.length - 5}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 1:1 모드: 기존 FriendListItem */
+          <FriendListItem friend={friendData} onClick={onFriendClick} />
+        )}
         <button
           onClick={onClose}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"

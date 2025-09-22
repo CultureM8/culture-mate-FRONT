@@ -39,6 +39,7 @@ const clear = () => {
     //  저장된 액세스 토큰도 제거
     try {
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("userRole");
     } catch {}
   }
 };
