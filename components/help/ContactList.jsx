@@ -5,11 +5,19 @@ import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import { api } from "@/lib/apiBase";
 
+// 상태 라벨 매핑
+const statusLabels = {
+  'PENDING': '답변대기',
+  'ANSWERED': '답변완료'
+};
+
+const getStatusLabel = (status) => statusLabels[status] || status;
+
 export default function ContactList({
   title = "...",
   date = "...",
   content = "...",
-  status = "...", // "답변대기", "답변완료"
+  status = "...", // PENDING, ANSWERED
   images = [],
   answer = null,
   role = "MEMBER",
@@ -93,16 +101,16 @@ export default function ContactList({
         <div className="flex items-center justify-end mr-4">
           <span
             className={`
-            px-3 
-            py-1 
-            text-[12px] 
-            font-medium 
+            px-3
+            py-1
+            text-[12px]
+            font-medium
             rounded-full
             text-[#FFFFFF]
-            ${status === "답변완료" ? "bg-[#81C1FF]" : "bg-[#FFC37F]"}
+            ${status === "ANSWERED" ? "bg-[#81C1FF]" : "bg-[#FFC37F]"}
           `}
           >
-            {status}
+            {getStatusLabel(status)}
           </span>
         </div>
 
@@ -169,7 +177,7 @@ export default function ContactList({
             )}
           </div>
           {/* 이미 답변 완료된 경우 */}
-          {(status === "답변완료" || status === "ANSWERED") && answer && (
+          {status === "ANSWERED" && answer && (
             <div className="border-t border-gray-200 pt-4">
               <h4 className="text-[14px] font-medium text-[#26282a] mb-2">
                 답변 내용
@@ -181,7 +189,7 @@ export default function ContactList({
           )}
 
           {/* 관리자용 답변 달기 */}
-          {role === "ADMIN" && status !== "답변완료" && !isReplying && (
+          {role === "ADMIN" && status !== "ANSWERED" && !isReplying && (
             <button
               onClick={() => setIsReplying(true)}
               className="ml-2 px-2 py-1 text-sm bg-blue-500 text-white rounded"

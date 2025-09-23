@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import PostEventMiniCard from "@/components/global/PostEventMiniCard";
+// import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import { useRouter } from "next/navigation";
 import HelpSideBar from "@/components/help/HelpSideBar";
+// import SearchToWrite from "@/components/community/SearchToWrite";
 import { createInquiry } from "@/lib/apiBase";
 
 export default function InquiryPage() {
@@ -22,8 +23,7 @@ export default function InquiryPage() {
   const [selectedImages, setSelectedImages] = useState([]);
   const [isInquiryDropdownOpen, setIsInquiryDropdownOpen] = useState(false);
   const [isDetailDropdownOpen, setIsDetailDropdownOpen] = useState(false);
-  const [eventSearchTerm, setEventSearchTerm] = useState("");
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  // const [selectedEvent, setSelectedEvent] = useState(null);
 
   // 1차 유형 옵션
   const inquiryTypeOptions = [
@@ -96,21 +96,9 @@ export default function InquiryPage() {
     setIsDetailDropdownOpen(false);
   };
 
-  const handleEventSearch = () => {
-    // 임시로 이벤트 선택 처리
-    if (eventSearchTerm.trim()) {
-      setSelectedEvent({
-        id: 1,
-        title: eventSearchTerm,
-        description:
-          "이벤트 정보에 대한 내용을 두 줄 이내로 간단하게 보이도록 표현",
-        participants: "000명",
-        rating: "4.0",
-        likes: "관심",
-        eventCount: "000개",
-      });
-    }
-  };
+  // const handleEventSelect = (eventData) => {
+  //   setSelectedEvent(eventData);
+  // };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -156,7 +144,7 @@ export default function InquiryPage() {
       category: formData.inquiryType,
       title: formData.title.trim(),
       content: formData.content.trim(),
-      eventId: selectedEvent ? selectedEvent.id : null,
+      // eventId: selectedEvent ? selectedEvent.id : null,
     };
 
     const formDataToSend = new FormData();
@@ -180,19 +168,8 @@ export default function InquiryPage() {
   };
 
   const handleCancel = () => {
-    // 모든 내용 초기화
-    setFormData({
-      inquiryType: "",
-      detailType: "",
-      userType: "",
-      title: "",
-      content: "",
-    });
-    setSelectedImages([]);
-    setEventSearchTerm("");
-    setSelectedEvent(null);
-    setIsInquiryDropdownOpen(false);
-    setIsDetailDropdownOpen(false);
+    // 문의 내역 페이지로 이동
+    router.push("/help/contact-history");
   };
 
   return (
@@ -246,7 +223,9 @@ export default function InquiryPage() {
                         formData.inquiryType ? "text-black" : "text-[#999]"
                       }
                     >
-                      {formData.inquiryType || "유형을 선택해 주세요"}
+                      {formData.inquiryType
+                        ? inquiryTypeOptions.find(opt => opt.value === formData.inquiryType)?.label
+                        : "유형을 선택해 주세요"}
                     </span>
                     <Image
                       src={ICONS.DROP_ARROW}
@@ -275,7 +254,8 @@ export default function InquiryPage() {
                   )}
                 </div>
 
-                {/* 상세 유형 선택 */}
+                {/* 상세 유형 선택 - 현재 비활성화됨 */}
+                {/*
                 <div className="relative flex-1">
                   <button
                     onClick={() =>
@@ -320,7 +300,6 @@ export default function InquiryPage() {
                     />
                   </button>
 
-                  {/* 커스텀 드롭다운 메뉴 */}
                   {isDetailDropdownOpen &&
                     hasDetailType(formData.inquiryType) && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white shadow-lg z-10">
@@ -336,8 +315,53 @@ export default function InquiryPage() {
                       </div>
                     )}
                 </div>
+                */}
               </div>
             </div>
+
+            {/* 이벤트 정보 */}
+            {/*
+            <div className="mb-6">
+              <label className="block text-[16px] font-medium text-[#26282a] mb-3">
+                이벤트 정보
+              </label>
+
+              부가 설명
+              <div className="text-[14px] text-[#999] mb-4">
+                문의내용과 관련된 이벤트 정보가 있는 경우에만 선택해 주세요.
+              </div>
+
+              이벤트 검색
+              <div className="mb-4">
+                <SearchToWrite onSelect={handleEventSelect} />
+              </div>
+
+              선택된 이벤트 카드
+              {selectedEvent && (
+                <div className="mb-4 relative">
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">
+                    선택된 이벤트
+                  </h3>
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="absolute top-12 right-2 w-6 h-6 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white text-sm z-10 transition-all"
+                    aria-label="이벤트 선택 해제">
+                    ×
+                  </button>
+                  <PostEventMiniCard
+                    eventImage={selectedEvent.eventImage || selectedEvent.image}
+                    eventType={selectedEvent.eventType || selectedEvent.type}
+                    eventName={selectedEvent.eventName || selectedEvent.name}
+                    description={selectedEvent.description}
+                    recommendations={selectedEvent.recommendations || selectedEvent.likes}
+                    score={selectedEvent.starScore || selectedEvent.rating}
+                    initialLiked={selectedEvent.initialLiked || selectedEvent.isLiked}
+                    registeredPosts={selectedEvent.registeredPosts || selectedEvent.postsCount}
+                  />
+                </div>
+              )}
+            </div>
+            */}
 
             {/* 문의 내용 */}
             <div className="mb-6">
@@ -432,68 +456,6 @@ export default function InquiryPage() {
                   없이 삭제될 수 있습니다.
                 </div>
               </div>
-            </div>
-
-            {/* 이벤트 정보 */}
-            <div className="mb-8">
-              <label className="block text-[16px] font-medium text-[#26282a] mb-3">
-                이벤트 정보
-              </label>
-
-              {/* 부가 설명 */}
-              <div className="text-[14px] text-[#999] mb-4">
-                문의내용과 관련된 이벤트 정보가 있는 경우에만 선택해 주세요.
-              </div>
-
-              {/* 검색창 */}
-              <div className="relative mb-4">
-                <div
-                  className="
-                  w-[300px] 
-                  h-8 
-                  border 
-                  border-[#c6c8ca] 
-                  rounded-[20px]
-                  flex 
-                  items-center 
-                  px-2.5
-                  bg-white
-                "
-                >
-                  <input
-                    type="text"
-                    placeholder="검색"
-                    value={eventSearchTerm}
-                    onChange={(e) => setEventSearchTerm(e.target.value)}
-                    className="
-                      flex-1 
-                      text-[16px] 
-                      font-medium
-                      text-black
-                      placeholder:text-[#c6c8ca]
-                      leading-[1.5]
-                      tracking-[0.032px]
-                      outline-none
-                      bg-transparent
-                    "
-                  />
-                  <button onClick={handleEventSearch} className="shrink-0 ml-2">
-                    <Image
-                      src={ICONS.SEARCH}
-                      alt="search"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              {/* 선택된 이벤트 카드 */}
-              {selectedEvent && (
-                <div className="mb-4">
-                  <PostEventMiniCard />
-                </div>
-              )}
             </div>
 
             {/* 버튼 영역 */}

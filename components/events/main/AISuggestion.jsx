@@ -133,13 +133,22 @@ export default function AISuggestion({ suggestionList = [] }) {
 
       {/* 메인 콘텐츠 영역 */}
       <div className="relative z-10 h-[370px] flex flex-col items-center justify-between py-3">
-        {/* AI 추천 헤더 */}
+        {/* 랜덤 추천 헤더 */}
+        {/* 원래 AI 추천 표기 (실제로는 랜덤 셔플 방식)
         <div className="flex gap-2 items-center justify-center">
           <Image src={ICONS.AI_BANNER} alt="AI추천" width={24} height={24} />
           <h2
             className="text-lg font-bold text-gray-800"
             style={{ textShadow: "0 1px 2px rgba(255, 255, 255, 0.8)" }}>
             AI 추천
+          </h2>
+        </div>
+        */}
+        <div className="flex gap-2 items-center justify-center">
+          <h2
+            className="text-lg font-bold text-gray-800"
+            style={{ textShadow: "0 1px 2px rgba(255, 255, 255, 0.8)" }}>
+            랜덤 추천
           </h2>
         </div>
 

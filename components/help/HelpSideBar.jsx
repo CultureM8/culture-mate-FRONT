@@ -23,8 +23,7 @@ export default function HelpSideBar() {
       items: [
         { name: "공지사항", path: ROUTES.NOTICE },
         { name: "FAQ", path: ROUTES.FAQ },
-        { name: "1:1 문의하기", path: ROUTES.CONTACT },
-        { name: "1:1 문의내역", path: ROUTES.CONTACT_HISTORY }
+        { name: "1:1 문의", path: ROUTES.CONTACT_HISTORY }
       ]
     }
   ];

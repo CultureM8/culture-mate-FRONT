@@ -7,10 +7,13 @@ import HelpSearchBar from "@/components/help/HelpSearchBar";
 import ContactList from "@/components/help/ContactList";
 import { api, unwrap } from "@/lib/apiBase"; // Axios 인스턴스와 unwrap 가져오기
 import useLogin from "@/hooks/useLogin";
+import { useRouter } from "next/navigation";
+import { ROUTES } from "@/constants/path";
 
 export default function ContactHistoryPage() {
   const [contactList, setContactList] = useState([]); // 상태 초기값 빈 배열
-  const { user } = useLogin(); // user.role: "ADMIN" | "MEMBER
+  const { user } = useLogin(); // user.role: "ADMIN" | "MEMBER"
+  const router = useRouter();
   useEffect(() => {
     async function fetchInquiries() {
       try {
@@ -49,17 +52,17 @@ export default function ContactHistoryPage() {
           {/* 1:1 문의내역 소제목 */}
           <div
             className="
-            relative 
-            w-full 
+            relative
+            w-full
             pb-6
           "
           >
             {/* 소제목 텍스트 */}
             <div
               className="
-              flex 
-              flex-col 
-              justify-center 
+              flex
+              flex-col
+              justify-center
               px-5
               pt-2.5
               pb-2.5
@@ -67,9 +70,9 @@ export default function ContactHistoryPage() {
             >
               <h2
                 className="
-                font-bold 
-                text-[24px] 
-                text-[#26282a] 
+                font-bold
+                text-[24px]
+                text-[#26282a]
                 leading-[1.55]
                 whitespace-nowrap
               "
@@ -88,8 +91,12 @@ export default function ContactHistoryPage() {
             ></div>
           </div>
 
-          {/* 내부 검색 + 필터 */}
-          <HelpSearchBar />
+          {/* 내부 검색 + 필터 + 문의하기 버튼 */}
+          <HelpSearchBar
+            showCreateButton={true}
+            onCreateClick={() => router.push(ROUTES.CONTACT)}
+            createButtonText="문의하기"
+          />
 
           {/* 1:1 문의내역 리스트 */}
           <div className="w-full">

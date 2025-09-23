@@ -4,7 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 
-export default function HelpSearchBar() {
+export default function HelpSearchBar({
+  showCreateButton = false,
+  onCreateClick = null,
+  createButtonText = "문의하기"
+}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedSort, setSelectedSort] = useState("등록순");
@@ -125,6 +129,28 @@ export default function HelpSearchBar() {
           </div>
         )}
       </div>
+
+      {/* 조건부 버튼 렌더링 */}
+      {showCreateButton && onCreateClick && (
+        <button
+          onClick={onCreateClick}
+          className="
+            px-4
+            py-2
+            bg-[#4E5052]
+            text-white
+            font-medium
+            text-[14px]
+            rounded-lg
+            hover:bg-[#3a3c3e]
+            transition-colors
+            whitespace-nowrap
+            shrink-0
+          "
+        >
+          {createButtonText}
+        </button>
+      )}
     </div>
   );
 }
