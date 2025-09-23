@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { IMAGES, ICONS } from "@/constants/path";
+import { useRouter } from "next/navigation";
+import { IMAGES, ICONS, ROUTES } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
 import { getMemberDetail } from "@/lib/api";
 
@@ -734,6 +735,7 @@ function GalleryContainer({
 
 // 메인 컴포넌트
 export default function MyPageEdit() {
+  const router = useRouter();
   const { user } = useLogin();
 
   // 프로필 배경 및 이미지 상태
@@ -1072,6 +1074,9 @@ export default function MyPageEdit() {
 
     alert("변경사항이 저장되었습니다!");
     console.log("저장된 데이터:", userData);
+
+    // 저장 후 마이페이지로 이동
+    router.push(ROUTES.MYPAGE);
   };
 
   return (

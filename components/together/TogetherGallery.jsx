@@ -36,6 +36,9 @@ export default function TogetherGallery(props) {
     // 관심 초기값
     isInterested = false,
 
+    // 마감 상태 (명시적으로 전달되면 우선 사용)
+    isClosed: explicitIsClosed,
+
     ...rest
   } = props;
 
@@ -66,25 +69,7 @@ export default function TogetherGallery(props) {
     eventNameProp ||
     "이벤트명";
 
-  /* 날짜 유틸 & 판정 */
-
-  // "YYYY-MM-DD"면 로컬 그 날 23:59:59.999까지 유효
-  const isPastDay = (raw) => {
-    if (!raw) return false;
-    if (typeof raw === "string" && raw.length === 10 && raw[4] === "-") {
-      const y = Number(raw.slice(0, 4));
-      const m = Number(raw.slice(5, 7)) - 1;
-      const d = Number(raw.slice(8, 10));
-      const end = new Date(y, m, d, 23, 59, 59, 999);
-      return end.getTime() < Date.now();
-    }
-    const t = new Date(raw);
-    return Number.isFinite(t.getTime()) ? t.getTime() < Date.now() : false;
-  };
-
-  // 기간지남(오늘은 포함 X)
-  const isExpired = isPastDay(meetingDate ?? dateProp ?? rest.createdAt);
-
+  /* 날짜 유틸 */
   const parseDate = (d) => {
     if (!d) return null;
     const iso = d.length === 10 && d[4] === "-" ? `${d}T00:00:00` : d;
@@ -120,14 +105,9 @@ export default function TogetherGallery(props) {
     return "명";
   })();
 
-  /* 상태 판정 */
-  const isFull =
-    typeof currentParticipants === "number" &&
-    typeof maxParticipants === "number" &&
-    currentParticipants >= maxParticipants;
-
-  const isRecruiting = typeof active === "boolean" ? active : true;
-  const showClosedBadge = !isRecruiting || isFull;
+  /* 상태 판정 (명시적 isClosed prop이 있으면 우선 사용, 없으면 백엔드 active 필드 기준) */
+  const isActive = typeof active === "boolean" ? active : true;
+  const isClosed = typeof explicitIsClosed === "boolean" ? explicitIsClosed : !isActive;
 
   /* 하트(관심) 클릭 → API 토글 + 브로드캐스트 */
   const handleInterestClick = async (e) => {
@@ -149,11 +129,10 @@ export default function TogetherGallery(props) {
   };
 
   return (
-    <div className={`relative ${isExpired ? "grayscale" : ""}`}>
-      {/* 기간 안 지났고, 마감/정원초과면 배지 노출 */}
-      {!isExpired && showClosedBadge && (
+    <div className="relative">
+      {isClosed && (
         <div className="absolute top-2 left-2 z-30">
-          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold grayscale-0">
             모집마감
           </span>
         </div>
@@ -191,7 +170,8 @@ export default function TogetherGallery(props) {
         href={editMode ? "#" : href}
         enableInterest={!editMode}
         initialInterest={!!isInterested}
-        onClick={handleInterestClick}>
+        onClick={handleInterestClick}
+        isClosed={isClosed}>
         <div className="flex items-center gap-2 my-1">
           <div className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2">
             {eventType}

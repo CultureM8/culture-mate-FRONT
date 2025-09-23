@@ -3,21 +3,19 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import MyTogether from "./MyTogether";
+import MyTogether from "./TogetherManagement/MyTogether";
 import MyTogetherHistory from "./MyTogetherHistory";
 import MyEventReview from "./MyEventReview";
 
 const RecruitTabView = () => {
-  const [activeTab, setActiveTab] = useState("나의 모집글");
+  const [activeTab, setActiveTab] = useState("나의 동행");
   const [dropdownStates, setDropdownStates] = useState({
-    "나의 모집글": false,
-    "이벤트 리뷰": false,
-    "동행 기록": false
+    "나의 동행": false,
+    "나의 리뷰": false,
   });
   const [selectedStatuses, setSelectedStatuses] = useState({
-    "나의 모집글": "공개",
-    "이벤트 리뷰": "공개",
-    "동행 기록": "공개"
+    "나의 동행": "공개",
+    "나의 리뷰": "공개",
   });
 
   const handleTabClick = (tabName) => {
@@ -122,14 +120,12 @@ const RecruitTabView = () => {
   // 탭별 컨텐츠 렌더링 함수
   const renderTabContent = () => {
     const currentStatus = selectedStatuses[activeTab];
-    
+
     switch (activeTab) {
-      case "나의 모집글":
-        return <MyTogether status={currentStatus} />;
-      case "이벤트 리뷰":
+      case "나의 동행":
+        return <MyTogether status={currentStatus} enableChat={false} />;
+      case "나의 리뷰":
         return <MyEventReview status={currentStatus} />;
-      case "동행 기록":
-        return <MyTogetherHistory status={currentStatus} />;
       default:
         return null;
     }
@@ -149,14 +145,11 @@ const RecruitTabView = () => {
             className="absolute border-[#eef0f2] border-[0px_0px_1px] border-solid inset-0 pointer-events-none"
           />
           
-          {/* 나의 모집글 탭 */}
-          {renderTab("나의 모집글", "Component 4")}
-          
-          {/* 이벤트 리뷰 탭 */}
-          {renderTab("이벤트 리뷰", "Component 5")}
-          
-          {/* 동행 기록 탭 */}
-          {renderTab("동행 기록", "Component 6")}
+          {/* 나의 동행 탭 */}
+          {renderTab("나의 동행", "Component 4")}
+
+          {/* 나의 리뷰 탭 */}
+          {renderTab("나의 리뷰", "Component 5")}
         </div>
       </div>
 

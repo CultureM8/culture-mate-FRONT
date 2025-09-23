@@ -21,6 +21,7 @@ export default function Gallery({
   togetherId, // 동행 ID
   type = "event", // "event" | "together"
   disableEventSync = false, // 이벤트 동기화 비활성화 여부
+  isClosed = false, // 마감 상태
 }) {
   const [interest, setInterest] = useState(!!initialInterest);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -215,14 +216,14 @@ export default function Gallery({
   };
 
   return (
-    <div className="bg-white w-[300px] relative" title={title}>
+    <div className={`${isClosed ? "bg-gray-100" : "bg-white"} w-[300px] relative`} title={title}>
       {enableInterest && (
         <button
           className={`absolute top-0 right-0 mt-4 mr-4 ${
             interest ? "" : "opacity-30"
           } ${
             isSubmitting ? "opacity-60 cursor-not-allowed" : "hover:cursor-pointer"
-          }`}
+          } grayscale-0 z-10`}
           onClick={interestHandler}
           disabled={isSubmitting}
           aria-label="toggle-interest">
@@ -242,7 +243,7 @@ export default function Gallery({
             alt={alt || title || "이미지"}
             width={200}
             height={150}
-            className="w-[280px] h-[200px] rounded-xl object-cover"
+            className={`w-[280px] h-[200px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
             onError={() => {
               if (currentSrc !== IMAGES.GALLERY_DEFAULT_IMG) {
                 setCurrentSrc(IMAGES.GALLERY_DEFAULT_IMG);
@@ -251,7 +252,7 @@ export default function Gallery({
             priority={false}
           />
           <div className="px-2">
-            <div className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
+            <div className={`text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis ${isClosed ? "text-gray-400" : "text-black"}`}>
               {title}
             </div>
             {children}

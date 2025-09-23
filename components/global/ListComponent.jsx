@@ -5,16 +5,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function ListComponent({ 
-  src, 
-  alt = "이미지", 
-  title = "", 
-  enableInterest = true, 
+export default function ListComponent({
+  src,
+  alt = "이미지",
+  title = "",
+  enableInterest = true,
   isInterested = false, // 외부에서 관심 상태를 받을 수 있도록 추가
-  onClick, 
-  onInterestClick, 
-  href = "", 
-  children 
+  onClick,
+  onInterestClick,
+  href = "",
+  children,
+  isClosed = false, // 마감 상태
 }) {
 
   // 내부 상태와 외부 prop 중 외부 prop 우선 사용
@@ -38,7 +39,7 @@ export default function ListComponent({
         alt={alt}
         width={120}
         height={120}
-        className="w-[120px] h-[120px] rounded-xl object-cover"
+        className={`w-[120px] h-[120px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
       />
       <div className="px-4 py-2 flex-1 min-w-0">
         {children}
@@ -47,12 +48,12 @@ export default function ListComponent({
   );
 
   return (
-    <div className="bg-white w-full min-w-[300px] relative border-b border-gray-200" title={title}>
+    <div className={`${isClosed ? "bg-gray-100" : "bg-white"} w-full min-w-[300px] relative border-b border-gray-200`} title={title}>
       {enableInterest &&
-        <button className={`absolute top-0 left-0 mt-4 ml-4 ${interest ? "" : "opacity-30"} hover:cursor-pointer`}
+        <button className={`absolute top-0 left-0 mt-4 ml-4 ${interest ? "" : "opacity-30"} hover:cursor-pointer grayscale-0 z-10`}
           onClick={interestHandler}
         >
-          <Image 
+          <Image
             src={interest ? ICONS.HEART : ICONS.HEART_EMPTY}
             alt="관심"
             width={28}

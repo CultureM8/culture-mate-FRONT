@@ -35,7 +35,7 @@ export default function TogetherPage() {
 
   // 완료된 모집 숨기기 체크박스 (쿼리로부터 초기화)
   const [hideClosed, setHideClosed] = useState(
-    (searchParams.get("hideClosed") ?? "") === "1"
+    searchParams.get("hideClosed") ? (searchParams.get("hideClosed") === "1") : true
   );
 
   const [selectedEventType, setSelectedEventType] = useState("전체");
@@ -296,15 +296,15 @@ export default function TogetherPage() {
                 className={viewType === "List" ? "opacity-100" : "opacity-40"}
               />
             </button>
-            {/* 완료된 모집 안보기 */}
+            {/* 완료된 모집도 표시 */}
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input
                 type="checkbox"
                 className="w-4 h-4"
-                checked={hideClosed}
-                onChange={(e) => setHideClosed(e.target.checked)}
+                checked={!hideClosed}
+                onChange={(e) => setHideClosed(!e.target.checked)}
               />
-              완료된 모집 안보기
+              완료된 모집글 표시
             </label>
           </div>
         </div>

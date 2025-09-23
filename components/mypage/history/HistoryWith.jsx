@@ -147,39 +147,44 @@ export default function HistoryWith({ togetherData = [] }) {
     };
   }, []);
 
-  /* 게스트 정규화 — 백엔드 API (getMyApplications) 응답 */
-  const normalizeGuestApi = useCallback((application) => {
-    if (!application || !application.together) return null;
+  /* 게스트 정규화 — 백엔드 API (getByMember) 응답 - MyTogether 방식과 동일 */
+  const normalizeGuestApi = useCallback((item) => {
+    if (!item) return null;
 
-    const t = application.together;
-    const regionStr = t.region
-      ? [t.region.level1, t.region.level2, t.region.level3]
+    const regionStr = item.region
+      ? [item.region.level1, item.region.level2, item.region.level3]
           .filter(Boolean)
           .join(" ")
       : "";
-    const meeting = t.meetingDate
-      ? typeof t.meetingDate === "string"
-        ? t.meetingDate.replace(/-/g, ".")
-        : new Date(t.meetingDate).toLocaleDateString()
+    const meeting = item.meetingDate
+      ? typeof item.meetingDate === "string"
+        ? item.meetingDate.replace(/-/g, ".")
+        : new Date(item.meetingDate).toLocaleDateString()
       : "";
 
     return {
       source: "guest",
       isHost: false,
-      togetherId: t.id,
-      imgSrc: getEventMainImageUrl(t.event) || "/img/default_img.svg",
-      alt: t.event?.title || t.event?.name || t.title || "",
-      title: t.title || "모집글 제목",
-      eventType: t.event?.eventType || "기타",
-      eventName: t.event?.title || t.event?.name || "",
-      group: t.maxParticipants ?? 1,
+      togetherId: item.id,
+      imgSrc: item.event?.thumbnailImagePath || getEventMainImageUrl(item.event) || "/img/default_img.svg",
+      alt: item.event?.title || item.event?.name || item.title || "",
+      title: item.title || "모집글 제목",
+      eventType: item.event?.eventType || "기타",
+      eventName: item.event?.title || item.event?.name || "",
+      group: item.maxParticipants ?? 1,
       date: meeting,
-      address: regionStr || t.meetingLocation || "",
-      authorNickname: t.host?.nickname ?? null,
-      authorLoginId: t.host?.loginId ?? null,
-      authorObj: t.host ?? null,
-      _createdAt: application.createdAt ?? t.createdAt ?? null,
-      applicationStatus: application.status, // 신청 상태 추가
+      address: regionStr || item.meetingLocation || "",
+      authorNickname: item.host?.nickname ?? null,
+      authorLoginId: item.host?.loginId ?? null,
+      authorObj: item.host ?? null,
+      _createdAt: item.createdAt ?? null,
+      // MyTogether 방식과 동일한 이벤트 스냅샷 매핑
+      eventSnapshot: item.event ? {
+        name: item.event.title,
+        eventType: item.event.eventType,
+        eventImage: item.event.thumbnailImagePath,
+        location: item.event.location
+      } : item.eventSnapshot
     };
   }, []);
 
@@ -279,8 +284,9 @@ export default function HistoryWith({ togetherData = [] }) {
   const [guestFromRequests, setGuestFromRequests] = useState([]); // fallback으로 유지
 
   useEffect(() => {
-    // 로그인 사용자가 있으면 내 신청 목록을 API로 로드
-    if (!isLogined || !user?.id) {
+    // 로그인 사용자가 있으면 내가 참여한 동행 목록을 API로 로드 (MyTogether 방식과 동일)
+    const effectiveUserId = user?.id ?? user?.user_id ?? user?.memberId ?? null;
+    if (!isLogined || !effectiveUserId) {
       setGuestFromApi([]);
       return;
     }
@@ -288,14 +294,10 @@ export default function HistoryWith({ togetherData = [] }) {
     let cancelled = false;
     (async () => {
       try {
-        // APPROVED 상태의 신청 목록만 가져오기
-        const approvedApplications = await togetherApi.getMyApplications(
-          "APPROVED"
-        );
+        // MyTogether와 동일한 방식: getByMember 사용
+        const guestData = await togetherApi.getByMember(effectiveUserId).catch(() => []);
         if (!cancelled) {
-          setGuestFromApi(
-            Array.isArray(approvedApplications) ? approvedApplications : []
-          );
+          setGuestFromApi(Array.isArray(guestData) ? guestData : []);
         }
       } catch (e) {
         if (!cancelled) {
@@ -534,8 +536,11 @@ export default function HistoryWith({ togetherData = [] }) {
     // 게스트 목록도 갱신
     if (useGuestApi) {
       try {
-        const approvedApplications = await togetherApi.getMyApplications("APPROVED");
-        setGuestFromApi(Array.isArray(approvedApplications) ? approvedApplications : []);
+        const myId = user?.id ?? user?.user_id ?? user?.memberId ?? null;
+        if (myId) {
+          const guestData = await togetherApi.getByMember(myId).catch(() => []);
+          setGuestFromApi(Array.isArray(guestData) ? guestData : []);
+        }
       } catch (e) {
         console.warn("게스트 목록 갱신 실패:", e);
       }
@@ -549,14 +554,26 @@ export default function HistoryWith({ togetherData = [] }) {
     const hide = (arr) =>
       arr.filter((x) => !hiddenIds.has(String(x.togetherId)));
 
+    console.log('=== HistoryWith 필터링 디버그 ===');
+    console.log('filterStatus:', filterStatus);
+    console.log('hostRecords:', hostRecords.map(h => ({ togetherId: h.togetherId, title: h.title, isHost: h.isHost, source: h.source })));
+    console.log('guestRecords:', guestRecords.map(g => ({ togetherId: g.togetherId, title: g.title, isHost: g.isHost, source: g.source })));
+
+    let result;
     if (filterStatus === "host") {
-      return hide(hostRecords);
+      result = hide(hostRecords);
+      console.log('호스트 필터 결과:', result.length, '개');
+    } else if (filterStatus === "guest") {
+      result = hide(guestRecords);
+      console.log('게스트 필터 결과:', result.length, '개');
+    } else {
+      // 전체: 호스트 먼저, 게스트(합쳐진) 다음
+      result = hide(hostRecords).concat(hide(guestRecords));
+      console.log('전체 필터 결과:', result.length, '개 (호스트:', hide(hostRecords).length, '+ 게스트:', hide(guestRecords).length, ')');
     }
-    if (filterStatus === "guest") {
-      return hide(guestRecords);
-    }
-    // 전체: 호스트 먼저, 게스트(합쳐진) 다음
-    return hide(hostRecords).concat(hide(guestRecords));
+
+    console.log('최종 결과:', result.map(r => ({ togetherId: r.togetherId, title: r.title, isHost: r.isHost, source: r.source })));
+    return result;
   }, [filterStatus, hostRecords, guestRecords, hiddenIds]);
 
   // 카드에 편집 prop 주입

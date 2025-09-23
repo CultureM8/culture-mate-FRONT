@@ -48,23 +48,11 @@ export default function TogetherList(props) {
     meetingLocation,
     region,
 
+    // 마감 상태 (명시적으로 전달되면 우선 사용)
+    isClosed: explicitIsClosed,
+
     ...rest
   } = props;
-
-  // ----------------- [추가] 날짜 유틸 -----------------
-  // "YYYY-MM-DD"면 로컬기준 그 날의 23:59:59.999까지 유효로 본다.
-  const isPastDay = (raw) => {
-    if (!raw) return false;
-    if (typeof raw === "string" && raw.length === 10 && raw[4] === "-") {
-      const y = Number(raw.slice(0, 4));
-      const m = Number(raw.slice(5, 7)) - 1;
-      const d = Number(raw.slice(8, 10));
-      const endOfDay = new Date(y, m, d, 23, 59, 59, 999); // local EOD
-      return endOfDay.getTime() < Date.now();
-    }
-    const t = new Date(raw);
-    return Number.isFinite(t.getTime()) ? t.getTime() < Date.now() : false;
-  };
 
   const parseDate = (d) => {
     if (!d) return null;
@@ -73,7 +61,6 @@ export default function TogetherList(props) {
     const t = new Date(iso);
     return Number.isNaN(+t) ? null : t;
   };
-  // ---------------------------------------------------
 
   //  이미지 폴백
   const coverSrc =
@@ -98,11 +85,6 @@ export default function TogetherList(props) {
     getEventTypeLabel(eventType || eventSnapshot?.eventType) || "이벤트";
   const safeEventName =
     eventName || eventSnapshot?.name || eventName || "이벤트명";
-
-  // 기간지남(오늘은 포함 X)
-  const isExpired = isPastDay(
-    meetingDate ?? companionDate ?? date ?? createdAt
-  );
 
   const safeDate = (() => {
     const d = meetingDate || companionDate || date || createdAt;
@@ -153,16 +135,9 @@ export default function TogetherList(props) {
     ? `/together/${encodeURIComponent(componentId)}`
     : "/together";
 
-  // 모집 상태
-  const cur = currentParticipants ?? current ?? 0;
-  const max = maxParticipants ?? maxPeople ?? 0;
-  const isFull = max > 0 && cur >= max;
-
-  // active 가 props에 없을 수도 있으니 보수적으로 true
-  const isRecruiting = typeof rest.active === "boolean" ? rest.active : true;
-
-  // 기간이 지나지 않았고(=진행 중 날짜) + 마감 또는 정원초과면 배지 표시
-  const showClosedBadge = !isExpired && (!isRecruiting || isFull);
+  // 모집 상태 (명시적 isClosed prop이 있으면 우선 사용, 없으면 백엔드 active 필드 기준)
+  const isActive = typeof rest.active === "boolean" ? rest.active : true;
+  const isClosed = typeof explicitIsClosed === "boolean" ? explicitIsClosed : !isActive;
 
   //  관심 기능 핸들러
   const handleInterestClick = async () => {
@@ -190,10 +165,10 @@ export default function TogetherList(props) {
   };
 
   return (
-    <div className={`relative ${isExpired ? "grayscale" : ""}`}>
-      {showClosedBadge && (
+    <div className="relative">
+      {isClosed && (
         <div className="absolute top-2 left-2 z-30">
-          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold grayscale-0">
             모집마감
           </span>
         </div>
@@ -235,7 +210,8 @@ export default function TogetherList(props) {
         href={onCardClick ? undefined : (editMode ? "#" : href)}
         enableInterest={!editMode}
         isInterested={isInterested}
-        onInterestClick={handleInterestClick}>
+        onInterestClick={handleInterestClick}
+        isClosed={isClosed}>
         <div className="flex flex-col justify-around h-full">
             <div className="flex gap-2">
               <span className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2 w-fit">
@@ -243,7 +219,7 @@ export default function TogetherList(props) {
               </span>
               <strong>{safeEventName}</strong>
             </div>
-            <h3 className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black">
+            <h3 className={`text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis ${isClosed ? "text-gray-400" : "text-black"}`}>
               {safeTitle}
             </h3>
             <div className="flex gap-4 shrink-0 w-full">

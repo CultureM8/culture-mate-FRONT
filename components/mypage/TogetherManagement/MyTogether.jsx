@@ -12,6 +12,8 @@ export default function MyTogether({
   externalRoomId = null,
   currentUserId = null,
   currentUserName = null,
+  enableChat = true,  // 채팅 기능 활성화 여부
+  status = "공개",
 }) {
   const { ready, isLogined, user } = useLogin();
 
@@ -77,7 +79,10 @@ export default function MyTogether({
     );
 
     // 미래 모임 먼저, 그 다음 지난 모임
-    return [...upcoming, ...past];
+    return {
+      items: [...upcoming, ...past],
+      upcomingCount: upcoming.length
+    };
   };
 
   // 동행 데이터 로드 (History 패턴 적용)
@@ -100,8 +105,8 @@ export default function MyTogether({
       ]);
 
       // 날짜 기준으로 정렬 (미래 모임 우선, 지난 모임 포함)
-      const sortedHostData = separateByDate(Array.isArray(hostData) ? hostData : []);
-      const sortedGuestData = separateByDate(Array.isArray(guestData) ? guestData : []);
+      const sortedHostData = separateByDate(Array.isArray(hostData) ? hostData : []).items;
+      const sortedGuestData = separateByDate(Array.isArray(guestData) ? guestData : []).items;
 
       // 호스트 데이터 분석 및 매핑
       const markedHostData = sortedHostData.map(item => {
@@ -158,7 +163,8 @@ export default function MyTogether({
       const combinedData = [...markedHostData, ...markedGuestData];
 
       // 전체 데이터도 동일한 규칙으로 재정렬 (미래 모임 + 지난 모임)
-      const finalSortedData = separateByDate(combinedData);
+      const finalSortedResult = separateByDate(combinedData);
+      const finalSortedData = finalSortedResult.items;
 
       setHostItems(markedHostData);
       setGuestItems(markedGuestData);
@@ -477,12 +483,12 @@ export default function MyTogether({
         {/* 좌측: 동행 카드 리스트 */}
         <div
           className={`transition-all duration-300 ease-in-out ${
-            isSlideVisible ? "w-1/2" : "w-full"
+            enableChat && isSlideVisible ? "w-1/2" : "w-full"
           }`}>
           <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full">
             {Array.isArray(listToRender) && listToRender.length > 0 ? (
               <div className="space-y-0 overflow-y-auto h-full scrollbar-visible">
-                {listToRender.map((item) => {
+                {listToRender.map((item, index) => {
                   // togetherId나 id 중 하나는 반드시 존재해야 함
                   const itemId = item.togetherId ?? item.id;
                   const selectedId = selectedTogether?.togetherId ?? selectedTogether?.id;
@@ -493,18 +499,39 @@ export default function MyTogether({
                     selectedId &&
                     selectedId === itemId &&
                     selectedTogether?.isHost === item.isHost;
+
+                  // 지난 동행 구분선 표시 로직
+                  const now = new Date();
+                  const currentDate = new Date(item.meetingDate);
+                  const prevDate = index > 0 ? new Date(listToRender[index - 1].meetingDate) : null;
+
+                  // 이전 아이템이 미래이고 현재 아이템이 과거인 경우 구분선 표시
+                  const showDivider = index > 0 && prevDate > now && currentDate <= now;
+
                   return (
-                    <div
-                      key={`${item.togetherId ?? item.id}-${item.isHost ? 'host' : 'guest'}`}
-                      className={`transition-colors duration-200 ${
-                        isActive
-                          ? "bg-blue-50 border-l-4 border-l-blue-500"
-                          : "hover:bg-gray-50"
-                      }`}>
-                      <TogetherList
-                        {...item}
-                        onCardClick={() => handleTogetherListClick(item)}
-                      />
+                    <div key={`${item.togetherId ?? item.id}-${item.isHost ? 'host' : 'guest'}`}>
+                      {showDivider && (
+                        <div className="py-3 px-6 bg-gray-100 border-b border-gray-200">
+                          <div className="flex items-center justify-center gap-2 text-sm text-gray-600 font-medium">
+                            <span>지난 동행</span>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                      <div
+                        className={`transition-colors duration-200 ${
+                          isActive
+                            ? "bg-blue-50 border-l-4 border-l-blue-500"
+                            : "hover:bg-gray-50"
+                        }`}>
+                        <TogetherList
+                          {...item}
+                          onCardClick={enableChat ? () => handleTogetherListClick(item) : undefined}
+                          isClosed={false}
+                        />
+                      </div>
                     </div>
                   );
                 })}
@@ -523,25 +550,27 @@ export default function MyTogether({
           </div>
         </div>
 
-        {/* 우측: GroupChat */}
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            isSlideVisible ? "w-1/2" : "w-0"
-          }`}>
-          <div className="w-full h-full bg-white rounded-lg shadow-sm flex flex-col">
-            {isSlideVisible && (
-              <GroupChat
-                key={
-                  groupData.roomId || selectedTogether?.togetherId || "gc-empty"
-                }
-                groupData={groupData}
-                currentUserId={effectiveUserId}
-                onClose={handleSlideClose}
-                currentUserName={effectiveUserName}
-              />
-            )}
+        {/* 우측: GroupChat - enableChat이 true일 때만 표시 */}
+        {enableChat && (
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              isSlideVisible ? "w-1/2" : "w-0"
+            }`}>
+            <div className="w-full h-full bg-white rounded-lg shadow-sm flex flex-col">
+              {isSlideVisible && (
+                <GroupChat
+                  key={
+                    groupData.roomId || selectedTogether?.togetherId || "gc-empty"
+                  }
+                  groupData={groupData}
+                  currentUserId={effectiveUserId}
+                  onClose={handleSlideClose}
+                  currentUserName={effectiveUserName}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
