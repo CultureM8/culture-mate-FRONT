@@ -6,6 +6,7 @@ import EventGallery from "@/components/events/main/EventGallery";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
+import { mapUiLabelToBackendTypes } from "@/constants/eventTypes";
 
 import {
   getEvents as getEventsRaw,
@@ -83,36 +84,6 @@ const mapListItem = (event) => {
   };
 };
 
-const mapUiLabelToBackendTypes = (label) => {
-  switch (label) {
-    case "뮤지컬":
-      return ["MUSICAL"];
-    case "영화":
-      return ["MOVIE"];
-    case "연극":
-      return ["THEATER"];
-    case "전시":
-      return ["EXHIBITION"];
-    case "클래식":
-      return ["CLASSICAL"];
-    case "무용":
-      return ["DANCE"];
-    case "클래식/무용":
-      return ["CLASSICAL", "DANCE"];
-    case "콘서트":
-      return ["CONCERT"];
-    case "페스티벌":
-      return ["FESTIVAL"];
-    case "콘서트/페스티벌":
-      return ["CONCERT", "FESTIVAL"];
-    case "지역행사":
-      return ["LOCAL_EVENT"];
-    case "기타":
-      return ["OTHER"];
-    default:
-      return [];
-  }
-};
 
 const fetchEventsByTypes = async (types, baseParams = {}) => {
   if (!Array.isArray(types) || types.length === 0) {

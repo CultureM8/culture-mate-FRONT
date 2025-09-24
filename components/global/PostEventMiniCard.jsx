@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import StarScore from "@/lib/StarScore";
-import { getEventTypeLabel } from "@/lib/api/eventApi";
+import { getEventTypeLabel } from "@/constants/eventTypes";
 
 export default function PostEventMiniCard({
   eventImage = "/img/default_img.svg", // 기본 디폴트 이미지

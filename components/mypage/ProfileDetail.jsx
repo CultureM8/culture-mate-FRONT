@@ -1,12 +1,15 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { ICONS } from '@/constants/path';
-import { getMemberGalleryImages, uploadMemberGalleryImages, deleteMemberGalleryImage } from '@/lib/api/memberDetailApi';
+import { getMemberGalleryImages, uploadMemberGalleryImages, deleteMemberGalleryImage, getMemberDetail, updateInterestEventTypes, updateInterestTags } from '@/lib/api/memberDetailApi';
+import { EVENT_TYPE_OPTIONS } from '@/constants/eventTypes';
+import useLogin from '@/hooks/useLogin';
+import PersonalInfoEdit from './PersonalInfoEdit';
 
 // ProfileSection 컴포넌트
-function ProfileSection() {
+function ProfileSection({ editMode = false }) {
   const [ageDropdown, setAgeDropdown] = useState(false);
   const [genderDropdown, setGenderDropdown] = useState(false);
   const [mbtiDropdown, setMbtiDropdown] = useState(false);
@@ -21,6 +24,9 @@ function ProfileSection() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 items-start justify-start w-full" data-name="Profile section">
+      {/* 편집 모드에서는 나이/성별 섹션 숨김 (백엔드 미관리) */}
+      {!editMode && (
+        <>
       {/* 나이 섹션 */}
       <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
         <div className="flex flex-row gap-2 items-center relative">
@@ -236,14 +242,45 @@ function ProfileSection() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
 
 // EventTypeContainer 컴포넌트
-function EventTypeContainer() {
+function EventTypeContainer({ editMode = false }) {
+  const { user } = useLogin();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
+  const [selectedEventTypes, setSelectedEventTypes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 컴포넌트 마운트 시 사용자의 관심 이벤트 타입 로드
+  useEffect(() => {
+    const loadUserInterestEventTypes = async () => {
+      if (!user?.id || user.id === undefined) {
+        console.log('User ID not available for interest event types:', user?.id);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const memberDetailData = await getMemberDetail();
+
+        // 백엔드에서 받은 관심 이벤트 타입을 상태에 설정
+        if (memberDetailData?.interestEventTypes) {
+          setSelectedEventTypes(memberDetailData.interestEventTypes);
+        }
+      } catch (error) {
+        console.error('관심 이벤트 타입 로드 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserInterestEventTypes();
+  }, [user?.id]);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -300,42 +337,68 @@ function EventTypeContainer() {
       </div>
       <div className="bg-[#ffffff] box-border content-stretch flex flex-row flex-wrap gap-2.5 h-auto min-h-14 items-start justify-start p-[16px] relative rounded shrink-0 w-full" data-name="Event type value">
         <div aria-hidden="true" className="absolute border border-[#c6c8ca] border-solid inset-0 pointer-events-none rounded" />
-        <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
-          <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-          <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
-            <p className="block leading-[1.43] whitespace-pre">영화</p>
-          </div>
-        </div>
-        <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
-          <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-          <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
-            <p className="block leading-[1.43] whitespace-pre">연극</p>
-          </div>
-        </div>
-        <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
-          <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-          <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
-            <p className="block leading-[1.43] whitespace-pre">전시</p>
-          </div>
-        </div>
-        <div className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
-          <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-          <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
-            <p className="block leading-[1.43] whitespace-pre">콘서트/페스티벌</p>
-          </div>
-        </div>
+
+        {loading ? (
+          <div className="text-gray-500 text-sm">로딩 중...</div>
+        ) : selectedEventTypes.length === 0 ? (
+          <div className="text-gray-400 text-sm">선택된 관심 이벤트 유형이 없습니다.</div>
+        ) : (
+          selectedEventTypes.map((eventType, index) => {
+            // EventType enum에서 해당하는 라벨 찾기
+            const eventTypeOption = EVENT_TYPE_OPTIONS.find(option => option.value === eventType);
+            const displayLabel = eventTypeOption ? eventTypeOption.label : eventType;
+
+            return (
+              <div key={index} className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]" data-name="Event type value">
+                <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
+                <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
+                  <p className="block leading-[1.43] whitespace-pre">{displayLabel}</p>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
 
 // TagContainer 컴포넌트
-function TagContainer({ 
-  label = "관심 태그",
-  tags = ["산책", "맛집탐방", "전시회", "영화관람", "혼자여행", "사진찍기", "등산", "카페투어", "드라이브", "야경감상", "음악감상", "플리공유", "방탈출", "보드게임", "재즈공연", "클래식음악", "요가", "러닝", "자전거타기", "동물사랑", "플리마켓", "디저트투어", "서점데이트", "도서모임", "책읽기", "소극장연극", "글쓰기", "게임파티", "인디밴드", "수공예"]
+function TagContainer({
+  editMode = false,
+  label = "관심 태그"
 }) {
+  const { user } = useLogin();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 컴포넌트 마운트 시 사용자의 관심 태그 로드
+  useEffect(() => {
+    const loadUserInterestTags = async () => {
+      if (!user?.id || user.id === undefined) {
+        console.log('User ID not available for interest tags:', user?.id);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const memberDetailData = await getMemberDetail();
+
+        // 백엔드에서 받은 관심 태그를 상태에 설정
+        if (memberDetailData?.interestTags) {
+          setSelectedTags(memberDetailData.interestTags);
+        }
+      } catch (error) {
+        console.error('관심 태그 로드 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserInterestTags();
+  }, [user?.id]);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -394,24 +457,30 @@ function TagContainer({
       </div>
       
       <div className="bg-[#ffffff] box-border content-stretch flex flex-row flex-wrap gap-2.5 h-auto min-h-14 items-start justify-start p-[16px] relative rounded shrink-0 w-full border border-[#c6c8ca]">
-        {tags.map((tag, index) => (
-          <div
-            key={index}
-            className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]"
-          >
-            <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
-            <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
-              <p className="block leading-[1.43] whitespace-pre">#{tag}</p>
+        {loading ? (
+          <div className="text-gray-500 text-sm">로딩 중...</div>
+        ) : selectedTags.length === 0 ? (
+          <div className="text-gray-400 text-sm">선택된 관심 태그가 없습니다.</div>
+        ) : (
+          selectedTags.map((tag, index) => (
+            <div
+              key={index}
+              className="bg-[#ffffff] box-border content-stretch flex flex-row gap-1 items-center justify-center px-2 py-0 relative rounded-[15px] shrink-0 h-[30px]"
+            >
+              <div aria-hidden="true" className="absolute border border-[#76787a] border-solid inset-0 pointer-events-none rounded-[15px]" />
+              <div className="flex flex-col font-['Inter:Regular',_'Noto_Sans_KR:Regular',_sans-serif] font-normal justify-center leading-[0] not-italic relative shrink-0 text-[#9ea0a2] text-[14px] text-left text-nowrap">
+                <p className="block leading-[1.43] whitespace-pre">#{tag}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 }
 
 // GalleryContainer 컴포넌트
-function GalleryContainer() {
+function GalleryContainer({ editMode = false }) {
   const [images, setImages] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
@@ -621,17 +690,17 @@ function GalleryContainer() {
               )}
               
               {/* 삭제 버튼 */}
-              <div 
-                className="absolute top-2 right-2 flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity duration-200" 
+              <div
+                className="absolute top-2 right-2 flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity duration-200 bg-black bg-opacity-50 rounded-full w-6 h-6"
                 onClick={() => removeImage(image)}
                 title="이미지 삭제"
               >
-                <div className="w-[16px] h-[16px]">
+                <div className="w-[12px] h-[12px]">
                   <Image
                     src={ICONS.X}
                     alt="삭제"
-                    width={16}
-                    height={16}
+                    width={12}
+                    height={12}
                     style={{ filter: 'brightness(0) saturate(100%) invert(100%)' }}
                   />
                 </div>
@@ -662,20 +731,23 @@ function GalleryContainer() {
 }
 
 // 메인 ProfilePage 컴포넌트
-export default function ProfilePage() {
+export default function ProfilePage({ editMode = false }) {
   return (
     <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto p-4 sm:p-6">
-      {/* 1. 나이/성별/MBTI 칸 */}
-      <ProfileSection />
+      {/* 1. 나이/성별/MBTI 칸 (백엔드 미지원으로 임시 숨김) */}
+      {/* <ProfileSection editMode={editMode} /> */}
+
+      {/* 2. 관심 이벤트 유형 칸 (view 모드에서도 표시, 편집 모드에서만 수정 가능) */}
+      <EventTypeContainer editMode={editMode} />
+
+      {/* 3. 관심 태그 칸 (view 모드에서도 표시, 편집 모드에서만 수정 가능) */}
+      <TagContainer editMode={editMode} />
       
-      {/* 2. 관심 이벤트 유형 칸 */}
-      <EventTypeContainer />
-      
-      {/* 3. 관심 태그 칸 */}
-      <TagContainer />
-      
-      {/* 4. 갤러리 칸 */}
-      <GalleryContainer />
+      {/* 4. 갤러리 칸 (항상 표시) */}
+      <GalleryContainer editMode={editMode} />
+
+      {/* 5. 편집 모드에서만 표시되는 개인정보 수정 영역 */}
+      {editMode && <PersonalInfoEdit />}
     </div>
   );
 }

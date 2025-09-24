@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import togetherApi from "@/lib/api/togetherApi";
-import { getEventTypeLabel } from "@/lib/api/eventApi";
+import { getEventTypeLabel, mapUiLabelToBackendTypes } from "@/constants/eventTypes";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
 
@@ -69,37 +69,7 @@ const fromServerResponse = (item = {}) => {
   };
 };
 
-// UI 라벨을 백엔드 이벤트 타입으로 변환 (events/page와 동일)
-const mapUiLabelToBackendTypes = (label) => {
-  switch (label) {
-    case "뮤지컬":
-      return ["MUSICAL"];
-    case "영화":
-      return ["MOVIE"];
-    case "연극":
-      return ["THEATER"];
-    case "전시":
-      return ["EXHIBITION"];
-    case "클래식":
-      return ["CLASSICAL"];
-    case "무용":
-      return ["DANCE"];
-    case "클래식/무용":
-      return ["CLASSICAL", "DANCE"];
-    case "콘서트":
-      return ["CONCERT"];
-    case "페스티벌":
-      return ["FESTIVAL"];
-    case "콘서트/페스티벌":
-      return ["CONCERT", "FESTIVAL"];
-    case "지역행사":
-      return ["LOCAL_EVENT"];
-    case "기타":
-      return ["OTHER"];
-    default:
-      return [];
-  }
-};
+// mapUiLabelToBackendTypes는 constants에서 import하여 재사용
 
 const getSortParam = (sortOption) => {
   switch (sortOption) {

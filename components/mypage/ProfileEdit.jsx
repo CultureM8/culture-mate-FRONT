@@ -5,17 +5,21 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IMAGES, ICONS, ROUTES } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
-import { getMemberDetail } from "@/lib/api";
+import { getMemberDetail, updateMemberWithImages } from "@/lib/api";
 
 // 저장 버튼 컴포넌트
-function SaveButton({ onClick }) {
+function SaveButton({ onClick, isLoading = false }) {
   return (
     <div
-      className="bg-[#c6c8ca] rounded-lg cursor-pointer hover:bg-gray-400 transition-colors px-3 py-2 md:px-4 md:py-2"
-      onClick={onClick}>
+      className={`rounded-lg transition-colors px-3 py-2 md:px-4 md:py-2 ${
+        isLoading
+          ? 'bg-gray-300 cursor-not-allowed'
+          : 'bg-[#c6c8ca] cursor-pointer hover:bg-gray-400'
+      }`}
+      onClick={isLoading ? undefined : onClick}>
       <div className="flex flex-col font-medium justify-center text-white text-center">
         <p className="font-bold leading-[1.5] text-sm md:text-[16px] whitespace-pre">
-          변경사항 저장
+          {isLoading ? '저장 중...' : '변경사항 저장'}
         </p>
       </div>
     </div>
@@ -733,7 +737,7 @@ function GalleryContainer({
   );
 }
 
-// 메인 컴포넌트
+// 메인 컴포넌트 - 본인 프로필 편집만 가능 (JWT 인증 기반)
 export default function MyPageEdit() {
   const router = useRouter();
   const { user } = useLogin();
@@ -748,14 +752,26 @@ export default function MyPageEdit() {
   const [isHoveringBackground, setIsHoveringBackground] = useState(false);
   const [isHoveringProfile, setIsHoveringProfile] = useState(false);
 
+  // 실제 파일 객체 상태 (API 전송용)
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [backgroundImageFile, setBackgroundImageFile] = useState(null);
+
+  // 로딩 상태
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 파일 입력 ref
+  const profileFileRef = useRef(null);
+  const backgroundFileRef = useRef(null);
+
   // 사용자 정보 상태
-  const [age] = useState(25); // 고정값
-  const [gender] = useState("여"); // 고정값
+  // const [age] = useState(25); // 고정값 - 백엔드에서 관리하지 않음 (추후 구현 예정)
+  // const [gender] = useState("여"); // 고정값 - 백엔드에서 관리하지 않음 (추후 구현 예정)
   const [mbti, setMbti] = useState("ENFP");
 
   useEffect(() => {
     if (user?.id) {
-      getMemberDetail(user.id)
+      // 자신의 정보 조회 (ID 없이 호출)
+      getMemberDetail()
         .then((data) => {
           setNickname(data.nickname || "");
           setIntroduction(data.intro || "");
@@ -768,16 +784,16 @@ export default function MyPageEdit() {
   }, [user]);
 
   // 공개/비공개 설정
-  const [ageVisibility, setAgeVisibility] = useState("비공개");
-  const [genderVisibility, setGenderVisibility] = useState("비공개");
+  // const [ageVisibility, setAgeVisibility] = useState("비공개"); // 백엔드 미관리
+  // const [genderVisibility, setGenderVisibility] = useState("비공개"); // 백엔드 미관리
   const [mbtiVisibility, setMbtiVisibility] = useState("공개");
   const [eventTypesVisibility, setEventTypesVisibility] = useState("공개");
   const [tagsVisibility, setTagsVisibility] = useState("공개");
   const [galleryVisibility, setGalleryVisibility] = useState("공개");
 
   // 드롭다운 상태
-  const [ageDropdown, setAgeDropdown] = useState(false);
-  const [genderDropdown, setGenderDropdown] = useState(false);
+  // const [ageDropdown, setAgeDropdown] = useState(false); // 백엔드 미관리
+  // const [genderDropdown, setGenderDropdown] = useState(false); // 백엔드 미관리
 
   // 관심 이벤트 및 태그 상태
   const [eventTypes, setEventTypes] = useState([
@@ -1045,38 +1061,90 @@ export default function MyPageEdit() {
     setShowAddressModal(false);
   };
 
+  // 이미지 업로드 핸들러들
+  const handleProfileImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // 파일 객체 저장 (API 전송용)
+      setProfileImageFile(file);
+
+      // 미리보기용 URL 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileImage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+    event.target.value = '';
+  };
+
+  const handleBackgroundImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // 파일 객체 저장 (API 전송용)
+      setBackgroundImageFile(file);
+
+      // 미리보기용 URL 생성
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setBackgroundImage(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+    event.target.value = '';
+  };
+
+  // 이미지 편집 클릭 핸들러들
+  const handleProfileEditClick = () => {
+    profileFileRef.current?.click();
+  };
+
+  const handleBackgroundEditClick = () => {
+    backgroundFileRef.current?.click();
+  };
+
   // 전체 저장 핸들러
-  const handleSave = () => {
-    const userData = {
-      nickname,
-      score,
-      introduction,
-      backgroundImage,
-      profileImage,
-      age,
-      gender,
-      mbti,
-      ageVisibility,
-      genderVisibility,
-      mbtiVisibility,
-      eventTypes,
-      eventTypesVisibility,
-      tags,
-      tagsVisibility,
-      images,
-      galleryVisibility,
-      personalInfo: formData,
-      updatedAt: new Date().toISOString(),
-    };
+  const handleSave = async () => {
+    if (!user?.id) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
 
-    // 로컬 스토리지에 저장 (실제로는 API 호출)
-    // localStorage.setItem('userProfile', JSON.stringify(userData));
+    setIsLoading(true);
 
-    alert("변경사항이 저장되었습니다!");
-    console.log("저장된 데이터:", userData);
+    try {
+      // 텍스트 데이터 구성
+      const memberData = {
+        nickname: nickname.trim(),
+        intro: introduction.trim(),
+        mbti: mbti.trim(),
+        interestEventTypes: eventTypes,
+        interestTags: tags
+      };
 
-    // 저장 후 마이페이지로 이동
-    router.push(ROUTES.MYPAGE);
+      // API 호출 - 현재 인증된 사용자의 ID만 사용
+      await updateMemberWithImages(
+        user.id, // 인증된 사용자의 ID만 사용, 백엔드에서 JWT로 검증
+        memberData,
+        profileImageFile,
+        backgroundImageFile
+      );
+
+      alert("변경사항이 저장되었습니다!");
+      router.push(ROUTES.MYPAGE);
+
+    } catch (error) {
+      console.error("저장 실패:", error);
+
+      // 구체적인 에러 메시지
+      if (error.message) {
+        alert(`저장에 실패했습니다: ${error.message}`);
+      } else {
+        alert("저장에 실패했습니다. 다시 시도해주세요.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -1252,7 +1320,7 @@ export default function MyPageEdit() {
 
                 {/* 저장 버튼 */}
                 <div className="xl:ml-4">
-                  <SaveButton onClick={handleSave} />
+                  <SaveButton onClick={handleSave} isLoading={isLoading} />
                 </div>
               </div>
             </div>
@@ -1294,7 +1362,7 @@ export default function MyPageEdit() {
 
               {/* 변경사항 저장 버튼 - 모바일에서 오른쪽 정렬 */}
               <div className="self-end">
-                <SaveButton onClick={handleSave} />
+                <SaveButton onClick={handleSave} isLoading={isLoading} />
               </div>
             </div>
 
@@ -1319,7 +1387,8 @@ export default function MyPageEdit() {
       <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto p-4 sm:p-6">
         {/* 나이/성별/MBTI 섹션 */}
         <div className="flex flex-col lg:flex-row gap-4 items-start justify-start w-full">
-          {/* 나이 섹션 (고정값) */}
+          {/* 나이 섹션 (고정값) - 백엔드에서 관리하지 않음 (추후 구현 예정) */}
+          {/*
           <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
             <div className="flex flex-row gap-2 items-center relative">
               <div className="text-gray-800 text-base font-normal">
@@ -1377,8 +1446,10 @@ export default function MyPageEdit() {
               </div>
             </div>
           </div>
+          */}
 
-          {/* 성별 섹션 (고정값) */}
+          {/* 성별 섹션 (고정값) - 백엔드에서 관리하지 않음 (추후 구현 예정) */}
+          {/*
           <div className="flex flex-col gap-2 w-full lg:w-40 shrink-0">
             <div className="flex flex-row gap-2 items-center relative">
               <div className="text-gray-800 text-base font-normal">
@@ -1436,6 +1507,7 @@ export default function MyPageEdit() {
               </div>
             </div>
           </div>
+          */}
 
           {/* MBTI 섹션 (수정 가능) */}
           <MbtiDropdown

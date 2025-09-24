@@ -3,7 +3,7 @@
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import Gallery from "../global/Gallery";
-import { getEventTypeLabel } from "@/lib/api/eventApi";
+import { getEventTypeLabel } from "@/constants/eventTypes";
 import { toggleTogetherInterest } from "@/lib/api/togetherApi";
 import { toAbsoluteImageUrl } from "@/lib/utils/imageUtils";
 

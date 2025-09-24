@@ -1,6 +1,8 @@
+import { getFilterLabels } from "@/constants/eventTypes";
+
 export default function EventSelector({ selected="전체", setSelected }) {
 
-  const eventTypes = [ "전체", "뮤지컬", "영화", "연극", "전시", "클래식/무용", "콘서트/페스티벌", "지역행사", "기타" ];
+  const eventTypes = getFilterLabels(); // includeAll=true가 기본값
 
   return (
     <div className="h-25 flex gap-4 justify-center items-center">

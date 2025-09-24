@@ -10,24 +10,24 @@ export default function MypageSideBar() {
   const menuItems = [
     {
       category: "개인정보",
-      items: [{ name: "프로필 관리", path: ROUTES.MYPAGE }],
+      items: [{ name: "마이페이지", path: ROUTES.MYPAGE }],
     },
     {
       category: "활동 관리",
       items: [
-        { name: "관심 목록", path: ROUTES.INTEREST },
-        { name: "동행 관리", path: ROUTES.TOGETHER_MANAGE },
-        { name: "활동 내역", path: ROUTES.HISTORY },
+        { name: "동행관리/채팅", path: ROUTES.TOGETHER_MANAGE },
+        { name: "관심목록", path: ROUTES.INTEREST },
+        { name: "히스토리", path: ROUTES.HISTORY },
       ],
     },
     {
       category: "게시글",
       items: [{ name: "내 게시글", path: ROUTES.POST_MANAGE }],
     },
-    {
-      category: "설정",
-      items: [{ name: "계정 설정", path: ROUTES.SETTINGS }],
-    },
+    // {
+    //   category: "설정",
+    //   items: [{ name: "계정 설정", path: ROUTES.SETTINGS }],
+    // },
   ];
 
   return (

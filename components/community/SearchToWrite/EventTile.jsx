@@ -6,7 +6,7 @@ import Image from "next/image";
 
 import StarScore from "@/lib/StarScore";
 import { ICONS } from "@/constants/path";
-import { getEventTypeLabel } from "@/lib/api/eventApi";
+import { getEventTypeLabel } from "@/constants/eventTypes";
 
 export default function EventTile({ card, onPick }) {
   const { eventImage, eventType, eventName, description, starScore = 0 } = card;

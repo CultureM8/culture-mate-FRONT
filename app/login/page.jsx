@@ -159,14 +159,14 @@ export default function LoginPage() {
           </div>
 
           {/* 로그인 상태 유지 */}
-          <label className="flex items-center gap-2 select-none">
+          <label className="flex items-center gap-2 select-none cursor-pointer hover:bg-gray-50 px-1 py-1 rounded transition-colors">
             <input
               type="checkbox"
-              className="w-4 h-4"
+              className="w-4 h-4 cursor-pointer"
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
             />
-            <span className="text-sm text-gray-600">로그인 상태 유지</span>
+            <span className="text-sm text-gray-600 cursor-pointer">로그인 상태 유지</span>
           </label>
 
           {/* 에러 */}
@@ -180,22 +180,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={!ready || loading}
-            className="w-full h-11 rounded-lg bg-black text-white disabled:opacity-60">
+            className="w-full h-11 rounded-lg bg-black text-white disabled:opacity-60 disabled:cursor-not-allowed enabled:cursor-pointer enabled:hover:bg-gray-800 transition-colors">
             {loading ? "로그인 중..." : "로그인"}
           </button>
         </form>
 
         {/* 추가 링크(모의) */}
         <div className="mt-6 text-sm text-gray-600 flex items-center justify-center gap-4">
-          <button onClick={goFindId} className="text-sm underline">
+          <button onClick={goFindId} className="text-sm underline cursor-pointer hover:text-gray-800 transition-colors">
             아이디 찾기
           </button>
           <span className="text-gray-300">|</span>
-          <button onClick={goResetPw} className="text-sm underline">
+          <button onClick={goResetPw} className="text-sm underline cursor-pointer hover:text-gray-800 transition-colors">
             비밀번호 찾기
           </button>
           <span className="text-gray-300">|</span>
-          <button onClick={goSignup} className="text-sm underline">
+          <button onClick={goSignup} className="text-sm underline cursor-pointer hover:text-gray-800 transition-colors">
             회원가입
           </button>
         </div>

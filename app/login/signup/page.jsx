@@ -336,8 +336,18 @@ export default function SignUpPage() {
 
         <button
           type="submit"
-          className="w-full bg-black text-white rounded py-2 disabled:opacity-60"
-          disabled={!form.login_id || !form.nickname || !form.password || !form.confirm}>
+          className="w-full bg-black text-white rounded py-2 disabled:opacity-60 disabled:cursor-not-allowed enabled:cursor-pointer enabled:hover:bg-gray-800 transition-colors"
+          disabled={
+            !form.login_id ||
+            !form.nickname ||
+            !form.password ||
+            !form.confirm ||
+            !form.agree ||
+            Object.keys(errors).length > 0 ||
+            checkStatus.loginId !== true ||
+            form.password !== form.confirm ||
+            (form.email && checkStatus.email === false)
+          }>
           가입하기
         </button>
       </form>
