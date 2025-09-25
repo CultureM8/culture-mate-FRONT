@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ICONS } from "@/constants/path";
@@ -13,6 +13,7 @@ export default function SearchBar({
   className = "",
 }) {
   const router = useRouter();
+  const inputRef = useRef(null);
   const isControlled =
     typeof value === "string" && typeof onChange === "function";
   const [inner, setInner] = useState("");
@@ -24,6 +25,11 @@ export default function SearchBar({
     e.preventDefault();
     const trimmed = q.trim();
     if (!trimmed) return;
+
+    // 검색 실행 후 포커스 해제
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
 
     if (typeof onSearch === "function") {
       onSearch(trimmed);
@@ -38,6 +44,7 @@ export default function SearchBar({
       className={`flex items-center h-8 w-[clamp(50px,30vw,300px)]
         border border-gray-300 rounded-full p-3 gap-2 ${className}`}>
       <input
+        ref={inputRef}
         type="text"
         className="w-full bg-transparent focus:outline-none focus:placeholder:opacity-0"
         placeholder={placeholder}
