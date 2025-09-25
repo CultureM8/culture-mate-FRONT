@@ -1,6 +1,7 @@
 import Image from "next/image";
 import SearchBar from "./SearchBar";
 import { ICONS } from "@/constants/path";
+import { defaultSortOptions } from "@/constants/sortOptions";
 
 export default function SearchFilterSort({
   enableTitle = false,
@@ -11,6 +12,7 @@ export default function SearchFilterSort({
   filterAction,
   sortAction,
   sortOption = "latest",
+  sortOptions = defaultSortOptions, // 정렬 옵션 prop 추가
   onSearch, // 검색 함수 추가
   searchValue = "", // 검색값 추가 (Together 방식)
   onSearchChange, // 검색값 변경 함수 추가
@@ -18,15 +20,6 @@ export default function SearchFilterSort({
   const viewTypes = [
     ["Gallery", ICONS.MENU],
     ["List", ICONS.LIST],
-  ];
-
-  // 정렬 옵션들
-  const sortOptions = [
-    { value: "latest", label: "최신순" },
-    { value: "oldest", label: "오래된순" },
-    { value: "views", label: "조회수순" },
-    { value: "likes", label: "관심순" },
-    { value: "title", label: "제목순" },
   ];
 
   const handleSortChange = (e) => {

@@ -54,6 +54,7 @@ export default function TotalSearch() {
       score: event.avgRating ? Number(event.avgRating) : 0,
       viewCount: event.viewCount || 0,
       interestCount: event.interestCount || 0,
+      reviewCount: event.reviewCount || 0, // 백엔드 reviewCount 필드 매핑
       mainImagePath: event.mainImagePath,
       thumbnailImagePath: event.thumbnailImagePath,
       mainImageUrl: event.mainImageUrl,
@@ -123,7 +124,10 @@ export default function TotalSearch() {
       imgSrc: imgSrc,
       event: together.event,
       eventSnapshot: together.event,
-      _key: `together_${together.id}`
+      _key: `together_${together.id}`,
+      // 관심 관련 필드 추가
+      interestCount: together.interestCount || 0,
+      isInterested: together.isInterested === true
     };
   };
 

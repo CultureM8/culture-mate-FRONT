@@ -2,6 +2,7 @@
 
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import ListComponent from "../global/ListComponent";
 import { getEventTypeLabel } from "@/constants/eventTypes";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
@@ -22,6 +23,7 @@ export default function EventList(props) {
     avgRating,
     score,
     interestCount,
+    reviewCount, // 리뷰수 필드 추가
 
     // 이미지 관련
     imgSrc,
@@ -40,6 +42,19 @@ export default function EventList(props) {
 
     ...rest
   } = props;
+
+  // 관심 상태 관리 - TogetherList와 동일한 패턴
+  const [currentInterested, setCurrentInterested] = useState(isInterested);
+  const [currentInterestCount, setCurrentInterestCount] = useState(interestCount || 0);
+
+  // props가 변경될 때 상태 동기화
+  useEffect(() => {
+    setCurrentInterested(isInterested);
+  }, [isInterested]);
+
+  useEffect(() => {
+    setCurrentInterestCount(interestCount || 0);
+  }, [interestCount]);
 
   // 날짜 파싱 함수
   const parseDate = (d) => {
@@ -119,11 +134,14 @@ export default function EventList(props) {
   // 관심수 처리
   const safeInterestCount = interestCount || 0;
 
+  // 리뷰수 처리
+  const safeReviewCount = reviewCount || 0;
+
   // 식별자 및 링크
   const componentId = eventId || id;
   const href = componentId ? `/events/${encodeURIComponent(componentId)}` : "/events";
 
-  // 관심 기능 핸들러 - TogetherList와 동일한 패턴
+  // 관심 기능 핸들러 - 실시간 상태 업데이트 포함
   const handleInterestClick = async () => {
     if (!componentId) {
       console.error("EventList: componentId가 없습니다.");
@@ -134,10 +152,17 @@ export default function EventList(props) {
       const result = await toggleEventInterest(componentId);
       console.log("이벤트 관심 상태 변경:", result);
 
-      // 관심 상태 변경 이벤트 발생 - TogetherList와 동일한 패턴
+      // 관심 상태 실시간 업데이트
+      const newInterested = result.includes("등록");
+      setCurrentInterested(newInterested);
+
+      // 관심수 실시간 업데이트 (관심 등록시 +1, 취소시 -1)
+      setCurrentInterestCount(prev => newInterested ? prev + 1 : prev - 1);
+
+      // 관심 상태 변경 이벤트 발생
       const eventDetail = {
         eventId: componentId,
-        interested: result.includes("등록"), // API 응답에서 "등록" 문자열 확인
+        interested: newInterested,
       };
 
       window.dispatchEvent(
@@ -186,64 +211,53 @@ export default function EventList(props) {
         onClick={onCardClick}
         href={onCardClick ? undefined : (editMode ? "#" : href)}
         enableInterest={!editMode}
-        isInterested={isInterested}
+        isInterested={currentInterested}
         onInterestClick={handleInterestClick}>
 
         <div className="flex flex-col justify-around h-full">
-          {/* 이벤트 타입 - Together와 구분되도록 보라색 사용 */}
-          <div className="flex gap-2 mb-2">
-            <span className="border border-b-2 text-purple-600 bg-purple-50 rounded-4xl px-2 w-fit text-sm">
+          {/* 이벤트 타입 + 제목 한 줄에 표시 */}
+          <div className="flex gap-2 items-center mb-2">
+            <span className="border border-b-2 text-purple-600 bg-purple-50 rounded-4xl px-2 w-fit text-sm flex-shrink-0">
               {safeEventType}
             </span>
+            <h3 className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black min-w-0">
+              {safeTitle}
+            </h3>
           </div>
 
-          {/* 이벤트 제목 */}
-          <h3 className="text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis text-black mb-2">
-            {safeTitle}
-          </h3>
-
-          {/* 평점 및 통계 정보 */}
-          <div className="flex gap-4 items-center mb-2 text-sm">
-            <div className="flex gap-1 items-center">
-              <Image
-                src={ratingValue > 0 ? ICONS.STAR_FULL : ICONS.STAR_EMPTY}
-                alt="별점"
-                width={16}
-                height={16}
-              />
-              <StarRating
-                rating={ratingValue}
-                mode="average"
-                showNumber={true}
-                showStars={false}
-                className="text-sm"
-              />
-            </div>
-            <span className="text-gray-600">관심 {safeInterestCount.toLocaleString()}</span>
-          </div>
-
-          {/* 날짜 및 위치 정보 - TogetherList와 동일한 아이콘 사용 */}
-          <div className="flex gap-4 shrink-0 w-full text-sm">
-            <span className="flex items-center gap-2 flex-shrink-0">
-              <Image
-                src={ICONS.CALENDAR}
-                alt="calendar"
-                width={16}
-                height={16}
-              />
-              {dateRange}
+          {/* 위치 정보 */}
+          <div className="flex items-center gap-2 mb-2 text-sm">
+            <Image
+              src={ICONS.PIN}
+              alt="location"
+              width={16}
+              height={16}
+              className="flex-shrink-0"
+            />
+            <span className="truncate text-gray-600" title={safeLocation}>
+              {safeLocation}
             </span>
-            <span className="flex items-center gap-2 flex-shrink-0 min-w-0">
-              <Image
-                src={ICONS.PIN}
-                alt="location"
-                width={16}
-                height={16}
-                className="flex-shrink-0"
-              />
-              <span className="truncate" title={safeLocation}>
-                {safeLocation}
-              </span>
+          </div>
+
+          {/* 날짜 정보 */}
+          <div className="flex items-center gap-2 mb-2 text-sm">
+            <Image
+              src={ICONS.CALENDAR}
+              alt="calendar"
+              width={16}
+              height={16}
+              className="flex-shrink-0"
+            />
+            <span className="text-gray-600">{dateRange}</span>
+          </div>
+
+          {/* 평점, 리뷰수, 관심수 정보 */}
+          <div className="flex gap-4 items-center text-sm text-gray-600">
+            <span className="flex items-center gap-1">
+              ★{ratingValue.toFixed(1)} (리뷰수: {safeReviewCount}개)
+            </span>
+            <span className="flex items-center gap-1">
+              ♥관심수 : {currentInterestCount.toLocaleString()}개
             </span>
           </div>
         </div>

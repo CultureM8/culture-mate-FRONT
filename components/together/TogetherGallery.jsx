@@ -4,7 +4,6 @@ import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import Gallery from "../global/Gallery";
 import { getEventTypeLabel } from "@/constants/eventTypes";
-import { toggleTogetherInterest } from "@/lib/api/togetherApi";
 import { toAbsoluteImageUrl } from "@/lib/utils/imageUtils";
 
 export default function TogetherGallery(props) {
@@ -105,33 +104,15 @@ export default function TogetherGallery(props) {
     return "명";
   })();
 
-  /* 상태 판정 (명시적 isClosed prop이 있으면 우선 사용, 없으면 백엔드 active 필드 기준) */
-  const isActive = typeof active === "boolean" ? active : true;
-  const isClosed = typeof explicitIsClosed === "boolean" ? explicitIsClosed : !isActive;
+  /* 백엔드에서 계산된 active 상태를 그대로 사용 */
+  const isClosed = typeof explicitIsClosed === "boolean" ? explicitIsClosed : !active;
 
-  /* 하트(관심) 클릭 → API 토글 + 브로드캐스트 */
-  const handleInterestClick = async (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
-    if (!id) return;
-
-    try {
-      const msg = await toggleTogetherInterest(id);
-      const interested = /등록/.test(String(msg));
-      window.dispatchEvent(
-        new CustomEvent("together-interest-changed", {
-          detail: { togetherId: String(id), interested },
-        })
-      );
-    } catch (error) {
-      console.error("관심 상태 변경 실패:", error);
-    }
-  };
+  // 페이지 레벨 동기화로 Gallery-List 뷰 간 관심 상태 자동 동기화
 
   return (
     <div className="relative">
       {isClosed && (
-        <div className="absolute top-2 left-2 z-30">
+        <div className="absolute top-2 right-2 z-30">
           <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-600 text-white text-xs font-bold grayscale-0">
             모집마감
           </span>
@@ -169,8 +150,9 @@ export default function TogetherGallery(props) {
         alt={alt || eventName || title}
         href={editMode ? "#" : href}
         enableInterest={!editMode}
-        initialInterest={!!isInterested}
-        onClick={handleInterestClick}
+        initialInterest={Boolean(isInterested)}
+        togetherId={String(id || "")}
+        type="together"
         isClosed={isClosed}>
         <div className="flex items-center gap-2 my-1">
           <div className="border border-b-2 text-blue-600 bg-blue-50 rounded-4xl px-2">

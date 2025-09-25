@@ -9,10 +9,12 @@ import TogetherGallery from "@/components/together/TogetherGallery";
 import TogetherList from "@/components/together/TogetherList";
 import EventSelector from "@/components/global/EventSelector";
 import SearchBar from "@/components/global/SearchBar";
+import SearchFilterSort from "@/components/global/SearchFilterSort";
 import TogetherFilterModal from "@/components/together/TogetherFilterModal";
 import useLogin from "@/hooks/useLogin";
 import togetherApi from "@/lib/api/togetherApi";
 import { mapUiLabelToBackendTypes } from "@/constants/eventTypes";
+import { togetherSortOptions } from "@/constants/sortOptions";
 
 // Together 데이터 매핑 함수
 const mapTogetherListItem = (together) => {
@@ -45,8 +47,8 @@ const mapTogetherListItem = (together) => {
     currentParticipants: together.currentParticipants || 0,
     maxParticipants: together.maxParticipants || 0,
     group: `${together.currentParticipants || 0}/${together.maxParticipants}`,
-    isActive: together.isActive,
-    active: together.isActive,
+    active: together.active,
+    isActive: together.active,
     authorNickname: together.authorNickname,
     host: together.host,
     author: together.host?.nickname || together.host?.displayName || together.authorNickname || '-',
@@ -54,6 +56,9 @@ const mapTogetherListItem = (together) => {
     event: together.event,
     eventSnapshot: together.event,
     _key: `together_${together.id}`,
+    // 관심 관련 필드 추가
+    interestCount: together.interestCount || 0,
+    isInterested: together.isInterested === true,
     // 정렬을 위한 필드들
     createdAt: together.createdAt,
     companionDate: together.meetingDate,
@@ -102,7 +107,7 @@ export default function TogetherPage() {
   const [query, setQuery] = useState("");
   const [sortOption, setSortOption] = useState("createdAt_desc");
   const [viewType, setViewType] = useState("Gallery");
-  const [hideClosed, setHideClosed] = useState(true);
+  const [hideClosed, setHideClosed] = useState(false);
 
   const [selectedEventType, setSelectedEventType] = useState("전체");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -265,6 +270,70 @@ export default function TogetherPage() {
 
     fetchTogethers();
   }, [sessionChecked, selectedEventType, isSearchMode, isFiltered]);
+
+  // 페이지 레벨 관심 상태 동기화 이벤트 리스너 (Events 패턴 적용)
+  useEffect(() => {
+    console.log("🔵 Together 페이지 - together-interest-changed 이벤트 리스너 등록");
+
+    const handleInterestChanged = (event) => {
+      const { togetherId: changedTogetherId, interested } = event.detail;
+
+      console.log("🔔 Together 페이지 - 관심 상태 변경 감지:", {
+        changedTogetherId,
+        interested
+      });
+
+      // Together 목록에서 해당 Together의 관심 상태 업데이트
+      setTogetherData(prevTogethers => {
+        const updated = prevTogethers.map(togetherItem => {
+          if (String(togetherItem.togetherId) === String(changedTogetherId) ||
+              String(togetherItem.id) === String(changedTogetherId)) {
+            console.log(`✅ Together 페이지 - ${togetherItem.title}의 관심 상태 업데이트: ${interested}`);
+            return {
+              ...togetherItem,
+              isInterested: interested
+            };
+          }
+          return togetherItem;
+        });
+
+        console.log(`📊 Together 페이지 - 데이터 업데이트 완료`);
+        return updated;
+      });
+    };
+
+    // localStorage 변경 감지 (크로스 탭 동기화)
+    const handleStorageChange = (e) => {
+      if (!e.key || !e.key.startsWith('together_interest_')) return;
+
+      try {
+        const storageData = JSON.parse(e.newValue || '{}');
+        const storageTogetherId = storageData.togetherId;
+        const interested = Boolean(storageData.interested);
+
+        console.log("💾 Together 페이지 - localStorage 관심 상태 변경 감지:", {
+          storageTogetherId,
+          interested
+        });
+
+        // 기존 handleInterestChanged 로직 재사용
+        handleInterestChanged({
+          detail: { togetherId: storageTogetherId, interested }
+        });
+      } catch (error) {
+        console.error("❌ localStorage 관심 상태 파싱 실패:", error);
+      }
+    };
+
+    window.addEventListener("together-interest-changed", handleInterestChanged);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      console.log("🔴 Together 페이지 - 이벤트 리스너들 해제");
+      window.removeEventListener("together-interest-changed", handleInterestChanged);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   // sessionStorage에서 검색 데이터 확인 (통합검색에서 넘어온 경우) - 최우선 처리
   useEffect(() => {
@@ -540,30 +609,15 @@ export default function TogetherPage() {
 
         {/* 우측: 검색/필터/정렬/글쓰기  */}
         <div className="flex items-center gap-2">
-          <SearchBar
-            value={query}
-            onChange={setQuery}
+          <SearchFilterSort
+            filterAction={() => setIsFilterOpen(true)}
+            sortAction={(newSortOption) => setSortOption(newSortOption)}
+            sortOption={sortOption}
+            sortOptions={togetherSortOptions}
+            searchValue={query}
+            onSearchChange={setQuery}
             onSearch={handleSearch}
           />
-
-          <button
-            className="flex items-center gap-3"
-            onClick={() => setIsFilterOpen(true)}>
-            필터
-            <Image src={ICONS.FILTER} alt="필터" width={24} height={24} />
-          </button>
-
-          <select
-            value={sortOption}
-            onChange={(e) => setSortOption(e.target.value)}
-            className="h-10 px-2 bg-white">
-            {/* 작성일 기준 */}
-            <option value="createdAt_desc">최근 작성순</option>
-            <option value="createdAt_asc">작성 오래된순</option>
-            {/* 이벤트 날짜 기준 */}
-            <option value="event_desc">최근 이벤트순</option>
-            <option value="event_asc">오래된 이벤트순</option>
-          </select>
 
           {ready && isLogined ? (
             <button

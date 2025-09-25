@@ -34,13 +34,18 @@ export default function ListComponent({
   // 공통 컨텐츠
   const content = (
     <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400 flex">
-      <Image
-        src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
-        alt={alt}
-        width={120}
-        height={120}
-        className={`w-[120px] h-[120px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
-      />
+      <div className="relative">
+        <Image
+          src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
+          alt={alt}
+          width={120}
+          height={120}
+          className={`w-[120px] h-[120px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
+        />
+        {isClosed && (
+          <div className="absolute inset-0 bg-white/50 rounded-xl pointer-events-none" />
+        )}
+      </div>
       <div className="px-4 py-2 flex-1 min-w-0">
         {children}
       </div>

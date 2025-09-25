@@ -31,12 +31,6 @@ export default function Gallery({
   const user = loginContext?.user || null;
 
   useEffect(() => {
-    console.log("Gallery - 초기 관심 상태 설정:", {
-      eventId,
-      initialInterest,
-      disableEventSync,
-      finalInterest: !!initialInterest
-    });
     setInterest(!!initialInterest);
   }, [initialInterest]);
 
@@ -61,7 +55,22 @@ export default function Gallery({
   useEffect(() => {
     if (!eventId || type !== "event" || disableEventSync) return;
 
-    // 페이지 로드 시 localStorage에서 상태 확인
+    // 백엔드 데이터(initialInterest)가 명시적으로 전달된 경우 localStorage보다 우선시
+    // initialInterest가 undefined가 아니면 백엔드에서 데이터를 가져온 것으로 간주
+    if (initialInterest !== undefined) {
+      // 백엔드 데이터로 localStorage 업데이트
+      const storageKey = `event_interest_${eventId}`;
+      const storageData = {
+        eventId: String(eventId),
+        interested: Boolean(initialInterest),
+        timestamp: Date.now(),
+        source: 'backend'
+      };
+      localStorage.setItem(storageKey, JSON.stringify(storageData));
+      return; // localStorage 체크 건너뛰기
+    }
+
+    // initialInterest가 undefined인 경우만 localStorage 확인
     const storageKey = `event_interest_${eventId}`;
     const savedData = localStorage.getItem(storageKey);
 
@@ -92,7 +101,7 @@ export default function Gallery({
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [eventId, type]);
+  }, [eventId, type, initialInterest]);
 
   const initialSrc = useMemo(() => {
     return typeof src === "string" && src.trim().length > 0
@@ -151,19 +160,20 @@ export default function Gallery({
         const result = await toggleEventInterest(itemId);
         console.log("📨 Gallery - API 응답:", result);
 
-        // 즉시 로컬 상태 업데이트 (빠른 반응)
-        setInterest(interested);
+        // 관심 상태 실시간 업데이트 (서버 응답 기준)
+        const newInterested = result.includes("등록");
+        setInterest(newInterested);
 
         console.log("📡 Gallery - event-interest-changed 이벤트 발생:", {
           eventId: String(itemId),
-          interested
+          interested: newInterested
         });
 
         // localStorage에 상태 저장 (새로고침 시에도 유지되도록)
         const storageKey = `event_interest_${itemId}`;
         const storageData = {
           eventId: String(itemId),
-          interested: interested,
+          interested: newInterested,
           timestamp: Date.now()
         };
         localStorage.setItem(storageKey, JSON.stringify(storageData));
@@ -174,7 +184,7 @@ export default function Gallery({
 
           window.dispatchEvent(
             new CustomEvent("event-interest-changed", {
-              detail: { eventId: String(itemId), interested },
+              detail: { eventId: String(itemId), interested: newInterested },
             })
           );
 
@@ -193,12 +203,24 @@ export default function Gallery({
         const result = await toggleTogetherInterest(itemId);
         console.log("📨 Gallery - API 응답:", result);
 
-        setInterest(interested);
+        // 관심 상태 실시간 업데이트 (서버 응답 기준)
+        const newInterested = result.includes("등록");
+        setInterest(newInterested);
+
+        // Together 관심 상태도 localStorage에 저장 (리스트 뷰 동기화용)
+        const togetherStorageKey = `together_interest_${itemId}`;
+        const togetherStorageData = {
+          togetherId: String(itemId),
+          interested: newInterested,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(togetherStorageKey, JSON.stringify(togetherStorageData));
 
         Promise.resolve().then(() => {
+          const eventDetail = { togetherId: String(itemId), interested: newInterested };
           window.dispatchEvent(
             new CustomEvent("together-interest-changed", {
-              detail: { togetherId: String(itemId), interested },
+              detail: eventDetail,
             })
           );
         });
@@ -219,7 +241,7 @@ export default function Gallery({
     <div className={`${isClosed ? "bg-gray-100" : "bg-white"} w-[300px] relative`} title={title}>
       {enableInterest && (
         <button
-          className={`absolute top-0 right-0 mt-4 mr-4 ${
+          className={`absolute top-0 left-0 mt-4 ml-4 ${
             interest ? "" : "opacity-30"
           } ${
             isSubmitting ? "opacity-60 cursor-not-allowed" : "hover:cursor-pointer"
@@ -238,19 +260,24 @@ export default function Gallery({
 
       <Link href={href}>
         <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400">
-          <Image
-            src={currentSrc}
-            alt={alt || title || "이미지"}
-            width={200}
-            height={150}
-            className={`w-[280px] h-[200px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
-            onError={() => {
-              if (currentSrc !== IMAGES.GALLERY_DEFAULT_IMG) {
-                setCurrentSrc(IMAGES.GALLERY_DEFAULT_IMG);
-              }
-            }}
-            priority={false}
-          />
+          <div className="relative">
+            <Image
+              src={currentSrc}
+              alt={alt || title || "이미지"}
+              width={200}
+              height={150}
+              className={`w-[280px] h-[200px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
+              onError={() => {
+                if (currentSrc !== IMAGES.GALLERY_DEFAULT_IMG) {
+                  setCurrentSrc(IMAGES.GALLERY_DEFAULT_IMG);
+                }
+              }}
+              priority={false}
+            />
+            {isClosed && (
+              <div className="absolute inset-0 bg-white/50 rounded-xl pointer-events-none" />
+            )}
+          </div>
           <div className="px-2">
             <div className={`text-lg font-bold overflow-hidden whitespace-nowrap text-ellipsis ${isClosed ? "text-gray-400" : "text-black"}`}>
               {title}

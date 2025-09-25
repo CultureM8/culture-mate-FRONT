@@ -3,10 +3,13 @@
 import AISuggestion from "@/components/events/main/AISuggestion";
 import EventFilterModal from "@/components/events/main/EventFilterModal";
 import EventGallery from "@/components/events/main/EventGallery";
+import EventList from "@/components/events/EventList";
 import EventSelector from "@/components/global/EventSelector";
 import GalleryLayout from "@/components/global/GalleryLayout";
+import ListLayout from "@/components/global/ListLayout";
 import SearchFilterSort from "@/components/global/SearchFilterSort";
 import { mapUiLabelToBackendTypes } from "@/constants/eventTypes";
+import { eventSortOptions } from "@/constants/sortOptions";
 
 import {
   getEvents as getEventsRaw,
@@ -75,6 +78,7 @@ const mapListItem = (event) => {
     id: eventId ? String(eventId) : undefined,
     viewCount: event.viewCount || 0,
     interestCount: event.interestCount || 0,
+    reviewCount: event.reviewCount || 0, // 백엔드 reviewCount 필드 매핑
     region: event.region || null,
     score: event.avgRating ? Number(event.avgRating) : 0,
     avgRating: event.avgRating ? Number(event.avgRating) : 0,
@@ -124,6 +128,7 @@ export default function Event() {
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [query, setQuery] = useState("");
   const [sortOption, setSortOption] = useState("latest");
+  const [viewType, setViewType] = useState("Gallery"); // 뷰 타입 상태 추가
 
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [isFiltered, setIsFiltered] = useState(false);
@@ -548,15 +553,23 @@ export default function Event() {
       <SearchFilterSort
         enableTitle
         title={getDisplayTitle()}
+        enableViewType
+        viewType={viewType}
+        setViewType={setViewType}
         filterAction={openFilterModal}
         sortAction={handleSortChange}
         sortOption={sortOption}
+        sortOptions={eventSortOptions}
         searchValue={query}
         onSearchChange={setQuery}
         onSearch={handleSearch}
       />
 
-      <GalleryLayout Component={EventGallery} items={eventData} />
+      {viewType === "Gallery" ? (
+        <GalleryLayout Component={EventGallery} items={eventData} />
+      ) : (
+        <ListLayout Component={EventList} items={eventData} />
+      )}
 
       <EventFilterModal
         isOpen={isFilterModalOpen}
