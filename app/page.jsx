@@ -8,6 +8,7 @@ import Gallery from "@/components/global/Gallery";
 import EventGallery from "@/components/events/main/EventGallery";
 import GalleryLayout from "@/components/global/GalleryLayout";
 import TogetherGallery from "@/components/together/TogetherGallery";
+import MainSearchBar from "@/components/global/MainSearchBar";
 import { togetherApi } from "@/lib/api/togetherApi";
 import { getEvents } from "@/lib/api/eventApi";
 
@@ -70,8 +71,6 @@ function MainBanner() {
   const [currentPlaceholder, setCurrentPlaceholder] = useState("");
   const [currentTags, setCurrentTags] = useState([]);
   const [currentVideoSrc, setCurrentVideoSrc] = useState(VIDEO_SOURCES[0]);
-  const [searchValue, setSearchValue] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     // 페이지 로드 시 랜덤으로 선택
@@ -80,23 +79,6 @@ function MainBanner() {
     setCurrentTags(TAG_SETS[randomIndex]);
     setCurrentVideoSrc(VIDEO_SOURCES[randomIndex]);
   }, []); // 빈 dependency array
-
-  // 검색 버튼 클릭 핸들러
-  const handleSearch = () => {
-    if (searchValue.trim()) {
-      // TODO: 검색어를 이용해 관련 페이지로 이동하는 로직 작성
-      // 예시: router.push(`/search?q=${encodeURIComponent(searchValue.trim())}`);
-      // 또는: window.location.href = `/events?search=${encodeURIComponent(searchValue.trim())}`;
-      console.log("검색어:", searchValue.trim());
-    }
-  };
-
-  // 엔터키 검색 핸들러
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
 
   return (
     <section className="bg-[#C6C8CA] w-[100vw] h-[400px] relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] overflow-hidden">
@@ -110,53 +92,13 @@ function MainBanner() {
       )}
 
       <div className="relative w-full h-full flex items-center justify-center z-10">
-        {/* 검색창 배경 (블러 효과) - 포커스 시에만 표시 */}
-        {isFocused && (
-          <div className="absolute bg-[rgba(255,255,255,0.2)] blur-[2px] filter h-[60px] left-1/2 rounded-xl top-1/2 translate-x-[-50%] translate-y-[-50%] w-[560px]" />
-        )}
-
-        {/* 메인 검색창 */}
-        <div className="absolute bg-[#ffffff] h-[50px] left-1/2 rounded-xl top-1/2 translate-x-[-50%] translate-y-[-50%] w-[550px] shadow-[0px_4px_4px_0px_rgba(0,0,0,0.25)]">
-          <div className="h-[50px] overflow-hidden relative w-[550px]">
-            {/* 검색 입력 필드 */}
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={currentPlaceholder}
-              className="absolute box-border w-[500px] h-full left-0 px-5 py-[13px] top-0 bg-transparent border-none outline-none font-medium text-[#333333] text-[20px] placeholder:text-[#76787a] placeholder:font-medium"
-            />
-
-            {/* 검색 아이콘 */}
-            <button
-              onClick={handleSearch}
-              className="absolute box-border flex flex-row gap-2.5 items-center justify-center p-0 right-0 size-[50px] top-1/2 translate-y-[-50%] cursor-pointer hover:bg-gray-50 rounded-r-xl transition-colors duration-200">
-              <Image
-                src={ICONS.SEARCH}
-                alt="search"
-                width={24}
-                height={24}
-                className="shrink-0"
-                priority
-              />
-            </button>
-          </div>
-        </div>
-
-        {/* 검색 태그들 */}
-        <div className="absolute left-1/2 top-[calc(50%+50px)] translate-x-[-50%] w-[550px] flex flex-row items-center justify-between mt-4">
-          {currentTags.map((tag, index) => (
-            <div
-              key={index}
-              className="box-border flex flex-row gap-2.5 items-center justify-center px-4 py-1.5 rounded-[20px] border border-[#ffffff] cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors duration-200">
-              <div className="flex flex-col font-normal justify-center leading-[0] text-[#ffffff] text-[18px] text-center text-nowrap">
-                <p className="block leading-[1.55] whitespace-pre">{tag}</p>
-              </div>
-            </div>
-          ))}
+        {/* MainSearchBar 컴포넌트 사용 */}
+        <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] w-[550px]">
+          <MainSearchBar
+            placeholder={currentPlaceholder}
+            showTags={true}
+            tags={currentTags}
+          />
         </div>
       </div>
     </section>

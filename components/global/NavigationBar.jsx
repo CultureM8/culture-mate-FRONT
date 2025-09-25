@@ -17,7 +17,8 @@ export default function NavigationBar() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
+  const [searchValue, setSearchValue] = useState(""); // 검색바 상태 관리
+
   const dropdownRef = useRef(null);
 
   const pathname = usePathname();
@@ -79,6 +80,12 @@ export default function NavigationBar() {
   const handleLogout = async () => {
     await logout();
     setIsDropdownOpen(false);
+  };
+
+  /* 검색 핸들러 - 검색 후 입력값 초기화 */
+  const handleSearch = (searchTerm) => {
+    router.push(`/search?q=${encodeURIComponent(searchTerm)}`);
+    setSearchValue(""); // 검색 후 초기화
   };
 
   const flexStyle =
@@ -178,7 +185,11 @@ export default function NavigationBar() {
           </a>
 
           <div className="[&_form]:border-[#C6C8CA] [&_input]:placeholder-[#C6C8CA] [&_input]:outline-none [&_input]:focus:outline-none">
-            <SearchBar />
+            <SearchBar
+              value={searchValue}
+              onChange={setSearchValue}
+              onSearch={handleSearch}
+            />
           </div>
         </div>
 
@@ -258,7 +269,11 @@ export default function NavigationBar() {
         </div>
 
         <div className="[&_form]:border-[#C6C8CA] [&_input]:placeholder-[#C6C8CA] [&_input]:outline-none [&_input]:focus:outline-none [&_form]:w-full">
-          <SearchBar />
+          <SearchBar
+            value={searchValue}
+            onChange={setSearchValue}
+            onSearch={handleSearch}
+          />
         </div>
       </div>
     </nav>
