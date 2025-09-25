@@ -198,6 +198,12 @@ export default function NavigationBar() {
             <Link
               key={i}
               href={href}
+              onClick={(event) => {
+                if (isActiveMenu(href)) {
+                  event.preventDefault();
+                  window.location.href = href;
+                }
+              }}
               className={`text-xl transition-all duration-200 hover:font-semibold ${
                 isActiveMenu(href)
                   ? "font-bold text-black"

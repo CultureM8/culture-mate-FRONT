@@ -251,7 +251,14 @@ export default function TotalSearch() {
         </div>
         {moreLink && (
           <button
-            onClick={() => router.push(`${moreLink}?q=${encodeURIComponent(keyword)}`)}
+            onClick={() => {
+              sessionStorage.setItem('searchData', JSON.stringify({
+                keyword: keyword,
+                timestamp: Date.now(),
+                source: 'integrated-search'
+              }));
+              router.push(moreLink);
+            }}
             className="text-sm text-gray-600 hover:text-black transition-colors"
           >
             더보기 →
@@ -297,7 +304,14 @@ export default function TotalSearch() {
             {eventData.length > 0 && (
               <div className="text-center mt-4">
                 <button
-                  onClick={() => router.push(`/events?q=${encodeURIComponent(keyword)}`)}
+                  onClick={() => {
+                    sessionStorage.setItem('searchData', JSON.stringify({
+                      keyword: keyword,
+                      timestamp: Date.now(),
+                      source: 'integrated-search'
+                    }));
+                    router.push('/events');
+                  }}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
                 >
                   더보기
@@ -306,7 +320,7 @@ export default function TotalSearch() {
             )}
           </div>
           <div className="mb-10">
-            <Title site="[동행모집글] " keyword={keyword} count={togetherCount} moreLink="/with" />
+            <Title site="[동행모집글] " keyword={keyword} count={togetherCount} moreLink="/together" />
             <div className="space-y-0">
               {togetherData.length > 0 ? (
                 togetherData.map((together) => (
@@ -324,7 +338,14 @@ export default function TotalSearch() {
             {togetherData.length > 0 && (
               <div className="text-center mt-4">
                 <button
-                  onClick={() => router.push(`/with?q=${encodeURIComponent(keyword)}`)}
+                  onClick={() => {
+                    sessionStorage.setItem('searchData', JSON.stringify({
+                      keyword: keyword,
+                      timestamp: Date.now(),
+                      source: 'integrated-search'
+                    }));
+                    router.push('/together');
+                  }}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
                 >
                   더보기

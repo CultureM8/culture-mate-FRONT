@@ -12,6 +12,8 @@ export default function SearchFilterSort({
   sortAction,
   sortOption = "latest",
   onSearch, // 검색 함수 추가
+  searchValue = "", // 검색값 추가 (Together 방식)
+  onSearchChange, // 검색값 변경 함수 추가
 }) {
   const viewTypes = [
     ["Gallery", ICONS.MENU],
@@ -54,7 +56,11 @@ export default function SearchFilterSort({
       </div>
 
       <div className="flex items-center gap-6">
-        <SearchBar onSearch={onSearch} />
+        <SearchBar
+          value={searchValue}
+          onChange={onSearchChange}
+          onSearch={onSearch}
+        />
         <button
           className="flex items-center gap-2 hover:cursor-pointer"
           onClick={filterAction}>

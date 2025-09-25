@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ROUTES, IMAGES, ICONS } from '@/constants/path';
 
 // 소셜 미디어 아이콘 컴포넌트

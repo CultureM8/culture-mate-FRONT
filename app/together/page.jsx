@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import GalleryLayout from "@/components/global/GalleryLayout";
@@ -11,7 +11,82 @@ import EventSelector from "@/components/global/EventSelector";
 import SearchBar from "@/components/global/SearchBar";
 import TogetherFilterModal from "@/components/together/TogetherFilterModal";
 import useLogin from "@/hooks/useLogin";
-import useTogetherItems from "@/hooks/useTogetherItems";
+import togetherApi from "@/lib/api/togetherApi";
+import { mapUiLabelToBackendTypes } from "@/constants/eventTypes";
+
+// Together 데이터 매핑 함수
+const mapTogetherListItem = (together) => {
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+
+  const location = together.region ?
+    [together.region.level1, together.region.level2, together.region.level3]
+      .filter(Boolean)
+      .join(' ') || '미정'
+    : '미정';
+
+  // 이미지 경로 처리 (기존 로직과 동일)
+  const imgSrc = together.event?.eventImage ||
+    (together.event?.mainImagePath
+      ? `${BASE_URL}${together.event.mainImagePath}`
+      : together.event?.thumbnailImagePath
+      ? `${BASE_URL}${together.event.thumbnailImagePath}`
+      : "/img/default_img.svg");
+
+  return {
+    id: together.id,
+    togetherId: together.id,
+    title: together.title,
+    region: together.region,
+    location: location,
+    eventType: together.eventType,
+    eventTitle: together.eventTitle,
+    eventName: together.event?.title || together.event?.eventName || together.eventTitle,
+    meetingDate: together.meetingDate,
+    currentParticipants: together.currentParticipants || 0,
+    maxParticipants: together.maxParticipants || 0,
+    group: `${together.currentParticipants || 0}/${together.maxParticipants}`,
+    isActive: together.isActive,
+    active: together.isActive,
+    authorNickname: together.authorNickname,
+    host: together.host,
+    author: together.host?.nickname || together.host?.displayName || together.authorNickname || '-',
+    imgSrc: imgSrc,
+    event: together.event,
+    eventSnapshot: together.event,
+    _key: `together_${together.id}`,
+    // 정렬을 위한 필드들
+    createdAt: together.createdAt,
+    companionDate: together.meetingDate,
+    date: together.meetingDate,
+  };
+};
+
+// Together 데이터용 타입별 검색 함수
+const fetchTogetherByTypes = async (types, baseParams = {}) => {
+  if (!Array.isArray(types) || types.length === 0) {
+    return await togetherApi.search(baseParams);
+  }
+  if (types.length === 1) {
+    return await togetherApi.search({ ...baseParams, eventType: types[0] });
+  }
+
+  const results = await Promise.all(
+    types.map((t) => togetherApi.search({ ...baseParams, eventType: t }))
+  );
+
+  const seen = new Set();
+  const merged = [];
+  for (const arr of results) {
+    if (!Array.isArray(arr)) continue;
+    for (const item of arr) {
+      const key = item?.id;
+      if (key == null || seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+  return merged;
+};
 
 export default function TogetherPage() {
   const [title, intro] = [
@@ -21,22 +96,13 @@ export default function TogetherPage() {
 
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { ready, isLogined } = useLogin();
 
-  // URL 파라미터 ↔ 상태 동기화 (q, sort, view, hideClosed)
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
-  const [sortOption, setSortOption] = useState(
-    searchParams.get("sort") ?? "createdAt_desc"
-  );
-  const [viewType, setViewType] = useState(
-    searchParams.get("view") === "List" ? "List" : "Gallery"
-  );
-
-  // 완료된 모집 숨기기 체크박스 (쿼리로부터 초기화)
-  const [hideClosed, setHideClosed] = useState(
-    searchParams.get("hideClosed") ? (searchParams.get("hideClosed") === "1") : true
-  );
+  // 상태 관리 (기본값으로 초기화)
+  const [query, setQuery] = useState("");
+  const [sortOption, setSortOption] = useState("createdAt_desc");
+  const [viewType, setViewType] = useState("Gallery");
+  const [hideClosed, setHideClosed] = useState(true);
 
   const [selectedEventType, setSelectedEventType] = useState("전체");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -44,125 +110,246 @@ export default function TogetherPage() {
   // 필터 상태 추가
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [isFiltered, setIsFiltered] = useState(false);
-  const { items, loading, error, refetch } = useTogetherItems(
-    selectedEventType,
-    sortOption
-  );
+  const [sessionChecked, setSessionChecked] = useState(false); // sessionStorage 확인 완료 여부
 
-  // URL 업데이트
+  // 직접 상태 관리 (Events와 동일)
+  const [togetherData, setTogetherData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+
+  // 정렬 함수 (Events와 유사)
+  const sortTogethers = (togethers, option) => {
+    const sorted = [...togethers];
+
+    switch (option) {
+      case "createdAt_desc":
+        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      case "createdAt_asc":
+        return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      case "event_desc":
+        return sorted.sort((a, b) => new Date(b.meetingDate) - new Date(a.meetingDate));
+      case "event_asc":
+        return sorted.sort((a, b) => new Date(a.meetingDate) - new Date(b.meetingDate));
+      default:
+        return sorted;
+    }
+  };
+
+  // 검색 함수 (실제 검색 로직만 수행 - Events와 동일한 패턴)
+  const performSearch = async (keyword, skipModeSettings = false) => {
+    try {
+      if (!skipModeSettings) {
+        setIsSearchMode(true);
+        setIsFiltered(false);
+      }
+      setLoading(true);
+      setError(null);
+
+      // 현재 모든 검색 조건을 포함하되 검색어 덮어쓰기
+      const searchParams = getCurrentSearchParams();
+      searchParams.keyword = keyword;
+
+      const raw = await togetherApi.search(searchParams);
+      const mapped = Array.isArray(raw) ? raw.map(mapTogetherListItem) : [];
+      const sortedResults = sortTogethers(mapped, sortOption);
+      setTogetherData(sortedResults);
+    } catch (error) {
+      console.error("검색 실패:", error);
+      setTogetherData([]);
+      setError(error.message || "모임 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 검색바 핸들러 (상태 업데이트 + 검색)
+  const handleSearch = async (keyword) => {
+    setQuery(keyword);
+    if (keyword.trim()) {
+      await performSearch(keyword);
+    }
+  };
+
+  // 재시도 함수
+  const refetch = () => {
+    if (query && query.trim()) {
+      performSearch(query);
+    } else {
+      // 기본 데이터 로딩 로직 실행
+      loadTogetherData();
+    }
+  };
+
+
+  // 정렬 옵션 변경 시 재정렬 (Events와 동일)
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    // q
-    if (query?.trim()) params.set("q", query.trim());
-    else params.delete("q");
-    // sort
-    if (sortOption && sortOption !== "createdAt_desc")
-      params.set("sort", sortOption);
-    else params.delete("sort");
-    // view
-    if (viewType !== "Gallery") params.set("view", viewType);
-    else params.delete("view");
-    // hideClosed
-    if (hideClosed) params.set("hideClosed", "1");
-    else params.delete("hideClosed");
+    if (togetherData.length > 0) {
+      const sortedData = sortTogethers(togetherData, sortOption);
+      setTogetherData(sortedData);
+    }
+  }, [sortOption]);
 
-    const qs = params.toString();
-    const nextUrl = qs ? `${pathname}?${qs}` : pathname;
-    // 스크롤 유지
-    router.replace(nextUrl, { scroll: false });
-  }, [query, sortOption, viewType, hideClosed]);
+  // 현재 모든 검색 조건을 통합하는 중앙 집중식 함수 (Events와 동일)
+  const getCurrentSearchParams = () => {
+    const params = {};
 
-  // 검색어 + 이벤트타입 + 지역 + 완료 숨기기 필터링
-  const filtered = useMemo(() => {
-    let result = items || [];
+    // 검색어
+    if (query && query.trim()) {
+      params.keyword = query.trim();
+    }
 
-    // 1) 이벤트 타입
+    // 이벤트 타입
     if (selectedEventType !== "전체") {
-      result = result.filter((item) => {
-        const itemEventType = item.eventType;
-
-        // 복합 타입 처리
-        if (selectedEventType === "클래식/무용") {
-          return itemEventType === "클래식" || itemEventType === "무용";
-        }
-        if (selectedEventType === "콘서트/페스티벌") {
-          return itemEventType === "콘서트" || itemEventType === "페스티벌";
-        }
-        // 단일 타입 매칭 (전시/전시회 교차 허용)
-        if (selectedEventType === "전시") {
-          return itemEventType === "전시" || itemEventType === "전시회";
-        }
-        return itemEventType === selectedEventType;
-      });
+      const backendTypes = mapUiLabelToBackendTypes(selectedEventType);
+      if (backendTypes.length === 1) {
+        params.eventType = backendTypes[0];
+      }
     }
 
-    // 2) 검색어
-    const q = query.trim().toLowerCase();
-    if (q) {
-      const safe = (v) => (v == null ? "" : String(v));
-      result = result.filter((it) => {
-        const hay = [
-          safe(it.title),
-          safe(it.content),
-          safe(it.authorName),
-          safe(it.authorNickname),
-          safe(it.nickname),
-          safe(it.loginId),
-          safe(it.eventName),
-          safe(it.name),
-          safe(it.description),
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      });
+    // 적용된 필터 (지역, 날짜)
+    if (appliedFilters) {
+      if (appliedFilters.selectedRegion) {
+        const region = appliedFilters.selectedRegion;
+        if (region.location1 && region.location1 !== "전체") {
+          params["region.level1"] = region.location1;
+        }
+        if (region.location2 && region.location2 !== "전체") {
+          params["region.level2"] = region.location2;
+        }
+        if (region.location3 && region.location3 !== "전체") {
+          params["region.level3"] = region.location3;
+        }
+      }
+
+      if (appliedFilters.dateRange && appliedFilters.dateRange[0] && appliedFilters.dateRange[1]) {
+        params.startDate = appliedFilters.dateRange[0];
+        params.endDate = appliedFilters.dateRange[1];
+      }
     }
 
-    // 3) 지역 필터
-    if (isFiltered && appliedFilters?.selectedRegion) {
-      const selectedRegion = appliedFilters.selectedRegion;
+    return params;
+  };
 
-      result = result.filter((item) => {
-        const itemRegion = item.region || item.location;
-        if (!itemRegion) return false;
+  // 기본 데이터 로딩 useEffect (sessionStorage 확인 후, 검색 모드나 필터 적용 중이 아닐 때만)
+  useEffect(() => {
+    // sessionStorage 확인이 완료되지 않았으면 대기
+    if (!sessionChecked) return;
 
-        if (selectedRegion.location1 && selectedRegion.location1 !== "전체") {
-          if (
-            itemRegion.level1 !== selectedRegion.location1 &&
-            itemRegion.city !== selectedRegion.location1 &&
-            itemRegion.location1 !== selectedRegion.location1
-          ) {
-            return false;
-          }
+    if (isSearchMode || isFiltered) return;
+
+    const fetchTogethers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        let raw = [];
+
+        if (selectedEventType === "전체") {
+          raw = await togetherApi.getAll();
+        } else {
+          const backendTypes = mapUiLabelToBackendTypes(selectedEventType);
+          raw = await fetchTogetherByTypes(backendTypes, {});
         }
 
-        if (selectedRegion.location2 && selectedRegion.location2 !== "전체") {
-          if (
-            itemRegion.level2 !== selectedRegion.location2 &&
-            itemRegion.district !== selectedRegion.location2 &&
-            itemRegion.location2 !== selectedRegion.location2
-          ) {
-            return false;
+        const mapped = Array.isArray(raw) ? raw.map(mapTogetherListItem) : [];
+        const sortedTogethers = sortTogethers(mapped, sortOption);
+        setTogetherData(sortedTogethers);
+      } catch (error) {
+        console.error("동행 데이터를 가져오는데 실패했습니다:", error);
+        setTogetherData([]);
+        setError(error.message || "모임 목록을 불러오는데 실패했습니다.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTogethers();
+  }, [sessionChecked, selectedEventType, isSearchMode, isFiltered]);
+
+  // sessionStorage에서 검색 데이터 확인 (통합검색에서 넘어온 경우) - 최우선 처리
+  useEffect(() => {
+    const handleSessionSearch = async () => {
+      try {
+        const searchData = sessionStorage.getItem('searchData');
+        if (searchData) {
+          const { keyword, source } = JSON.parse(searchData);
+
+          if (source === 'integrated-search' && keyword && keyword.trim()) {
+            console.log('통합검색에서 넘어온 검색어:', keyword);
+
+            setQuery(keyword);
+            setIsSearchMode(true);
+            setIsFiltered(false);
+            setLoading(true);
+            setError(null);
+
+            const searchParams = { keyword: keyword.trim() };
+            if (selectedEventType !== "전체") {
+              const backendTypes = mapUiLabelToBackendTypes(selectedEventType);
+              if (backendTypes.length === 1) {
+                searchParams.eventType = backendTypes[0];
+              }
+            }
+
+            const raw = await togetherApi.search(searchParams);
+            const mapped = Array.isArray(raw) ? raw.map(mapTogetherListItem) : [];
+            const sortedResults = sortTogethers(mapped, sortOption);
+            setTogetherData(sortedResults);
+
+            // 사용 후 삭제
+            sessionStorage.removeItem('searchData');
           }
         }
+      } catch (error) {
+        console.error('통합검색 데이터 처리 실패:', error);
+        setTogetherData([]);
+        setError(error.message || "모임 목록을 불러오는데 실패했습니다.");
+        sessionStorage.removeItem('searchData');
+      } finally {
+        setLoading(false);
+        // sessionStorage 확인 완료 상태 설정 (검색 데이터가 있든 없든)
+        setSessionChecked(true);
+      }
+    };
 
-        if (selectedRegion.location3 && selectedRegion.location3 !== "전체") {
-          if (
-            itemRegion.level3 !== selectedRegion.location3 &&
-            itemRegion.dong !== selectedRegion.location3 &&
-            itemRegion.location3 !== selectedRegion.location3
-          ) {
-            return false;
-          }
+    handleSessionSearch();
+  }, [selectedEventType, sortOption]);
+
+  // 이벤트 타입 변경시 현재 조건 유지하며 재검색 (Events와 동일)
+  useEffect(() => {
+    if (isSearchMode || isFiltered) {
+      const performTypeChangeSearch = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          // 현재 모든 조건을 유지하며 재검색
+          const searchParams = getCurrentSearchParams();
+          const raw = await togetherApi.search(searchParams);
+
+          const mapped = Array.isArray(raw) ? raw.map(mapTogetherListItem) : [];
+          const sortedTogethers = sortTogethers(mapped, sortOption);
+          setTogetherData(sortedTogethers);
+        } catch (error) {
+          console.error("타입 변경 재검색 실패:", error);
+          setTogetherData([]);
+          setError(error.message || "모임 목록을 불러오는데 실패했습니다.");
+        } finally {
+          setLoading(false);
         }
+      };
 
-        return true;
-      });
+      performTypeChangeSearch();
     }
+  }, [selectedEventType]); // selectedEventType 변경시에만 실행
 
-    // 완료된 모집 숨기기 (기간 지남 OR inactive OR 정원 초과)
+  // 필터링 로직 (완료된 모집 숨기기만 클라이언트에서 처리)
+  const filtered = useMemo(() => {
+    const result = togetherData || [];
+
+    // 완료된 모집 숨기기만 클라이언트에서 처리
     if (hideClosed) {
-      result = result.filter((it) => {
+      return result.filter((it) => {
         const now = new Date();
 
         // 날짜 판정용 우선순위: meetingDate > companionDate > date > createdAt
@@ -199,18 +386,58 @@ export default function TogetherPage() {
     }
 
     return result;
-  }, [items, query, selectedEventType, isFiltered, appliedFilters, hideClosed]);
+  }, [togetherData, hideClosed]);
 
-  // 필터 적용 핸들러
-  const handleApplyFilters = (filterData) => {
-    setIsFiltered(true);
-    setAppliedFilters(filterData);
+  // 필터 적용 핸들러 (누적 필터링 - Events와 동일)
+  const handleApplyFilters = async (filterData) => {
+    try {
+      setIsFiltered(true);
+      setLoading(true);
+      setError(null);
+
+      // 현재 모든 검색 조건을 포함 (검색어, 이벤트 타입 포함)
+      const searchParams = getCurrentSearchParams();
+
+      // 새로운 필터 조건 추가/덮어쓰기
+      if (filterData.selectedRegion) {
+        const region = filterData.selectedRegion;
+        if (region.location1 && region.location1 !== "전체") {
+          searchParams["region.level1"] = region.location1;
+        }
+        if (region.location2 && region.location2 !== "전체") {
+          searchParams["region.level2"] = region.location2;
+        }
+        if (region.location3 && region.location3 !== "전체") {
+          searchParams["region.level3"] = region.location3;
+        }
+      }
+
+      if (filterData.dateRange && filterData.dateRange[0] && filterData.dateRange[1]) {
+        searchParams.startDate = filterData.dateRange[0];
+        searchParams.endDate = filterData.dateRange[1];
+      }
+
+      const raw = await togetherApi.search(searchParams);
+      const mapped = Array.isArray(raw) ? raw.map(mapTogetherListItem) : [];
+      const sortedTogethers = sortTogethers(mapped, sortOption);
+      setTogetherData(sortedTogethers);
+      setAppliedFilters(filterData);
+
+      console.log(`필터링 결과: ${mapped.length}개 동행모집글`);
+    } catch (error) {
+      console.error("필터 적용 실패:", error);
+      setTogetherData([]);
+      setError(error.message || "필터 적용에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 필터 초기화
   const handleClearFilters = () => {
     setIsFiltered(false);
     setAppliedFilters(null);
+    // 기본 데이터 다시 로드 (기본 데이터 로딩 useEffect가 실행됨)
   };
 
   const handleWrite = () => {
@@ -268,7 +495,9 @@ export default function TogetherPage() {
 
       <div className="px-2.5 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">{selectedEventType}</h2>
+          <h2 className="text-xl font-semibold">
+            {query.trim() ? `"${query.trim()}" 검색 결과` : selectedEventType}
+          </h2>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setViewType("Gallery")}
@@ -314,7 +543,7 @@ export default function TogetherPage() {
           <SearchBar
             value={query}
             onChange={setQuery}
-            onSearch={(q) => setQuery(q)}
+            onSearch={handleSearch}
           />
 
           <button

@@ -91,7 +91,8 @@ const getSortParam = (sortOption) => {
 
 export default function useTogetherItems(
   selectedEventType = "전체",
-  sortOption = "event_desc"
+  sortOption = "event_desc",
+  searchKeyword = ""
 ) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
