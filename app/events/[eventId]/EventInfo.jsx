@@ -165,7 +165,7 @@ export default function EventInfo({ eventData, score = 0 }) {
     image: eventData.image,
   });
 
-  // 유틸에 우선순위 완전 위임 (main > thumb > fallback)
+  // 유틸에 우선순위 완전 위임 (main > thumb > fallback), false = 메인 이미지 우선
   const finalImageUrl = getEventMainImageUrl(eventData, false);
   console.log("EventInfo - 최종 사용될 이미지 URL:", finalImageUrl);
 
@@ -177,19 +177,17 @@ export default function EventInfo({ eventData, score = 0 }) {
 
       <div className="flex">
         <div className="p-4">
-          <div className="relative w-[400px] h-[500px] overflow-hidden rounded-lg">
+          <div className="overflow-hidden rounded-lg">
             <Image
-              src={finalImageUrl} // 고화질 이미지 사용 (유틸이 승격 처리)
+              src={finalImageUrl} // 메인 이미지 사용 (mainImagePath 우선)
               alt={eventData.alt || eventData.title || "이벤트 이미지"}
-              fill
-              className="object-cover"
+              width={800}
+              height={1000}
+              className="w-[400px] h-[500px] object-cover"
               onError={handleImageError}
-              // 이미지 최적화 힌트 (레이아웃 변경 없음)
-              sizes="(max-width: 768px) 100vw, 400px"
-              quality={95}
+              quality={100}
               priority
-              // 문제 원인 진단용(필요 시만 잠깐): 아래 주석을 풀고 확인
-              // unoptimized
+              unoptimized
             />
           </div>
           <div className="px-2 py-6 flex justify-between">

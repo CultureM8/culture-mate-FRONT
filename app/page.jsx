@@ -204,16 +204,15 @@ function TogetherCardGrid() {
       try {
         console.log("🚀 TogetherCardGrid: 최신 동행 4개 조회");
         setIsLoading(true);
-        // /recent 엔드포인트 사용으로 필요한 데이터만 조회
-        const response = await fetch('/api/v1/together/recent?limit=4');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const recentTogether = await response.json();
-        console.log("✅ TogetherCardGrid: 응답 받음", recentTogether);
+        // 백엔드 컨트롤러의 /search 엔드포인트 사용 (limit과 sortBy 파라미터)
+        const response = await togetherApi.search({ limit: 4, sortBy: 'latest' });
+        console.log("✅ TogetherCardGrid: 응답 받음", response);
 
-        setTogetherData(recentTogether);
+        // limit이 있을 때는 {data: Array, totalCount: number} 형태로 반환
+        const togetherList = response.data || response;
+        setTogetherData(togetherList);
       } catch (err) {
+        console.error("TogetherCardGrid 에러:", err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -306,15 +305,14 @@ function NewEvent() {
     const fetchRecentEvents = async () => {
       try {
         setIsLoading(true);
-        // /recent 엔드포인트 사용으로 필요한 데이터만 조회
-        const response = await fetch('/api/v1/events/recent?limit=4');
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const recentEvents = await response.json();
+        // eventApi 사용 - 백엔드 /search 엔드포인트로 최신 4개 조회
+        const response = await getEvents({ limit: 4 });
 
+        // limit이 있을 때는 {data: Array, totalCount: number} 형태로 반환
+        const recentEvents = response.data || response;
         setEventData(recentEvents);
       } catch (err) {
+        console.error("메인페이지 이벤트 조회 에러:", err);
         setError(err.message);
       } finally {
         setIsLoading(false);
@@ -388,16 +386,24 @@ function NewEvent() {
   return (
     <div className="w-full flex justify-center py-2.5">
       <div className="w-[1200px]">
-        {formattedEventData.length > 0 ? (
-          <GalleryLayout Component={EventGallery} items={formattedEventData} />
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">현재 진행 중인 이벤트가 없습니다.</p>
-            <p className="text-gray-400 text-sm mt-2">
-              새로운 이벤트가 곧 등록될 예정입니다!
-            </p>
-          </div>
-        )}
+        <div className="grid grid-cols-4 gap-6 place-items-center">
+          {formattedEventData.length > 0 ? (
+            formattedEventData.map((event) => (
+              <div
+                key={event.id}
+                className="w-[280px] h-auto flex justify-center">
+                <EventGallery {...event} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-4 text-center py-8">
+              <p className="text-gray-500">현재 진행 중인 이벤트가 없습니다.</p>
+              <p className="text-gray-400 text-sm mt-2">
+                새로운 이벤트가 곧 등록될 예정입니다!
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

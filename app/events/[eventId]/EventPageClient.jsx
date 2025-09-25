@@ -89,7 +89,7 @@ const mapDetail = (data) => {
         : "미정",
     priceList,
     eventType: data.eventType,
-    imgSrc: getEventMainImageUrl(data, true), // 썸네일 이미지 사용 (원래대로)
+    imgSrc: getEventMainImageUrl(data, false), // 메인 이미지(고화질) 사용
     alt: data.title,
     isHot: false,
     score: data.avgRating ? Number(data.avgRating) : 0,
@@ -100,6 +100,11 @@ const mapDetail = (data) => {
     contentImageUrls: getEventContentImageUrls(data),
     ticketPrices: data.ticketPrices || [],
     region: data.region || null,
+    // 백엔드 원본 이미지 필드들 추가 (EventInfo에서 고화질 이미지 사용을 위해)
+    mainImagePath: data.mainImagePath,
+    thumbnailImagePath: data.thumbnailImagePath,
+    mainImageUrl: data.mainImageUrl,
+    imageUrl: data.imageUrl,
     isInterested: Boolean(data.isInterested),
   };
 };
