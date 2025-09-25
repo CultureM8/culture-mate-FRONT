@@ -593,7 +593,28 @@ export default function TogetherDetailPage() {
         {/* 작성자 정보 (간단) */}
         <div className="bg-gray-100 rounded-lg p-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gray-300 rounded-full"></div>
+            {/* 프로필 이미지 */}
+            <div className="w-16 h-16 rounded-full overflow-hidden">
+              {post?.host?.thumbnailImagePath ? (
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080"}${post.host.thumbnailImagePath}`}
+                  alt={`${displayHost} 프로필`}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // 이미지 로드 실패 시 기본 배경으로 대체
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div
+                className={`w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center ${post?.host?.thumbnailImagePath ? 'hidden' : ''}`}
+              >
+                <span className="text-gray-500 text-sm">👤</span>
+              </div>
+            </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium">{displayHost}</span>
@@ -604,7 +625,9 @@ export default function TogetherDetailPage() {
                   </button>
                 )}
               </div>
-              <p className="text-sm text-gray-600">작성자의 한줄 자기소개</p>
+              <p className="text-sm text-gray-600">
+                {post?.host?.intro || "작성자의 한줄 자기소개"}
+              </p>
             </div>
           </div>
         </div>
