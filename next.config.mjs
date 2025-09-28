@@ -14,8 +14,8 @@ const nextConfig = {
       },
       // ✅ SockJS/STOMP
       {
-        source: "/ws-chat/:path*",
-        destination: "http://localhost:8080/ws-chat/:path*",
+        source: "/websocket/:path*",
+        destination: "http://localhost:8080/websocket/:path*",
       },
     ];
   },
