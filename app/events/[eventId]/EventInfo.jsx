@@ -3,7 +3,7 @@
 import { ICONS } from "@/constants/path";
 import Image from "next/image";
 import { useState, useContext, useEffect } from "react";
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import { getEventMainImageUrl, handleImageError } from "@/lib/utils/imageUtils";
 import { toggleEventInterest } from "@/lib/api/eventApi";

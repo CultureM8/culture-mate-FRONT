@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import { toCard } from "@/lib/schema";
+import { toCard } from "@/lib/logic/schema";
 import { searchEvents } from "@/lib/api/eventApi";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 import EventTile from "./EventTile";

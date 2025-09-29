@@ -10,7 +10,7 @@ import useTogetherWriteState from "@/hooks/useTogetherWriteState";
 import {
   submitTogetherPost,
   validateTogetherForm,
-} from "@/lib/togetherWriteUtils";
+} from "@/lib/logic/togetherWriteUtils";
 import togetherApi from "@/lib/api/togetherApi";
 import { getEventById } from "@/lib/api/eventApi";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";

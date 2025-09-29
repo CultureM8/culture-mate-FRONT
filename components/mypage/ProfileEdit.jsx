@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IMAGES, ICONS, ROUTES } from "@/constants/path";
 import useLogin from "@/hooks/useLogin";
-import { getMemberDetail, updateMemberWithImages } from "@/lib/api";
+import { getMemberDetail, updateMemberWithImages } from "@/lib/api/memberDetailApi";
 
 // 저장 버튼 컴포넌트
 function SaveButton({ onClick, isLoading = false }) {
@@ -837,10 +837,6 @@ export default function MyPageEdit() {
 
   const [showAddressModal, setShowAddressModal] = useState(false);
 
-  // 파일 입력 ref
-  const backgroundFileRef = useRef(null);
-  const profileFileRef = useRef(null);
-
   // 비밀번호 정규식
   const passwordRegex = {
     length: /.{8,}/,
@@ -848,39 +844,6 @@ export default function MyPageEdit() {
     lowercase: /[a-z]/,
     number: /\d/,
     special: /[!@#$^&*()+-[]{}:|,.?]/,
-  };
-
-  // 이미지 업로드 핸들러
-  const handleBackgroundImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setBackgroundImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-    event.target.value = "";
-  };
-
-  const handleProfileImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-    event.target.value = "";
-  };
-
-  const handleBackgroundEditClick = () => {
-    backgroundFileRef.current?.click();
-  };
-
-  const handleProfileEditClick = () => {
-    profileFileRef.current?.click();
   };
 
   const handleProfileDelete = () => {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import StarScore from "@/lib/StarScore";
+import StarScore from "@/components/ui/StarScore";
 import { getEventTypeLabel } from "@/constants/eventTypes";
 
 export default function PostEventMiniCard({

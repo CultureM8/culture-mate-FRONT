@@ -5,7 +5,8 @@ import FriendProfileSlide from "@/components/mypage/FriendProfileSlide";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
 import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
 import { getChatRoom, getChatMessages } from "@/lib/api/chatApi";
-import { getProfileImageUrl } from "@/lib/imageUtils";
+import { togetherApi } from "@/lib/api/togetherApi";
+import { getProfileImageUrl } from "@/lib/utils/imageUtils";
 
 /**
  * props:
@@ -95,19 +96,8 @@ export default function GroupChat({
 
       try {
         setRoomLoading(true);
-        const response = await fetch(`/api/v1/together/${togetherId}/chatroom`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const chatRoomData = await response.json();
-          setActualRoomId(chatRoomData.id); // 실제 채팅방 ID 설정
-        } else {
-          console.error('채팅방 정보 가져오기 실패:', response.status, response.statusText);
-        }
+        const chatRoomData = await togetherApi.getChatroom(togetherId);
+        setActualRoomId(chatRoomData.id); // 실제 채팅방 ID 설정
       } catch (error) {
         console.error('채팅방 정보 가져오기 오류:', error);
       } finally {
@@ -186,23 +176,8 @@ export default function GroupChat({
         try {
           console.log('📜 채팅 히스토리 로딩 시작...', actualRoomId);
 
-          // JWT 헤더와 함께 직접 API 호출
-          const token = localStorage.getItem("accessToken");
-          const response = await fetch(`/api/v1/chatroom/${actualRoomId}/messages`, {
-            method: "GET",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-              ...(token && { "Authorization": `Bearer ${token}` })
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-          }
-
-          const result = await response.json();
+          // chatApi를 사용한 메시지 조회
+          const result = await getChatMessages(actualRoomId);
           const historyMessages = result.content || result || [];
 
           if (Array.isArray(historyMessages)) {

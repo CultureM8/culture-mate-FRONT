@@ -46,7 +46,11 @@ function extractRoomsFromMalformedJson(raw) {
 
 export async function GET() {
   try {
-    const beRes = await fetch("http://localhost:8080/api/v1/chatroom", {
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api/v1";
+    const CHAT_ENDPOINT = process.env.NEXT_PUBLIC_ENDPOINT_CHAT || "/chatroom";
+
+    const beRes = await fetch(`${BASE_URL}${API_BASE}${CHAT_ENDPOINT}`, {
       headers: { Accept: "application/json" },
       cache: "no-store",
     });

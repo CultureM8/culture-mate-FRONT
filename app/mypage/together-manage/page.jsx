@@ -5,7 +5,7 @@ import { useState, useEffect, useContext } from "react";
 import TogetherMessage from "@/components/mypage/TogetherManagement/TogetherMessage";
 import MyTogether from "@/components/mypage/TogetherManagement/MyTogether";
 import { LoginContext } from "@/components/auth/LoginProvider";
-import { loadPosts } from "@/lib/storage";
+import { loadPosts } from "@/lib/utils/storage";
 import { listChatRooms, getChatRoom } from "@/lib/api/chatApi";
 
 export default function TogetherManagePage() {

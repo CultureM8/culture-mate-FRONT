@@ -13,10 +13,10 @@ import togetherApi, { toggleTogetherInterest } from "@/lib/api/togetherApi";
 import { transformEventCardData } from "@/lib/api/eventApi";
 
 /* storage 유틸 */
-import { bumpViews, isLiked, toggleLike, deletePost } from "@/lib/storage";
+import { bumpViews, isLiked, toggleLike, deletePost } from "@/lib/utils/storage";
 
 /* chatRequest 저장 */
-import { addChatRequest } from "@/lib/chatRequestUtils";
+import { addChatRequest } from "@/lib/logic/chatRequestUtils";
 
 /* 이벤트 조회(스냅샷 없을 때만 사용) */
 import eventApi from "@/lib/api/eventApi";
@@ -296,16 +296,8 @@ export default function TogetherDetailPage() {
     const myUid = user.id;
     const authorUid =
       post.host?.id || post.hostId || post.authorId || post._ownerKey;
-    console.log("🔍 Own Post Check:", {
-      myUid,
-      authorUid,
-      postHost: post.host,
-      userInfo: user,
-      postData: post,
-    });
     isOwnPost =
       myUid != null && authorUid != null && String(myUid) === String(authorUid);
-    console.log(" isOwnPost:", isOwnPost);
   }
 
   /* 이벤트 카드 데이터 */
@@ -346,11 +338,7 @@ export default function TogetherDetailPage() {
 
   /* 관심 등록/해제 핸들러 */
   const onToggleInterest = async () => {
-    console.log("🔍 TogetherDetail onToggleInterest 호출됨");
-    console.log("🔍 로그인 상태:", { isLogined, user, togetherId });
-
     if (!isLogined || !user) {
-      console.log("⚠️ 로그인 필요");
       alert("로그인이 필요합니다.");
       return;
     }
@@ -732,8 +720,6 @@ export default function TogetherDetailPage() {
           setStatusChanging(true);
           try {
             const action = isRecruiting ? "close" : "reopen";
-            console.log("🔄 모집 상태 변경 요청:", { togetherId, action });
-
             await togetherApi.changeRecruitingStatus(togetherId, action);
 
             // 상태 업데이트

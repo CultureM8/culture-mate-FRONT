@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Gallery from "@/components/global/Gallery";
 import { ICONS } from "@/constants/path";
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 
 /** location fallback */

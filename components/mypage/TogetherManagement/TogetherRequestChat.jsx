@@ -6,6 +6,7 @@ import SockJS from "sockjs-client";
 import { Client as StompClient } from "@stomp/stompjs";
 import { listChatRooms, joinRoom } from "@/lib/api/chatApi";
 import chatApi from "@/lib/api/chatApi";
+import { togetherApi } from "@/lib/api/togetherApi";
 import { WS_ENDPOINT, subDestination, pubDestination } from "@/lib/chatClient";
 import { createAuthenticatedStompClient } from "@/lib/websocket-jwt-patch";
 
@@ -139,6 +140,7 @@ export default function TogetherRequestChat({
   const [newMessage, setNewMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // "connecting" | "connected" | "error"
+  const [isConnecting, setIsConnecting] = useState(false); // 연결 중 상태 플래그
 
   const [roomId, setRoomId] = useState(
     roomIdProp || chatRequestData.roomId || null
@@ -186,25 +188,10 @@ export default function TogetherRequestChat({
 
     setParticipantsLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(`/api/v1/together/${chatRequestData.togetherId}/participants?status=APPROVED`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` })
-        }
-      });
-
-      if (response.ok) {
-        const participantData = await response.json();
-        console.log("🟢 참가자 목록 응답:", participantData);
-        console.log("🟢 참가자 수:", participantData?.length || 0);
-        setParticipants(participantData || []);
-      } else {
-        console.warn("🔴 참가자 목록 API 오류:", response.status, await response.text());
-      }
+      const participantData = await togetherApi.getParticipants(chatRequestData.togetherId, 'APPROVED');
+      console.log("🟢 참가자 목록 응답:", participantData);
+      console.log("🟢 참가자 수:", participantData?.length || 0);
+      setParticipants(participantData || []);
     } catch (error) {
       console.warn("참가자 목록 로드 실패:", error);
     } finally {
@@ -275,45 +262,73 @@ export default function TogetherRequestChat({
   useEffect(() => {
     if (!roomId) {
       setConnectionStatus("connecting");
+      setIsConnecting(false);
       return;
     }
 
-    setConnectionStatus("connecting");
+    // 이미 연결 중이면 스킵 (중복 연결 방지)
+    if (isConnecting) {
+      console.log('🔄 WebSocket 연결이 이미 진행 중입니다');
+      return;
+    }
 
-    const initializeAuthenticatedWebSocket = async () => {
+    // 연결 취소 플래그 (race condition 방지)
+    let isCancelled = false;
+
+    // 이전 연결이 있으면 먼저 정리
+    if (stompRef.current) {
+      console.log('🔌 기존 WebSocket 연결 정리 중...');
       try {
-        console.log('=== JWT 인증 WebSocket 초기화 ===');
-        console.log('roomId:', roomId, 'myId:', myId);
+        if (stompRef.current.connected) {
+          stompRef.current.deactivate();
+        }
+      } catch (e) {
+        console.warn('기존 연결 해제 중 오류:', e);
+      }
+      stompRef.current = null;
+    }
 
+    setConnectionStatus("connecting");
+    setIsConnecting(true);
+
+    // 연결 정리를 위한 짧은 지연 (단순화)
+    setTimeout(() => {
+      if (isCancelled) {
+        console.log('🚫 WebSocket 연결 초기화 취소됨');
+        setIsConnecting(false);
+        return;
+      }
+
+      console.log('=== JWT 인증 WebSocket 초기화 ===');
+      console.log('roomId:', roomId, 'myId:', myId);
+
+      try {
         // JWT 인증된 STOMP 클라이언트 생성
         const client = createAuthenticatedStompClient(WS_ENDPOINT);
 
-        // 연결 성공 핸들러 오버라이드
-        client.onConnect = async () => {
+        // 연결 성공 핸들러
+        client.onConnect = () => {
+          if (isCancelled) {
+            console.log('🚫 WebSocket 연결 성공했지만 취소됨');
+            try {
+              client.deactivate();
+            } catch (e) {
+              console.warn('취소된 연결 해제 중 오류:', e);
+            }
+            return;
+          }
+
           console.log('✅ JWT 인증 WebSocket 연결 성공!', roomId);
           setConnectionStatus("connected");
+          setIsConnecting(false);
 
-          // 1. 채팅 히스토리 로드
-          try {
-            console.log('📜 채팅 히스토리 로딩 시작...', roomId);
+          // 1. 채팅 히스토리 로드 (비동기 처리)
+          const loadChatHistory = async () => {
+            try {
+              console.log('📜 채팅 히스토리 로딩 시작...', roomId);
 
-            // 올바른 API 경로로 직접 호출 (/api/v1/chatroom/{roomId}/messages)
-            const token = localStorage.getItem("accessToken");
-            const response = await fetch(`/api/v1/chatroom/${roomId}/messages`, {
-              method: "GET",
-              credentials: "include",
-              headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                ...(token && { "Authorization": `Bearer ${token}` })
-              }
-            });
-
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-            }
-
-            const result = await response.json();
+              // chatApi를 사용한 메시지 조회
+              const result = await chatApi.getMessages(roomId);
             const historyMessages = result.content || result || [];
 
             if (Array.isArray(historyMessages)) {
@@ -352,9 +367,13 @@ export default function TogetherRequestChat({
                 }
               });
             }
-          } catch (error) {
-            console.warn('⚠️ 채팅 히스토리 로드 실패 (무시):', error);
-          }
+            } catch (error) {
+              console.warn('⚠️ 채팅 히스토리 로드 실패 (무시):', error);
+            }
+          };
+
+          // 히스토리 로드 실행
+          loadChatHistory();
 
           // 2. 실시간 메시지 구독
           client.subscribe(subDestination(roomId), (frame) => {
@@ -389,6 +408,7 @@ export default function TogetherRequestChat({
         client.onStompError = (frame) => {
           console.error('❌ STOMP 연결 오류:', frame);
           setConnectionStatus("error");
+          setIsConnecting(false);
           if (frame.headers.message?.includes('JWT') ||
               frame.headers.message?.includes('토큰') ||
               frame.headers.message?.includes('인증')) {
@@ -401,6 +421,7 @@ export default function TogetherRequestChat({
         client.onWebSocketError = (event) => {
           console.error('❌ WebSocket 연결 오류:', event);
           setConnectionStatus("error");
+          setIsConnecting(false);
         };
 
         // STOMP 클라이언트 저장
@@ -412,18 +433,23 @@ export default function TogetherRequestChat({
         console.log('JWT 인증 WebSocket 연결 시도 중...');
 
       } catch (error) {
+        if (isCancelled) {
+          console.log('🚫 WebSocket 초기화 중 취소됨');
+          return;
+        }
         console.error('WebSocket 초기화 실패:', error);
         setConnectionStatus("error");
+        setIsConnecting(false);
         if (error.message?.includes('JWT') || error.message?.includes('토큰')) {
           alert('로그인이 필요합니다. 로그인 페이지로 이동합니다.');
           // window.location.href = '/login';
         }
       }
-    };
-
-    initializeAuthenticatedWebSocket();
+    }, 100); // setTimeout 종료
 
     return () => {
+      isCancelled = true;
+      setIsConnecting(false);
       if (stompRef.current) {
         console.log('🔌 JWT 인증 WebSocket 연결 정리 중...');
         try {
@@ -434,15 +460,21 @@ export default function TogetherRequestChat({
         stompRef.current = null;
       }
     };
-  }, [roomId, myId]); // 의존성 최소화로 중복 연결 방지
+  }, [roomId, myId, isConnecting]); // isConnecting 의존성 추가
 
   /* ---------- 재시도 기능 ---------- */
   const handleRetryConnection = () => {
+    if (isConnecting) {
+      console.log('🔄 이미 재연결 시도 중입니다');
+      return;
+    }
+
     setConnectionStatus("connecting");
+    setIsConnecting(false);
     // WebSocket 연결 useEffect를 다시 트리거하기 위해 roomId를 재설정
     const currentRoomId = roomId;
     setRoomId(null);
-    setTimeout(() => setRoomId(currentRoomId), 100);
+    setTimeout(() => setRoomId(currentRoomId), 200);
   };
 
   /* ---------- 수락 ---------- */

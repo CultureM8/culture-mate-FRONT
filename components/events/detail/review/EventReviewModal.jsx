@@ -2,11 +2,11 @@
 
 import { useState, useContext, useEffect } from "react";
 import Modal from "../../../global/Modal";
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 // 이벤트 리뷰 API 사용 (통합된 API)
 import { createEventReview, updateEventReview } from "@/lib/api/eventReviewApi";
 import { LoginContext } from "@/components/auth/LoginProvider";
-import { displayNameFromTriplet } from "@/lib/displayName";
+import { displayNameFromTriplet } from "@/lib/utils/displayName";
 
 export default function EventReviewModal({
   isOpen,

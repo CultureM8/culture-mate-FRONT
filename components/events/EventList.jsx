@@ -7,7 +7,7 @@ import ListComponent from "../global/ListComponent";
 import { getEventTypeLabel } from "@/constants/eventTypes";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 import { toggleEventInterest } from "@/lib/api/eventApi";
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 
 export default function EventList(props) {
   const {

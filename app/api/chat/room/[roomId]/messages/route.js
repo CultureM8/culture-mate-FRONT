@@ -65,7 +65,8 @@ export async function GET(_req, { params }) {
     );
   }
 
-  const backend = process.env.BACKEND_ORIGIN || "http://localhost:8080";
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+  const backend = process.env.BACKEND_ORIGIN || BASE_URL;
 
   // ▼ 여기에 네 백엔드에서 실제 200 나오는 후보를 "위에서부터" 넣어둔 상태야.
   // Swagger에서 확인해서 맞는 게 있으면 맨 위로 끌어올리면 됨.
@@ -77,7 +78,7 @@ export async function GET(_req, { params }) {
     // 방 상세(여기에 메시지 배열이 딸려오는 경우도 종종 있음)
     `${backend}/chat/room/${roomId}`,
     // 마지막으로 우리 "자체" 프론트 API 방 상세 라우트도 시도 (넌 이게 되는 걸 확인했지!)
-    `http://localhost:8080/chat/room/1`,
+    `${backend}/chat/room/1`,
   ];
 
   const tried = [];

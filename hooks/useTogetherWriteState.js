@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { makePost, toCard } from "@/lib/schema";
-import { parseCount } from "@/lib/togetherMap";
+import { makePost, toCard } from "@/lib/logic/schema";
+import { parseCount } from "@/lib/logic/togetherMap";
 
 export default function useTogetherWriteState() {
   /*PostEventMiniCard 스키마(toCard)로 정규화된 이벤트 스냅샷*/

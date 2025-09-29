@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -21,7 +21,8 @@ const toAbs = (v) => {
   const s = v.trim();
   if (!s) return null;
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
-  return `http://localhost:8080${s.startsWith("/") ? "" : "/"}${s}`;
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+  return `${BASE_URL}${s.startsWith("/") ? "" : "/"}${s}`;
 };
 
 export default function ReviewHistoryCard({

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
-import { normalizeEventSnapshot } from "@/lib/schema";
+import { normalizeEventSnapshot } from "@/lib/logic/schema";
 import { getBoardDetail, updateBoard } from "@/lib/api/boardApi";
 import { transformEventCardData } from "@/lib/api/eventApi";
 

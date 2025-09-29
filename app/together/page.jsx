@@ -273,15 +273,8 @@ export default function TogetherPage() {
 
   // 페이지 레벨 관심 상태 동기화 이벤트 리스너 (Events 패턴 적용)
   useEffect(() => {
-    console.log("🔵 Together 페이지 - together-interest-changed 이벤트 리스너 등록");
-
     const handleInterestChanged = (event) => {
       const { togetherId: changedTogetherId, interested } = event.detail;
-
-      console.log("🔔 Together 페이지 - 관심 상태 변경 감지:", {
-        changedTogetherId,
-        interested
-      });
 
       // Together 목록에서 해당 Together의 관심 상태 업데이트
       setTogetherData(prevTogethers => {

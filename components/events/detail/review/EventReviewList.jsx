@@ -1,10 +1,10 @@
 "use client";
 
-import StarRating from "@/lib/StarRating";
+import StarRating from "@/components/ui/StarRating";
 import { useState, useCallback } from "react";
 import Image from "next/image";
 import { IMAGES, ICONS } from "@/constants/path";
-import { displayNameFromTriplet } from "@/lib/displayName";
+import { displayNameFromTriplet } from "@/lib/utils/displayName";
 
 /** 날짜 포맷: YYYY.MM.DD */
 const formatDate = (dateString) => {

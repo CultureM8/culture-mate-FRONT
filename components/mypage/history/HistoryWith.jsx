@@ -6,8 +6,8 @@ import ListLayout from "../../global/ListLayout";
 import SearchFilterSort from "../../global/SearchSort";
 import EditSetting from "../../global/EditSetting";
 import useLogin from "@/hooks/useLogin";
-import { loadPosts, deletePost } from "@/lib/storage";
-import { getChatRequestsFromUser } from "@/lib/chatRequestUtils";
+import { loadPosts, deletePost } from "@/lib/utils/storage";
+import { getChatRequestsFromUser } from "@/lib/logic/chatRequestUtils";
 import { togetherApi } from "@/lib/api/togetherApi";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 

@@ -8,7 +8,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
 import { ROUTES } from "@/constants/path";
 import { api, unwrap } from "@/lib/apiBase";
-import { displayNameFromTriplet } from "@/lib/displayName";
+import { displayNameFromTriplet } from "@/lib/utils/displayName";
 
 /** -------- 표시/권한 유틸 -------- */
 

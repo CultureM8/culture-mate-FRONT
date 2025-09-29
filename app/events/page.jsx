@@ -421,7 +421,7 @@ export default function Event() {
   useEffect(() => {
     const fetchAISuggestions = async () => {
       try {
-        const { getAISuggestionData } = await import("@/lib/aiSuggestionData");
+        const { getAISuggestionData } = await import("@/lib/logic/aiSuggestionData");
         const suggestions = await getAISuggestionData();
         setAiSuggestionData(suggestions);
       } catch (error) {

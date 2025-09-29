@@ -9,11 +9,7 @@ export default function LogoutPage() {
   useEffect(() => {
     (async () => {
       await logout(); // LoginProvider 세션 정리
-      try {
-        // (레거시) fakeLogin 세션도 있으면 정리
-        const mod = await import("@/lib/fakeLogin");
-        if (mod?.fakeLogout) mod.fakeLogout();
-      } catch {}
+      // (레거시) fakeLogin 세션 정리 코드 제거됨 - 더 이상 필요하지 않음
       router.replace("/");
     })();
   }, [logout, router]);

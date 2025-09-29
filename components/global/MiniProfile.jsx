@@ -18,7 +18,8 @@ export default function MiniProfile({ onClose }) {
   const normalizeImg = (p) => {
     if (!p) return null;
     if (p.startsWith("http")) return p;
-    return `http://localhost:8080${p}`;
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
+    return `${BASE_URL}${p}`;
   };
 
   useEffect(() => {

@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 
-import StarScore from "@/lib/StarScore";
+import StarScore from "@/components/ui/StarScore";
 import { ICONS } from "@/constants/path";
 import { getEventTypeLabel } from "@/constants/eventTypes";
 

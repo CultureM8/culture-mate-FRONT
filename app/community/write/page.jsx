@@ -6,7 +6,7 @@ import CommunityWriteOption from "@/components/community/CommunityWriteOption";
 import ConfirmModal from "@/components/global/ConfirmModal";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import useLogin from "@/hooks/useLogin";
-import { normalizeEventSnapshot } from "@/lib/schema";
+import { normalizeEventSnapshot } from "@/lib/logic/schema";
 import { createBoard } from "@/lib/api/boardApi";
 
 export default function CommunityWrite() {

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import { ICONS } from "@/constants/path";
-import { getProfileImageUrl, getEventImageUrl } from "@/lib/imageUtils";
+import { getProfileImageUrl, getEventImageUrl } from "@/lib/utils/imageUtils";
 
 /**
  * Props

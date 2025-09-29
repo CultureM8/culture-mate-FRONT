@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { connectWithHistory } from "@/lib/chatIntegration";
+import { connectWithHistory } from "@/lib/logic/chatIntegration";
 
 /**
  * 통합된 WebSocket + REST API 채팅 컴포넌트 사용 예제

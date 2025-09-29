@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useEffect, useMemo, useRef, useState } from "react";
-import { login as apiLogin, logout as apiLogout } from "@/lib/authApi";
+import { login as apiLogin, logout as apiLogout } from "@/lib/api/authApi";
 
 export const LoginContext = createContext(null);
 
@@ -59,7 +59,6 @@ export default function LoginProvider({ children }) {
       const devUser = urlParams.get("user");
 
       if (devUser === "user1") {
-        console.log("🔄 개발용 계정 전환: User1");
         const u1 = {
           id: 952,
           login_id: "user1",
@@ -75,7 +74,6 @@ export default function LoginProvider({ children }) {
       }
 
       if (devUser === "user2") {
-        console.log("🔄 개발용 계정 전환: User2");
         const u2 = {
           id: 953,
           login_id: "user2",

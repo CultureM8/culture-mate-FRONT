@@ -5,7 +5,7 @@ import TogetherList from "@/components/together/TogetherList";
 import GroupChat from "@/components/mypage/TogetherManagement/GroupChat";
 import useLogin from "@/hooks/useLogin";
 import { togetherApi } from "@/lib/api/togetherApi";
-import { pickReadableName } from "@/lib/nameUtils";
+import { pickReadableName } from "@/lib/utils/nameUtils";
 
 export default function MyTogether({
   togetherCard = [],
@@ -310,7 +310,7 @@ export default function MyTogether({
 
         // 3) 없으면(선택) 생성 시도 — 모듈 없으면 그냥 패스
         try {
-          const mod = await import("@/lib/chatApi");
+          const mod = await import("@/lib/api/chatApi");
           if (typeof mod.createChatRoom === "function") {
             const newRoom = await mod.createChatRoom(
               `${selectedTogether.title || "단체 채팅"} - ${tgtId}`

@@ -4,7 +4,7 @@ import { useState, useContext, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import FriendListItem from "@/components/mypage/FriendListItem";
-import { createTogetherRequest } from "@/lib/togetherRequestApi";
+import { createTogetherRequest } from "@/lib/api/togetherRequestApi";
 
 const s = (v, d = "") => (typeof v === "string" ? v : d);
 const ownerKeyOf = (u) =>
