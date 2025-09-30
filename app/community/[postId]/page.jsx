@@ -2,7 +2,7 @@
 
 import ConfirmModal from "@/components/global/ConfirmModal";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import CommentsSection from "@/components/community/CommentsSection";
@@ -41,7 +41,7 @@ const saveRecSet = (postId, set) => {
   } catch {}
 };
 
-export default function CommunityDetailPage() {
+function CommunityDetailPageContent() {
   const { postId } = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -301,5 +301,13 @@ export default function CommunityDetailPage() {
         onClose={() => setOpenDelete(false)}
       />
     </div>
+  );
+}
+
+export default function CommunityDetailPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">로딩 중...</div>}>
+      <CommunityDetailPageContent />
+    </Suspense>
   );
 }

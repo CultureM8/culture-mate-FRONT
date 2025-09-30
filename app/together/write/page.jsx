@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PostEventMiniCard from "@/components/global/PostEventMiniCard";
 import TogetherWriteForm from "@/components/together/TogetherWriteForm";
@@ -15,7 +15,7 @@ import togetherApi from "@/lib/api/togetherApi";
 import { getEventById } from "@/lib/api/eventApi";
 import { getEventMainImageUrl } from "@/lib/utils/imageUtils";
 
-export default function TogetherRecruitmentPage() {
+function TogetherRecruitmentPageContent() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [title, setTitle] = useState("");
@@ -451,5 +451,13 @@ export default function TogetherRecruitmentPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function TogetherRecruitmentPage() {
+  return (
+    <Suspense fallback={<div className="max-w-4xl mx-auto px-4 py-8">로딩 중...</div>}>
+      <TogetherRecruitmentPageContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import MainSearchBar from "@/components/global/MainSearchBar";
 import EventList from "@/components/events/EventList";
@@ -8,7 +8,7 @@ import TogetherList from "@/components/together/TogetherList";
 import { getEvents } from "@/lib/api/eventApi";
 import togetherApi from "@/lib/api/togetherApi";
 
-export default function TotalSearch() {
+function TotalSearchContent() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -367,5 +367,13 @@ export default function TotalSearch() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TotalSearch() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">로딩 중...</div>}>
+      <TotalSearchContent />
+    </Suspense>
   );
 }

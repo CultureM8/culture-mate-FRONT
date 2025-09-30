@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ROUTES } from "@/constants/path";
 import { authApi, authUtils } from "@/lib/api/authApi";
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp?.get("next") || ROUTES.LOGIN || "/login";
@@ -361,5 +361,13 @@ export default function SignUpPage() {
         </Link>
       </p>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md px-6 py-10">로딩 중...</div>}>
+      <SignUpPageContent />
+    </Suspense>
   );
 }

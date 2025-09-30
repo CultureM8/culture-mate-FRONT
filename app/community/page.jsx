@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
@@ -16,7 +16,7 @@ const { getBoardList, searchBoards, transformBoardList } = boardApi;
 
 const PAGE_SIZE = 30;
 
-export default function CommunityListTablePage() {
+function CommunityListTablePageContent() {
   const [title, intro] = ["커뮤니티", "자유게시판"];
 
   const router = useRouter();
@@ -267,5 +267,13 @@ export default function CommunityListTablePage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function CommunityListTablePage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">로딩 중...</div>}>
+      <CommunityListTablePageContent />
+    </Suspense>
   );
 }

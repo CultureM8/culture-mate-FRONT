@@ -18,7 +18,7 @@ import ListLayout from "@/components/global/ListLayout";
 import EventReviewList from "@/components/events/detail/review/EventReviewList";
 import EventReviewModal from "@/components/events/detail/review/EventReviewModal";
 import { getEventById } from "@/lib/api/eventApi";
-import { useState, useEffect, useContext } from "react";
+import { Suspense, useState, useEffect, useContext } from "react";
 import { LoginContext } from "@/components/auth/LoginProvider";
 import {
   getEventMainImageUrl,
@@ -145,7 +145,7 @@ const mapTogetherData = (together) => {
   };
 };
 
-export default function EventPageClient({ eventData: initialEventData }) {
+function EventPageClientContent({ eventData: initialEventData }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const loginContext = useContext(LoginContext);
@@ -598,5 +598,13 @@ export default function EventPageClient({ eventData: initialEventData }) {
         )}
       </div>
     </>
+  );
+}
+
+export default function EventPageClient({ eventData: initialEventData }) {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">로딩 중...</div>}>
+      <EventPageClientContent eventData={initialEventData} />
+    </Suspense>
   );
 }

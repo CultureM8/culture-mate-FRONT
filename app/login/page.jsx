@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useLogin from "@/hooks/useLogin";
 import { ROUTES, IMAGES } from "@/constants/path";
 import Image from "next/image";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -209,5 +209,13 @@ export default function LoginPage() {
         </div> */}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center">로딩 중...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

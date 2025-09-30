@@ -11,6 +11,7 @@
   "dependencies": {
     "@stomp/stompjs": "^7.1.1",
     "axios": "^1.11.0",
+    "critters": "^0.0.23",
     "dompurify": "^3.2.6",
     "next": "^15.5.4",
     "react": "19.1.0",
