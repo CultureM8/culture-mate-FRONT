@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Docker 배포를 위한 standalone 모드 활성화
+  output: "standalone",
+
   async rewrites() {
     // 환경 변수에서 백엔드 URL 가져오기 (기본값: localhost:8080)
     const backendUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
