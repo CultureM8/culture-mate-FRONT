@@ -4,6 +4,7 @@ import { ICONS, IMAGES } from "@/constants/path";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { getImagePlaceholderProps } from "@/lib/utils/imageUtils";
 
 export default function ListComponent({
   src,
@@ -31,16 +32,20 @@ export default function ListComponent({
     if(typeof onInterestClick == "function") onInterestClick();
   }
   
+  // 이미지 소스 처리
+  const imageSrc = src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG;
+
   // 공통 컨텐츠
   const content = (
     <div className="mx-[10px] py-[10px] overflow-hidden whitespace-nowrap text-ellipsis text-gray-400 flex">
       <div className="relative">
         <Image
-          src={src && src.trim() !== "" ? src : IMAGES.GALLERY_DEFAULT_IMG}
+          src={imageSrc}
           alt={alt}
           width={120}
           height={120}
           className={`w-[120px] h-[120px] rounded-xl object-cover ${isClosed ? "grayscale" : ""}`}
+          {...getImagePlaceholderProps(imageSrc)}
         />
         {isClosed && (
           <div className="absolute inset-0 bg-white/50 rounded-xl pointer-events-none" />

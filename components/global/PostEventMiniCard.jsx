@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ICONS } from "@/constants/path";
 import StarScore from "@/components/ui/StarScore";
 import { getEventTypeLabel } from "@/constants/eventTypes";
+import { getImagePlaceholderProps } from "@/lib/utils/imageUtils";
 
 export default function PostEventMiniCard({
   eventImage = "/img/default_img.svg", // 기본 디폴트 이미지
@@ -61,7 +62,13 @@ export default function PostEventMiniCard({
         <div className="w-32 h-40 bg-white flex-shrink-0 p-2 mb-2 ml-2">
           <div className="relative w-full h-full">
             {/* eslint-disable-next-line @next/next/no-img-element 이미지 경고제거 주석*/}
-            <Image src={eventImage} alt={alt} fill className="object-cover" />
+            <Image
+              src={eventImage}
+              alt={alt}
+              fill
+              className="object-cover"
+              {...getImagePlaceholderProps(eventImage)}
+            />
           </div>
         </div>
 
