@@ -22,7 +22,7 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    url: 'https://culturemate.kafolio.kr',
+    url: 'https://culturemate.khoon.kr',
     title: '컬쳐메이트 - CultureM8',
     description: '좋아하는 전시, 공연, 페스티벌을 찾아보고 함께 즐길 친구를 만나보세요',
     siteName: '컬쳐메이트',
