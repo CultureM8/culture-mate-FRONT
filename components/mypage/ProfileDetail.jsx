@@ -481,20 +481,23 @@ function TagContainer({
 
 // GalleryContainer 컴포넌트
 function GalleryContainer({ editMode = false }) {
+  const { user } = useLogin();
   const [images, setImages] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [visibility, setVisibility] = useState('공개');
   const [loading, setLoading] = useState(false);
-  
-  // 현재 로그인한 사용자 ID (실제로는 Context나 localStorage에서 가져와야 함)
-  const currentUserId = 1; // 임시로 하드코딩
 
   // 컴포넌트 마운트 시 갤러리 이미지 로드
   useEffect(() => {
     const loadGalleryImages = async () => {
+      if (!user?.id) {
+        console.log('User ID not available for gallery:', user?.id);
+        return;
+      }
+
       try {
         setLoading(true);
-        const galleryImages = await getMemberGalleryImages(currentUserId);
+        const galleryImages = await getMemberGalleryImages(user.id);
         
         // API 응답을 컴포넌트에서 사용할 형태로 변환
         const formattedImages = galleryImages.map((imagePath, index) => ({
@@ -513,21 +516,26 @@ function GalleryContainer({ editMode = false }) {
     };
 
     loadGalleryImages();
-  }, [currentUserId]);
+  }, [user?.id]);
 
   const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files);
-    
+
     if (files.length === 0) return;
-    
+
+    if (!user?.id) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       // 백엔드에 이미지 업로드
-      await uploadMemberGalleryImages(currentUserId, files);
-      
+      await uploadMemberGalleryImages(user.id, files);
+
       // 업로드 성공 시 갤러리 이미지 목록을 다시 로드
-      const updatedImages = await getMemberGalleryImages(currentUserId);
+      const updatedImages = await getMemberGalleryImages(user.id);
       const formattedImages = updatedImages.map((imagePath, index) => ({
         id: Date.now() + index,
         src: imagePath,
@@ -553,15 +561,20 @@ function GalleryContainer({ editMode = false }) {
   };
 
   const removeImage = async (imageToRemove) => {
+    if (!user?.id) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
     try {
       setLoading(true);
-      
+
       // 백엔드에서 이미지 삭제 (이미지 경로를 사용)
-      await deleteMemberGalleryImage(currentUserId, imageToRemove.src);
-      
+      await deleteMemberGalleryImage(user.id, imageToRemove.src);
+
       // 로컬 상태에서도 제거
       setImages(images.filter(img => img.id !== imageToRemove.id));
-      
+
     } catch (error) {
       console.error('이미지 삭제 실패:', error);
       alert('이미지 삭제에 실패했습니다.');
