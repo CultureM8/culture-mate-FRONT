@@ -18,7 +18,7 @@ jobs:
         script: |
           set -e
           
-          cd /home/ubuntu/culturemate-be
+          cd /home/ubuntu/culturemate-fe
           git pull origin main
           npm install
           npm run build
