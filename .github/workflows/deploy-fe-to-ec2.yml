@@ -17,7 +17,8 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           set -e
-          
+
+          export PATH=$PATH:/home/ubuntu/.nvm/versions/node/v22.16.0/bin
           cd /home/ubuntu/culturemate-fe
           git pull origin main
           npm install
