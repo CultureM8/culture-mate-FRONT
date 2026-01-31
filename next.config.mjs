@@ -3,30 +3,7 @@ const nextConfig = {
   // Docker 배포를 위한 standalone 모드 활성화
   output: "standalone",
 
-  async rewrites() {
-    // 환경 변수에서 백엔드 URL 가져오기 (기본값: localhost:8080)
-    const backendUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080";
-
-    return [
-      // ✅ 이미지 프록시
-      {
-        source: "/images/:path*",
-        destination: `${backendUrl}/images/:path*`,
-      },
-      // ✅ 일반 API (chatroom 포함)
-      {
-        source: "/api/:path*",
-        destination: `${backendUrl}/api/:path*`,
-      },
-      // ✅ SockJS/STOMP
-      {
-        source: "/websocket/:path*",
-        destination: `${backendUrl}/websocket/:path*`,
-      },
-    ];
-  },
-
-  // ✅ 이미지 도메인 허용 추가
+  // 이미지 도메인 허용
   images: {
     remotePatterns: [
       // 개발 환경 (HTTP)
