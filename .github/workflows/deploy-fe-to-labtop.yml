@@ -38,6 +38,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/culturemate-frontend:v${{ steps.pkg.outputs.VERSION }}
             ${{ vars.DOCKERHUB_USERNAME }}/culturemate-frontend:latest
